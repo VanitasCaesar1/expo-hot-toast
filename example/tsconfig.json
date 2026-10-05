@@ -1,0 +1,36 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    // `expo/tsconfig.base` sets no strictness flags, so this app would compile
+    // the library source under a laxer regime than the library's own tsconfig
+    // and report errors there that the library does not have. Align the two so
+    // the example is a valid typecheck of the same code.
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+
+    // Metro resolves the library through `extraNodeModules` in metro.config.js,
+    // which TypeScript does not read. Without this mapping every import of
+    // 'expo-hot-toast' fails to resolve and the example does not typecheck at all.
+    //
+    // The React Native packages are pinned to the *library's* copies on purpose.
+    // This app has its own node_modules, so `../src` would otherwise resolve
+    // `react-native` from the root tree while this app resolves its own — two
+    // declaration instances of the same version, and TypeScript treats them as
+    // unrelated types. That is the same dual-tree problem metro.config.js solves
+    // at runtime with `disableHierarchicalLookup`. Pointing both at one copy is
+    // what keeps Animated styles comparable across the two programs.
+    "paths": {
+      "expo-hot-toast": ["../src/index.ts"],
+      "react-native": ["../node_modules/react-native"],
+      "react-native-reanimated": ["../node_modules/react-native-reanimated"],
+      "react-native-worklets": ["../node_modules/react-native-worklets"],
+      "react-native-safe-area-context": [
+        "../node_modules/react-native-safe-area-context"
+      ],
+      "react-native-gesture-handler": [
+        "../node_modules/react-native-gesture-handler"
+      ]
+    }
+  }
+}

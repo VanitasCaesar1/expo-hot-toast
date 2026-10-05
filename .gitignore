@@ -1,0 +1,73 @@
+# Dependencies
+node_modules/
+
+# Build output (not currently produced — `main` points at src — but reserved)
+dist/
+build/
+lib/
+*.tsbuildinfo
+
+# Test output
+coverage/
+.nyc_output/
+
+# Expo / React Native
+.expo/
+.expo-shared/
+.expo/
+web-build/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.keystore
+*.der
+*.pem
+*.cer
+*.crt
+
+# Generated native projects.
+#
+# This repo uses Expo's continuous native generation: `npx expo run:ios`
+# prebuilds example/ios from example/app.json on demand. Committing the
+# generated output would add ~1.2GB of CocoaPods to every clone, and it would
+# drift out of date against app.json while looking authoritative.
+example/ios/
+example/android/
+ios/
+android/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment — no secrets belong in this repo, and nothing here needs one.
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# Local scratch
+.turbo/
+.cache/
+tmp/
+.eslintcache
