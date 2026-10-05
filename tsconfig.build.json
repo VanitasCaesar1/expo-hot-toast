@@ -1,0 +1,18 @@
+{
+  // Used only by `bob build` for the .d.ts pass (see the `typescript` target in
+  // package.json). It exists to narrow `include` to src alone.
+  //
+  // The root tsconfig.json includes __tests__ so `npm run typecheck` covers the
+  // suite. builder-bob's typescript target shells out to `tsc --project <this
+  // file>`, so without a separate config it inherits that `include` and emits
+  // 64 declaration files for the tests into the published package. bob's
+  // `exclude` only guards the babel (JS) targets, not this one.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    // src/ uses no test globals; depending on vitest/globals here would make the
+    // published build require a devDependency it does not otherwise need.
+    "types": []
+  },
+  "include": ["src"]
+}

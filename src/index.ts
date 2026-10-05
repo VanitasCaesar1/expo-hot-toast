@@ -41,7 +41,13 @@ export {
   DEFAULT_TOASTER_ID,
   REMOVE_DELAY,
 } from './core/store';
-export type { ToasterState, ToasterSettings, Action, ActionType } from './core/store';
+export type {
+  ToasterState,
+  ToasterSettings,
+  Action,
+  ActionType,
+  DropPolicy,
+} from './core/store';
 
 /* Theming */
 export {
@@ -53,6 +59,9 @@ export {
   resolveTheme,
   useToastTheme,
 } from './theme/tokens';
+// `resolveTheme`'s parameter type is part of its public signature, so a
+// consumer composing an options object programmatically needs to name it.
+export type { ResolveThemeOptions } from './theme/tokens';
 export { toastCssVars, toastCssVarsForScheme, CSS_VAR_PREFIX } from './theme/css-vars';
 export type { ToastCssVars } from './theme/css-vars';
 
@@ -73,11 +82,14 @@ export { triggerToastHaptic } from './utils/haptics';
 export type {
   DefaultToastOptions,
   DismissReason,
+  DurationPreset,
   GlassConfig,
   MotionConfig,
   Renderable,
   ResolvedTheme,
   Toast,
+  // Backs `ToastOptions.action` and `Toast.action`.
+  ToastAction,
   ToastOptions,
   ToastPosition,
   ToastTheme,

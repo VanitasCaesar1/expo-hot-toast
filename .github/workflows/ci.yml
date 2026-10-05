@@ -56,3 +56,50 @@ jobs:
         working-directory: example
       - run: npx tsc --noEmit
         working-directory: example
+
+  package:
+    name: Build + package integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Guards the packaging itself, which unit tests cannot reach. Each of
+      # these has actually broken during development:
+      #   - test declarations leaking into the tarball, because bob's typescript
+      #     target reads the root tsconfig (which includes __tests__) while its
+      #     `exclude` only guards the babel targets;
+      #   - `main`/`types` pointing at a path that does not exist;
+      #   - a declared entry file silently absent from the artifact.
+      - name: Assert artifact integrity
+        run: |
+          set -euo pipefail
+          node scripts/verify-package.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: expo-hot-toast-package
+          path: lib/
+          retention-days: 7
+
+  consumer:
+    name: Consumer typecheck (published tarball)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Installs the packed tarball into a throwaway project and typechecks a
+      # consumer against it, under both `bundler` (Metro/webpack) and `node16`
+      # (strictest exports-map check). This is what proves the `exports` map's
+      # `types` conditions and the .d.ts files actually work for a real user —
+      # the source tree passing tsc proves nothing about that.
+      - run: node scripts/verify-consumer.mjs
+

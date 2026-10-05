@@ -18,12 +18,23 @@ await toast.promise(save(), {
 
 ## Install
 
+Not yet on npm. Until it is, install it from GitHub — the published tarball is
+built, so Metro will resolve the compiled output and the source maps:
+
+```sh
+npm install github:VanitasCaesar1/expo-hot-toast
+```
+
+Its peers are not installed automatically, so add them too:
+
 ```sh
 npx expo install expo-glass-effect expo-haptics react-native-reanimated \
   react-native-gesture-handler react-native-safe-area-context react-native-svg
 ```
 
 Requires Expo SDK 55+ (SDK 57 recommended), React 19, RN 0.80+.
+`react-native-safe-area-context` must be **>=5.10.0** — 5.0.0 does not compile
+against RN 0.86's Yoga (`no member named 'unit' in 'facebook::yoga::StyleLength'`).
 Add the Reanimated Babel plugin and wrap your app in `GestureHandlerRootView`
 and `SafeAreaProvider` — see the Reanimated and Gesture Handler setup docs.
 
@@ -81,6 +92,14 @@ const toastTheme = { colors: { toast: vars } };
 `resolveTheme()` is pure and safe outside a component; `useToastTheme()` is the
 hook form with automatic light/dark.
 
+```ts
+// resolveTheme takes a single options object, not positional arguments
+const t = resolveTheme({ colorScheme: 'dark', theme: { radius: 12 } });
+
+// useToastTheme(themeOverride?, colorScheme?)
+const t2 = useToastTheme({ radius: 12 });
+```
+
 ### RN affordances the web version has no concept of
 
 Safe-area insets (a top-anchored toast would otherwise sit inside the Dynamic
@@ -123,6 +142,23 @@ Headless access for building your own renderer:
 
 ```ts
 const { toasts } = useToaster({ toastOptions, toasterId });
+```
+
+Signatures that are stricter than they look, so you are not surprised by tsc:
+
+| Export | Signature | Note |
+|---|---|---|
+| `resolveTheme` | `({ theme?, colorScheme? }) => ToastTheme` | one options object, not positional |
+| `useToastTheme` | `(themeOverride?, colorScheme?) => ToastTheme` | both optional; reads `useColorScheme` when omitted |
+| `useGlassMode` | `(enabled: boolean) => 'glass' \| 'opaque'` | you pass the `glass` setting in |
+| `announce` | `(message: string, assertive: boolean) => void` | `assertive` is **required and positional** |
+| `<Toaster colorScheme>` | `'light' \| 'dark'` | there is no `'system'` — the default follows the OS, and this forces it |
+
+`closeButton` (and its `closeable` alias) is a **per-toast** option reached
+through `toastOptions`, not a top-level `<Toaster>` prop:
+
+```tsx
+<Toaster toastOptions={{ closeButton: true }} />
 ```
 
 ## Upstream bugs fixed in the port
@@ -247,10 +283,15 @@ behind these choices is in [`RESEARCH.md`](./RESEARCH.md).
 npm test                 # 284 tests
 npm run typecheck
 npm run typecheck:example
+npm run verify:package   # tarball integrity
+npm run verify:consumer  # consumer typechecks against the packed tarball
 ```
 
-Three gates. The example is typechecked against the library's real public types,
-which is what catches a broken API without needing a device.
+Five gates. The example is typechecked against the library's real public types,
+and `verify:consumer` installs the packed tarball into a throwaway project and
+typechecks a consumer against it under both `moduleResolution: bundler` (Metro,
+webpack, Expo) and `node16` (strictest exports-map check). Unit tests cannot
+reach any of that — they run against `src/`, while users get `lib/`.
 
 Two runners, split by what they need. Vitest covers the pure logic — reducer,
 option resolution, `toast.promise`, toasterId routing, theme merging — because it
@@ -271,9 +312,6 @@ shape morphing, `glassEffectTransition`, `.glass` / `.glassProminent` button
 styles, and automatic label-colour adaptation. Android gets a designed opaque
 surface, not an imitation refraction.
 
-- **No build pipeline yet.** `main` points at `src/index.ts`, which is correct
-  for an Expo app consuming the package from source, but publishing to npm needs
-  a compile step and generated declarations.
 - **The glass stack has never been seen on a device.** Everything that can be
   asserted without hardware is asserted — all three fallback rungs, the
   `GlassContainer` merge, the Reduce Transparency path through the public API —
@@ -281,6 +319,42 @@ surface, not an imitation refraction.
   The example app exists and `npx expo config` validates, but `expo run:ios` is
   blocked by two React Native 0.86 / Xcode 27 toolchain failures unrelated to
   this package. See `example/README.md`.
+- **Toasts do not appear above a presented modal sheet.** `FullWindowOverlay`
+  would fix it and needs `react-native-screens`; deferred rather than coupled.
+- **No in-place `transition()`.** A cross-dissolve needs
+  `snapshotView(afterScreenUpdates:)`, a UIKit primitive. The nearest RN
+  equivalent is an opacity animation that cannot touch the glass, and a
+  cross-fade through a translucent material reads as wrong rather than smooth.
+
+## Build and release
+
+`main` is a compiled CommonJS build, `module` is ESM, `types` is generated, and
+the `react-native` export condition points at `src/index.ts` so Metro consumes
+the TypeScript source directly — which is what keeps Reanimated worklets working.
+
+```sh
+npm run build            # bob: commonjs + module + typescript
+npm run verify:package   # assert the tarball is publishable
+npm run verify:consumer  # typecheck a consumer against the packed tarball
+npm publish              # prepublishOnly runs test + typecheck + build first
+```
+
+`verify:consumer` is the one that matters most. `npm run typecheck` passing
+proves only that `src/` is internally consistent; it says nothing about whether
+the `exports` map's `types` conditions resolve or whether the `.d.ts` files were
+emitted where `main` claims. All three of those broke while building this
+package, and none is reachable from a unit test.
+
+Two things that look like bugs and are not:
+
+- **`bob build` always warns** `The esm option is disabled, but the
+  exports['.'].require field is set`. `esm` defaults to `false` in bob's shared
+  `compile()`, and the `commonjs` target never sets it — so any library
+  publishing both formats trips this unconditionally. Verified in bob 0.43.1.
+- **Type declarations are emitted twice**, under `lib/typescript/commonjs/` and
+  `lib/typescript/module/`, because the two formats need separate declaration
+  trees under `"type": "module"`. `types` and each `exports` condition point at
+  the matching one; bob validates these paths and fails the build if they drift.
 
 ## Dependency resolution
 
