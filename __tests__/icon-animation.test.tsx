@@ -1,4 +1,4 @@
-import { render, screen, cleanup } from '@testing-library/react-native';
+import { act, render, screen, cleanup } from '@testing-library/react-native';
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import * as Reanimated from 'react-native-reanimated';
 import { ToastIcon, CHECK_PATH_LENGTH } from '../src/components/icons';
@@ -217,13 +217,75 @@ describe('ToastBar icon pop', () => {
       />,
     );
 
+    // Final state: no pop style at all, so nothing is scaled or faded.
     const wrapper = hosts('View').find((node) => flattened(node.props.style).marginRight === 7)!;
-    expect(flattened(wrapper.props.style).opacity).toBe(1);
-    expect(flattened(wrapper.props.style).transform).toEqual([{ scale: 1 }]);
+    expect(flattened(wrapper.props.style).opacity ?? 1).toBe(1);
+    expect(flattened(wrapper.props.style).transform ?? [{ scale: 1 }]).toEqual([{ scale: 1 }]);
     expect(popStarts(spies)).toHaveLength(0);
     // And the glyph inside draws no animation either.
     expect(hosts('Path')[0]!.props.animatedProps.strokeDashoffset).toBe(0);
     expect(spies.delay).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Once an animation finishes, the bar stops passing its animated style, so the
+ * view's own props carry the settled state. On Android (Reanimated 4.5, Fabric)
+ * a later commit could otherwise restore the style's first value, opacity 0: a
+ * promise toast that loaded for a few seconds resolved to an empty pill.
+ */
+describe('settled styles are handed back to React', () => {
+  const popTheme = mergeTheme(defaultTheme, { motion: { iconPop: 777, iconPopDelay: 333 } });
+  /** Completes every recorded `withTiming` that targets `to`, as the UI thread would. */
+  function finishTimings(spy: jest.SpiedFunction<typeof Reanimated.withTiming>, to: number) {
+    act(() => {
+      for (const call of spy.mock.calls) {
+        const done = call[2] as ((finished?: boolean) => void) | undefined;
+        if (call[0] === to && done) done(true);
+      }
+    });
+  }
+  const contentView = () =>
+    hosts('View').find((node) => {
+      const style = flattened(node.props.style);
+      return style.flexShrink === 1 && style.flexDirection === 'row' && style.gap === undefined && style.paddingVertical === undefined;
+    })!;
+  const iconWrapper = () => hosts('View').find((node) => flattened(node.props.style).marginRight === 7)!;
+
+  it('drops the content fade once the enter finishes', () => {
+    const timing = jest.spyOn(Reanimated, 'withTiming');
+    render(<Bar toast={makeToast()} theme={popTheme} />);
+    expect(flattened(contentView().props.style).opacity).toBe(0);
+
+    finishTimings(timing, 1);
+    expect(flattened(contentView().props.style).opacity).toBeUndefined();
+  });
+
+  it('puts the fade back for the exit', () => {
+    const timing = jest.spyOn(Reanimated, 'withTiming');
+    const { rerender } = render(<Bar toast={makeToast()} theme={popTheme} />);
+    finishTimings(timing, 1);
+
+    rerender(<Bar toast={makeToast({ visible: false, dismissed: true })} theme={popTheme} />);
+    expect(flattened(contentView().props.style).opacity).toBeDefined();
+  });
+
+  it('drops the icon pop once it lands, and brings it back for an in-place type change', () => {
+    const timing = jest.spyOn(Reanimated, 'withTiming');
+    const toast = (type: Toast['type']) => makeToast({ type, iconStyle: { marginRight: 7 } });
+    const { rerender } = render(<Bar toast={toast('loading')} theme={popTheme} />);
+    finishTimings(timing, 1);
+    expect(flattened(iconWrapper().props.style).transform).toBeUndefined();
+
+    // The pop style is back while the new glyph pops (the stub has already
+    // collapsed its timing to the end value, so only its presence is checked).
+    rerender(<Bar toast={toast('success')} theme={popTheme} />);
+    expect(flattened(iconWrapper().props.style).transform).toBeDefined();
+
+    finishTimings(timing, 1);
+    expect(flattened(iconWrapper().props.style).transform).toBeUndefined();
+    // The content stayed settled through the type change.
+    expect(flattened(contentView().props.style).opacity).toBeUndefined();
   });
 });
 

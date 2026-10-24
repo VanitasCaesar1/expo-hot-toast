@@ -170,13 +170,26 @@ export const ToastBar = React.memo(function ToastBar({
   //
   // `fling` is read here, in the effect, never during render: Reanimated warns
   // (and may tear) when a shared value is read while React is rendering.
+  //
+  // `contentSettled` hands the content's opacity back to React once the enter
+  // finishes; see `contentStyle` below for why.
+  const [contentSettled, setContentSettled] = React.useState(false);
   React.useEffect(() => {
-    presence.value = isVisible
-      ? withTiming(1, { duration: motion.enter, easing: motion.enterEasing })
-      : withTiming(0, {
-          duration: exitDurationFor(motion, fling.value),
-          easing: motion.exitEasing,
-        });
+    if (isVisible) {
+      presence.value = withTiming(
+        1,
+        { duration: motion.enter, easing: motion.enterEasing },
+        (finished) => {
+          if (finished) runOnJS(setContentSettled)(true);
+        },
+      );
+    } else {
+      setContentSettled(false);
+      presence.value = withTiming(0, {
+        duration: exitDurationFor(motion, fling.value),
+        easing: motion.exitEasing,
+      });
+    }
   }, [isVisible, motion, presence, fling]);
 
   /**
@@ -217,17 +230,22 @@ export const ToastBar = React.memo(function ToastBar({
   const toastType = toast.type;
   // Primitives rather than `motion`: the Toaster builds a new theme object every
   // render, which would restart the pop on every unrelated state change.
+  const [iconSettled, setIconSettled] = React.useState(reduceMotion);
   React.useEffect(() => {
     if (reduceMotion) {
       iconPop.value = 1;
+      setIconSettled(true);
       return;
     }
     // The exit fades the whole content; replaying the pop under it would be noise.
     if (!isVisible) return;
+    setIconSettled(false);
     iconPop.value = 0;
     iconPop.value = withDelay(
       iconPopDelay,
-      withTiming(1, { duration: iconPopMs, easing: iconEasing }),
+      withTiming(1, { duration: iconPopMs, easing: iconEasing }, (finished) => {
+        if (finished) runOnJS(setIconSettled)(true);
+      }),
     );
   }, [isVisible, toastType, reduceMotion, iconPopMs, iconPopDelay, iconEasing, iconPop]);
 
@@ -240,6 +258,14 @@ export const ToastBar = React.memo(function ToastBar({
 
   // Clamped because the enter curve overshoots: content may not exceed full
   // opacity while the material settles.
+  //
+  // Applied only while an enter or exit is running. React rendered this view
+  // with the style's first value, opacity 0, and on Android (Reanimated 4.5 on
+  // Fabric) a later commit could put that value back after the animation had
+  // finished: a promise toast that had been loading for a few seconds resolved
+  // to an empty pill, its text laid out but drawn at opacity 0. With the style
+  // removed once settled, React's props carry the settled state themselves.
+  // The icon pop's style is handed back the same way.
   const contentStyle = useAnimatedStyle(() => ({
     opacity: Math.min(Math.max(presence.value, 0), 1),
   }));
@@ -333,7 +359,7 @@ export const ToastBar = React.memo(function ToastBar({
     iconKind === 'success' || iconKind === 'error' || iconKind === 'loading';
   // `icon: null` hides the icon, glyph included, as in react-hot-toast.
   const defaultIcon = toast.icon === null || (resolvedIcon == null && !hasGlyph) ? null : (
-    <Animated.View style={[styles.icon, toast.iconStyle, iconPopStyle]}>
+    <Animated.View style={[styles.icon, toast.iconStyle, iconSettled ? null : iconPopStyle]}>
       {resolvedIcon ?? (
         <ToastIcon
           kind={iconKind}
@@ -515,7 +541,9 @@ export const ToastBar = React.memo(function ToastBar({
                 exitDuration={motion.exit}
                 style={StyleSheet.absoluteFill}
               />
-              <Animated.View style={[styles.content, contentStyle]}>{content}</Animated.View>
+              <Animated.View style={[styles.content, contentSettled ? null : contentStyle]}>
+                {content}
+              </Animated.View>
             </View>
           </Pressable>
         </Animated.View>
