@@ -1,11 +1,11 @@
-import { render, screen, act, fireEvent } from '@testing-library/react-native';
+import { render, renderHook, screen, act, fireEvent } from '@testing-library/react-native';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { AccessibilityInfo, StyleSheet } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet } from 'react-native';
 import { Toaster, stackShifts, STACK_PEEK } from '../src/components/toaster';
 import { toast } from '../src/core/toast';
 import { __resetStore } from '../src/core/store';
 import { __resetIdCounter } from '../src/core/ids';
-import { __resetAccessibilityCache } from '../src/utils/a11y';
+import { __resetAccessibilityCache, useScreenReaderEnabled } from '../src/utils/a11y';
 
 beforeEach(() => {
   __resetStore();
@@ -115,5 +115,33 @@ describe('<Toaster stacked>', () => {
     });
     three();
     expect(contentOpacity('second')).toBeUndefined();
+  });
+});
+
+describe('useScreenReaderEnabled', () => {
+  async function read(os: string, reported: boolean): Promise<boolean> {
+    const platform = Platform as { OS: string };
+    const original = platform.OS;
+    platform.OS = os;
+    __resetAccessibilityCache();
+    jest.spyOn(AccessibilityInfo, 'isScreenReaderEnabled').mockResolvedValue(reported);
+    try {
+      const { result } = renderHook(() => useScreenReaderEnabled());
+      await act(async () => {
+        await Promise.resolve();
+      });
+      return result.current;
+    } finally {
+      platform.OS = original;
+    }
+  }
+
+  it('reports a running screen reader on iOS and Android', async () => {
+    expect(await read('ios', true)).toBe(true);
+    expect(await read('android', true)).toBe(true);
+  });
+
+  it('ignores react-native-web, which reports one unconditionally', async () => {
+    expect(await read('web', true)).toBe(false);
   });
 });

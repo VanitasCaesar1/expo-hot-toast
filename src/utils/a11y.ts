@@ -163,5 +163,9 @@ export function announce(message: string, assertive: boolean): void {
  * front one, which a screen reader user would never get to.
  */
 export function useScreenReaderEnabled(): boolean {
-  return useAccessibilityFlag(SCREEN_READER_KEY, queryScreenReader, 'screenReaderChanged');
+  const enabled = useAccessibilityFlag(SCREEN_READER_KEY, queryScreenReader, 'screenReaderChanged');
+  // A browser cannot tell whether a screen reader is running, and React Native
+  // Web answers true unconditionally, which kept every stacked Toaster on the
+  // web fanned out. There the answer carries no information, so it is ignored.
+  return Platform.OS !== 'web' && enabled;
 }
