@@ -269,7 +269,9 @@ export function useToaster({
     const subscription = AppState.addEventListener(
       'change',
       (next: AppStateStatus) => {
-        if (isBackgrounded(wasActive.current) && next === 'active') {
+        // A paused region has no deadlines running; its paused time is only
+        // credited on END_PAUSE, so checking now would expire everything.
+        if (isBackgrounded(wasActive.current) && next === 'active' && pausedAt === undefined) {
           const now = Date.now();
           // Visible toasts only, with the same budget as the timers below. A
           // pending toast has not been seen yet, so it cannot have expired.
@@ -284,7 +286,7 @@ export function useToaster({
       },
     );
     return () => subscription.remove();
-  }, [visible, toasterId, motion, visibleSince]);
+  }, [visible, toasterId, motion, visibleSince, pausedAt]);
 
   /**
    * Timers, armed for visible toasts only.

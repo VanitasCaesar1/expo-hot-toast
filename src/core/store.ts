@@ -201,12 +201,20 @@ export function getState(toasterId: string = DEFAULT_TOASTER_ID): ToasterState {
   return readState(toasterId);
 }
 
-/** The region currently holding a toast with this id, if any. */
+/**
+ * The region currently holding a toast with this id, if any. A live copy wins
+ * over one that is only playing its exit, so an update reaches the toast the
+ * user can still see.
+ */
 export function findToasterIdFor(toastId: string): string | undefined {
+  let exiting: string | undefined;
   for (const [toasterId, state] of memoryState) {
-    if (state.toasts.some((t) => t.id === toastId)) return toasterId;
+    const match = state.toasts.find((t) => t.id === toastId);
+    if (!match) continue;
+    if (!match.dismissed) return toasterId;
+    exiting ??= toasterId;
   }
-  return undefined;
+  return exiting;
 }
 
 function emit(toasterId: string): void {
@@ -332,14 +340,17 @@ export function resolveToast(
   pick('accessibilityLabel');
   pick('dismissOnTap');
   // `closeButton` is the canonical name; `closeable` is honoured as an alias
-  // from any of the three sources, so an existing caller using the old name at
-  // any level keeps working.
-  pick('closeButton');
-  if (draft.closeButton === undefined) {
-    const legacy =
-      toast.closeable ?? typeOptions.closeable ?? toastOptions.closeable;
-    if (typeof legacy === 'boolean') draft.closeButton = legacy;
-  }
+  // at every level, and each level's own value (under either name) beats the
+  // level below it.
+  put(
+    draft,
+    'closeButton',
+    toast.closeButton ??
+      toast.closeable ??
+      typeOptions.closeButton ??
+      typeOptions.closeable ??
+      ((toastOptions.closeButton ?? toastOptions.closeable) as boolean | undefined),
+  );
   pick('closeButtonColor');
   pick('important');
   pick('action');

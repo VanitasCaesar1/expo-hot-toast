@@ -245,3 +245,30 @@ describe('updating by id', () => {
     expect(getState().toasts[0]!.dismissReason).toBeUndefined();
   });
 });
+
+describe('dedupe — updates by id are never suppressed', () => {
+  it('lets toast.promise with a dedupeKey show its outcome', async () => {
+    // Regression: the success update carried the same dedupeKey, was deduped
+    // against its own loading toast, and the loading spinner never ended.
+    toast.promise(Promise.resolve('ok'), { loading: 'Saving', success: 'Saved' }, {
+      dedupeKey: 'save',
+    });
+    await vi.runAllTimersAsync();
+
+    expect(getState().toasts.map((t) => [t.type, t.message])).toEqual([['success', 'Saved']]);
+  });
+});
+
+describe('updating by id — two regions holding the same id', () => {
+  it('prefers the live copy over one that is exiting', () => {
+    toast('a', { id: 'x', toasterId: 'A', duration: 'infinite' });
+    toast('b', { id: 'x', toasterId: 'B', duration: 'infinite' });
+    toast.dismiss('x', 'A');
+
+    toast.success('c', { id: 'x' });
+
+    expect(getState('B').toasts[0]).toMatchObject({ type: 'success', dismissed: false });
+    expect(getState('A').toasts[0]).toMatchObject({ type: 'blank', dismissed: true });
+  });
+});
+

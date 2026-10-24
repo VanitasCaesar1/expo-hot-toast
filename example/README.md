@@ -1,14 +1,27 @@
 # Example app
 
-A single plain screen for trying the library and for recording demos: success,
-error, `toast.promise` resolving and rejecting, a toast with an Undo action, a
-`glass: false` toast for the opaque rung, and dismiss-all. It follows the system
+A single plain screen for trying the library and for recording demos, with one
+row per feature: success, error, `toast.promise` resolving and rejecting, an
+Undo action, a burst that fills the queue, deduplication, a bottom toast, the
+opaque surface, a close button and a custom element. It follows the system
 light/dark setting.
 
 ```sh
 cd example
 npm install
-npx expo run:ios
+npx expo run:ios        # or: npx expo run:android
+```
+
+## Automated run
+
+`.maestro/smoke.yaml` taps through every row and screenshots the result, and
+`.maestro/dark.yaml` repeats the main surfaces in dark mode. CI runs both on an
+Android emulator (`.github/workflows/android.yml`) through
+`scripts/android-smoke.sh`. With [Maestro](https://maestro.mobile.dev) installed
+and the app running on a simulator or emulator, run them locally with:
+
+```sh
+maestro test .maestro/smoke.yaml
 ```
 
 ## Version pins that are not optional

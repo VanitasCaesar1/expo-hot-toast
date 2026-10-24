@@ -1,4 +1,5 @@
 import { act, cleanup, renderHook } from '@testing-library/react-native';
+import { AppState } from 'react-native';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { defaultMotion, defaultTimeouts, durationPresets } from '../src/core/defaults';
 import { __resetIdCounter } from '../src/core/ids';
@@ -988,6 +989,75 @@ describe('useToaster — motion override', () => {
       jest.advanceTimersByTime(EPSILON * 2);
     });
     expect(result.current.toasts[0]!.dismissed).toBe(true);
+  });
+});
+
+describe('useToaster — returning from the background', () => {
+  /** Captures the AppState listener the hook registers, so a resume can be simulated. */
+  function captureAppState() {
+    const listeners: Array<(state: string) => void> = [];
+    jest.spyOn(AppState, 'addEventListener').mockImplementation(((
+      _event: string,
+      listener: (state: string) => void,
+    ) => {
+      listeners.push(listener);
+      return { remove: () => listeners.splice(listeners.indexOf(listener), 1) };
+    }) as never);
+    return {
+      resumeAfter(ms: number) {
+        act(() => {
+          listeners.forEach((l) => l('background'));
+          jest.setSystemTime(Date.now() + ms);
+          listeners.forEach((l) => l('active'));
+        });
+      },
+    };
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('expires a visible toast whose deadline passed while suspended', () => {
+    const app = captureAppState();
+    const { result } = renderHook(() => useToaster());
+    act(() => {
+      toast('stale', { duration: 1000 });
+    });
+
+    app.resumeAfter(60_000);
+
+    expect(result.current.toasts[0]!.dismissed).toBe(true);
+    expect(result.current.toasts[0]!.dismissReason).toBe('timeout');
+  });
+
+  it('leaves a queued toast alone: it has not been seen yet', () => {
+    const app = captureAppState();
+    const { result } = renderHook(() => useToaster({ visibleToasts: 1 }));
+    act(() => {
+      toast('waiting', { duration: 1000 });
+      toast('front', { duration: 'infinite' });
+    });
+
+    app.resumeAfter(60_000);
+
+    expect(result.current.pending.map((t) => [t.message, t.dismissed])).toEqual([
+      ['waiting', false],
+    ]);
+  });
+
+  it('expires nothing while the region is paused', () => {
+    // Regression: paused time is only credited on END_PAUSE, so a resume while
+    // paused saw every deadline as long gone and dismissed the lot.
+    const app = captureAppState();
+    const { result } = renderHook(() => useToaster({ paused: true }));
+    act(() => {
+      toast('held', { duration: 1000 });
+    });
+
+    app.resumeAfter(60_000);
+
+    expect(result.current.toasts[0]!.dismissed).toBe(false);
   });
 });
 

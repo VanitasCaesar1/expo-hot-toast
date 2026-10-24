@@ -229,6 +229,12 @@ describe('resolveToast — the toast always beats a Toaster default', () => {
     expect(resolved[key]).toBe(own);
   });
 
+  it('lets the toast\'s own closeable (the old name) beat a Toaster closeButton', () => {
+    expect(resolveToast(baseToast({ closeable: false }), { closeButton: true }).closeButton)
+      .toBe(false);
+    expect(resolveToast(baseToast(), { closeable: true }).closeButton).toBe(true);
+  });
+
   it('keeps icon: null instead of falling back to a default icon', () => {
     const resolved = resolveToast(baseToast({ icon: null }), { icon: 'theirs' });
     expect(resolved.icon).toBeNull();

@@ -115,7 +115,10 @@ const toasterIdFor = (toast: Toast): string =>
  * them exactly what is happening.
  */
 function dedupe(opts: ToastOptions | undefined): string | null {
-  if (opts?.dedupeKey === undefined) return null;
+  // An explicit id is an update to that toast, not a new one to suppress.
+  // Without this, `toast.promise` with a `dedupeKey` deduped its own success
+  // update against the loading toast and spun forever.
+  if (opts?.dedupeKey === undefined || opts.id !== undefined) return null;
 
   const toasterId = opts.toasterId ?? DEFAULT_TOASTER_ID;
   const hit = findDedupeHit(

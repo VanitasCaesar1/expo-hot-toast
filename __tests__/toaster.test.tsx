@@ -1,6 +1,6 @@
 import { render, screen, act, within } from '@testing-library/react-native';
 import * as React from 'react';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Platform, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Toaster } from '../src/components/toaster';
@@ -229,6 +229,10 @@ describe('Toaster — haptics', () => {
 describe('Toaster — haptics on Android', () => {
   // Regression: Android buzzed the success pattern for every blank and custom
   // toast, and an unsupported device turned the rejection into an unhandled one.
+  afterEach(() => {
+    // Restores Platform.OS as well as the spies, so later tests run on iOS.
+    jest.restoreAllMocks();
+  });
   it('stays silent for blank, custom and loading toasts', () => {
     jest.replaceProperty(Platform, 'OS', 'android');
     const notify = jest.spyOn(Haptics, 'notificationAsync');
@@ -250,13 +254,16 @@ describe('Toaster — haptics on Android', () => {
     expect(notify.mock.calls.map((call) => call[0])).toEqual(['success', 'error']);
   });
 
-  it('swallows a failed haptic', async () => {
+  it('handles a failed haptic', () => {
     jest.replaceProperty(Platform, 'OS', 'android');
-    jest.spyOn(Haptics, 'notificationAsync').mockRejectedValueOnce(new Error('no actuator'));
+    // Jest does not fail a test on an unhandled rejection, so assert that a
+    // handler was attached instead of waiting for one to surface.
+    const rejected = { catch: jest.fn() };
+    jest.spyOn(Haptics, 'notificationAsync').mockReturnValueOnce(rejected as never);
 
-    expect(() => triggerToastHaptic('error')).not.toThrow();
-    // Lets the rejection settle; an unhandled one would fail the run.
-    await Promise.resolve();
+    triggerToastHaptic('error');
+
+    expect(rejected.catch).toHaveBeenCalledTimes(1);
   });
 });
 

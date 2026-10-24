@@ -146,6 +146,11 @@ Found in a source audit (2026-10-24):
   its old dismiss reason.
 - Android buzzed the success haptic for blank and custom toasts, and a failed
   Android haptic was an unhandled rejection.
+- `toast.promise` with a `dedupeKey` deduped its own outcome against the loading
+  toast, which then spun forever. An update by id is never deduped.
+- Returning from the background while a region was paused (press-and-hold or
+  `paused`) expired every visible toast.
+- A toast's own `closeable: false` lost to a Toaster-level `closeButton: true`.
 
 ### Documentation
 
