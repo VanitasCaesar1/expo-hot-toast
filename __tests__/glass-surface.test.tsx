@@ -67,7 +67,11 @@ describe('GlassSurface', () => {
     expect(style.backgroundColor).toBe(defaultTheme.fallbackBackground);
     expect(style.borderColor).toBe(defaultTheme.border);
     expect(style.elevation).toBe(defaultTheme.elevation);
-    expect(style.overflow).toBe('hidden');
+    expect(style.borderRadius).toBe(defaultTheme.radius);
+    // Not clipped: on iOS `overflow: hidden` also clips the layer's own shadow,
+    // which is the fallback surface's only depth cue.
+    expect(style.overflow).toBeUndefined();
+    expect(style.shadowOpacity).toBe(defaultTheme.shadowOpacity);
   });
 
   it('respects an explicit glass={false} opt-out', () => {

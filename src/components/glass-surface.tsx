@@ -42,6 +42,30 @@ export interface GlassSurfaceProps extends ViewProps {
   reduceTransparency?: boolean;
   /** Set while the toast is interactive (press-and-hold). */
   pressed?: boolean;
+  /**
+   * Whether the material should be on screen. Default true.
+   *
+   * The glass materializes after mount and dematerializes when this turns
+   * false, both through UIKit's own effect animation — the supported way to
+   * bring glass in and out, since opacity cannot be used on it. Ignored on the
+   * opaque rung, which the caller fades with the rest of the toast.
+   */
+  visible?: boolean;
+  /**
+   * Forces the material's appearance. Glass otherwise follows the system, so a
+   * Toaster that forces dark tokens on a light-mode device drew light text on
+   * light glass.
+   */
+  colorScheme?: 'light' | 'dark';
+  /** Materialize duration in ms. Default 350. */
+  enterDuration?: number;
+  /** Dematerialize duration in ms. Default 400. */
+  exitDuration?: number;
+  /**
+   * Corner radius of the material. Defaults to `theme.radius`. Applied to the
+   * surface itself on both rungs, so nothing above it has to clip.
+   */
+  radius?: number;
   style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
 }
@@ -72,6 +96,11 @@ export const GlassSurface = React.memo(function GlassSurface({
   glass,
   reduceTransparency = false,
   pressed = false,
+  visible = true,
+  colorScheme,
+  enterDuration = 350,
+  exitDuration = 400,
+  radius,
   style,
   children,
   // Everything else (testID, accessibilityLabel, nativeID, pointerEvents, …) is
@@ -83,15 +112,41 @@ export const GlassSurface = React.memo(function GlassSurface({
   const wantsGlass = glass !== false && config.style !== 'none';
   const mode: GlassSurfaceMode =
     wantsGlass && !reduceTransparency && GLASS_SUPPORTED ? 'glass' : 'opaque';
+  const shape: ViewStyle = {
+    borderRadius: radius ?? theme.radius,
+    borderCurve: 'continuous',
+  };
+
+  // False for the first frame, so the effect is first installed as 'none' and
+  // then animated in. Assigning the effect inside an animation is what makes
+  // UIKit materialize it rather than snapping it on.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    if (mode !== 'glass') return undefined;
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, [mode]);
 
   if (mode === 'glass') {
+    const present = visible && mounted;
     return (
       <GlassView
         {...rest}
-        glassEffectStyle={resolveGlassStyle(config.style, pressed)}
+        glassEffectStyle={
+          present
+            ? resolveGlassStyle(config.style, pressed, enterDuration)
+            : {
+                style: 'none',
+                // Only the exit animates. The pre-mount 'none' must apply
+                // immediately, or the first frame would show the glass.
+                animate: !visible,
+                animationDuration: exitDuration / 1000,
+              }
+        }
         tintColor={config.tintColor}
+        {...(colorScheme ? { colorScheme } : null)}
         isInteractive={config.interactive ?? pressed}
-        style={style}
+        style={[shape, style]}
       >
         {children}
       </GlassView>
@@ -99,7 +154,7 @@ export const GlassSurface = React.memo(function GlassSurface({
   }
 
   return (
-    <View {...rest} style={[styles.opaque, opaqueStyle(theme), style]}>
+    <View {...rest} style={[styles.opaque, shape, opaqueStyle(theme), style]}>
       {children}
     </View>
   );
@@ -118,10 +173,17 @@ type GlassStyleValue = GlassStyle | { style: GlassStyle; animate: boolean; anima
 function resolveGlassStyle(
   style: GlassStyle | undefined,
   pressed: boolean,
+  enterDuration: number,
 ): GlassStyleValue {
   const base: GlassStyle = style ?? 'regular';
-  if (!pressed) return base;
-  return { style: base, animate: true, animationDuration: 0.12 };
+  // Always the config form, with `animate` on. expo-glass-effect only reads
+  // the flag when the style itself changes, so this animates the 'none' ->
+  // material transition on mount and nothing else.
+  return {
+    style: base,
+    animate: true,
+    animationDuration: pressed ? 0.12 : enterDuration / 1000,
+  };
 }
 
 function opaqueStyle(theme: ToastTheme): ViewStyle {
@@ -139,9 +201,9 @@ function opaqueStyle(theme: ToastTheme): ViewStyle {
 
 const styles = StyleSheet.create({
   opaque: {
-    // overflow hidden so a real corner radius actually clips the content.
-    // On the glass rung UIKit does this itself.
-    overflow: 'hidden',
+    // Deliberately not `overflow: hidden`. The background already follows the
+    // corner radius, and on iOS clipping also clips the layer's own shadow — so
+    // the shadow tokens, the fallback's whole depth cue, never rendered.
   },
 });
 

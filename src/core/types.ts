@@ -225,11 +225,12 @@ export interface GlassConfig {
   /** Sets UIGlassEffect.isInteractive. Only for tappable toasts. */
   interactive?: boolean;
   /**
-   * Merge adjacent toasts into one continuous material via UIGlassContainerEffect.
-   * This is the feature the web cannot replicate. Default true.
+   * Put each stack in one GlassContainer (UIGlassContainerEffect), so
+   * neighbouring toasts blend when they come within `containerSpacing`.
+   * Read from the `<Toaster glass>` setting. Default true.
    */
   containerize?: boolean;
-  /** GlassContainer spacing in px. Defaults to the Toaster `gutter`. */
+  /** GlassContainer spacing in px. Defaults to the Toaster `gap`. */
   containerSpacing?: number;
 }
 

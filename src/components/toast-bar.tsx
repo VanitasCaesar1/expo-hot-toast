@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { TextStyle } from 'react-native';
 import Animated, {
-  FadeIn,
   LinearTransition,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -20,6 +20,8 @@ export interface ToastBarProps {
   theme: ToastTheme;
   /** True when the user has Reduce Transparency on. Forces the opaque surface. */
   reduceTransparency?: boolean;
+  /** Forces the glass appearance to match tokens forced by the Toaster. */
+  colorScheme?: 'light' | 'dark';
   /** True when the stack is anchored to the top; flips the travel direction. */
   atTop: boolean;
   reverseOrder: boolean;
@@ -42,6 +44,7 @@ export const ToastBar = React.memo(function ToastBar({
   toast,
   theme,
   reduceTransparency = false,
+  colorScheme,
   atTop,
   reverseOrder,
   onDismiss,
@@ -52,15 +55,16 @@ export const ToastBar = React.memo(function ToastBar({
 }: ToastBarProps) {
   const { motion } = theme;
 
-  // Measured height feeds the exit travel. A plain object rather than a shared
-  // value because `exiting` builders read it on the UI thread at removal time,
-  // and because it must not itself trigger a re-render.
-  const measured = React.useRef(ASSUMED_HEIGHT);
   const dragX = useSharedValue(0);
-  // Retained so the exiting worklet can shorten its duration in proportion to the
-  // fling that caused it. A shared value because `exiting` builders run on the UI
-  // thread and cannot read JS-thread state.
+  // Written by the pan handler on the UI thread, read when the exit starts, so
+  // a hard fling gets a proportionally shorter exit.
   const fling = useSharedValue(0);
+  // Measured height feeds the enter and exit travel. A shared value so the
+  // animated style reads it on the UI thread without a re-render.
+  const height = useSharedValue(ASSUMED_HEIGHT);
+  // 0 = off screen, 1 = settled. One clock for travel, scale and the content
+  // fade, so enter and exit read as one motion rather than three.
+  const presence = useSharedValue(0);
 
   // Which horizontal direction dismisses. Either works, but only one should
   // count as "let go of me" — the other is a push-back.
@@ -79,6 +83,32 @@ export const ToastBar = React.memo(function ToastBar({
   const direction = (atTop ? -1 : 1) * (reverseOrder ? -1 : 1);
   const isVisible = toast.visible;
 
+  // Each wrapper is full width, so the toast's own horizontal alignment has to
+  // follow its position. Always centring it put top-left and top-right toasts in
+  // the middle of the screen.
+  const placement = toast.position ?? toast.resolvedPosition;
+  const align = placement.endsWith('left')
+    ? 'flex-start'
+    : placement.endsWith('right')
+      ? 'flex-end'
+      : 'center';
+
+  // Drives `presence` from the store's `visible` flag. The exit therefore plays
+  // during the store's exit window, while the toast is still mounted — rather
+  // than in an `exiting` builder after removal, which held an empty material on
+  // screen for the whole window and then shrank it a second time.
+  //
+  // `fling` is read here, in the effect, never during render: Reanimated warns
+  // (and may tear) when a shared value is read while React is rendering.
+  React.useEffect(() => {
+    presence.value = isVisible
+      ? withTiming(1, { duration: motion.enter, easing: motion.enterEasing })
+      : withTiming(0, {
+          duration: exitDurationFor(motion, fling.value),
+          easing: motion.exitEasing,
+        });
+  }, [isVisible, motion, presence, fling]);
+
   /**
    * TRANSFORM ONLY. No opacity here.
    *
@@ -87,27 +117,34 @@ export const ToastBar = React.memo(function ToastBar({
    * zero. The fade therefore lives on `contentStyle` below, inside the glass.
    */
   const transformStyle = useAnimatedStyle(() => {
-    if (!isVisible) {
-      // Replaced wholesale by the `exiting` builder at removal time; this
-      // branch only covers the dismiss -> removed window.
-      return { transform: [{ translateY: 0 }, { scale: 1 }] };
-    }
+    // Enter and exit travel differently on purpose (see MotionConfig), so the
+    // far end of the motion depends on which way it is going.
+    const travel = isVisible ? motion.enterTranslate : motion.exitTranslate;
+    const from = isVisible ? motion.enterScale : motion.exitScale;
+    const p = presence.value;
 
     return {
       transform: [
-        { translateY: dragX.value === 0 ? 0 : dragX.value },
-        { scale: withTiming(1, { duration: motion.enter, easing: motion.enterEasing }) },
+        // The drag is horizontal, so it moves the toast horizontally. It was
+        // previously applied to translateY, which slid the toast up and down
+        // under a sideways finger.
+        //
+        // Not reset on dismissal either: a swiped toast is carried off screen
+        // by the release handler, and zeroing the offset here snapped it back
+        // to the centre for the length of the exit.
+        { translateX: dragX.value },
+        { translateY: direction * height.value * travel * (1 - p) },
+        { scale: from + (1 - from) * p },
         { rotateZ: `${(dragX.value / 40) * 4}deg` },
       ],
     };
-  }, [isVisible, motion, dragX.value]);
+  });
 
+  // Clamped because the enter curve overshoots: content may not exceed full
+  // opacity while the material settles.
   const contentStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(isVisible ? 1 : 0, {
-      duration: isVisible ? motion.enter : motion.exit,
-      easing: isVisible ? motion.enterEasing : motion.exitEasing,
-    }),
-  }), [isVisible, motion]);
+    opacity: Math.min(Math.max(presence.value, 0), 1),
+  }));
 
   /**
    * Drag physics.
@@ -139,15 +176,26 @@ export const ToastBar = React.memo(function ToastBar({
       fling.value = Math.abs(event.velocityX);
 
       if (farEnough || fastEnough) {
-        // Park the toast just off screen so the exit animation picks up from
-        // where the finger left it rather than snapping back to centre first.
-        dragX.value =
-          event.translationX + Math.sign(event.translationX || 1) * 500;
-        onDismiss(toast.id, 'swipe');
+        // Carry the toast off screen from where the finger left it. Assigned
+        // directly, the 500px jump happened in a single frame, so a swiped
+        // toast teleported instead of leaving.
+        const speed = Math.min(Math.abs(event.velocityX) / 1800, 1);
+        dragX.value = withTiming(
+          event.translationX + Math.sign(event.translationX || 1) * 500,
+          { duration: motion.exit * (1 - 0.25 * speed), easing: motion.exitEasing },
+        );
+        // Gesture callbacks run on the UI thread; the dismissal lives in the JS
+        // store, so it has to hop threads explicitly.
+        runOnJS(onDismiss)(toast.id, 'swipe');
       } else {
         dragX.value = withTiming(0, { duration: 200, easing: motion.enterEasing });
       }
     });
+
+  // A per-toast `style.borderRadius` wins over the token, same as for the
+  // wrapper it is applied to.
+  const surfaceRadius =
+    (StyleSheet.flatten(toast.style)?.borderRadius as number | undefined) ?? theme.radius;
 
   const message = resolveValue(toast.message, toast);
   const iconKind = toast.type as ToastIconKind;
@@ -158,7 +206,11 @@ export const ToastBar = React.memo(function ToastBar({
   const resolvedIcon =
     toast.icon === undefined ? undefined : resolveValue(toast.icon, toast);
 
-  const defaultIcon = (
+  // A blank toast with no icon draws no icon slot at all. An empty slot still
+  // took the row gap, so plain toasts sat off-centre in their pill.
+  const hasGlyph =
+    iconKind === 'success' || iconKind === 'error' || iconKind === 'loading';
+  const defaultIcon = resolvedIcon == null && !hasGlyph ? null : (
     <View style={[styles.icon, toast.iconStyle]}>
       {resolvedIcon ?? (
         <ToastIcon kind={iconKind} size={theme.iconSize} theme={theme} />
@@ -172,7 +224,8 @@ export const ToastBar = React.memo(function ToastBar({
   // the flag actually reaches Android, which has real live regions.
   const assertive = toast.important ?? toast.type === 'error';
 
-  const content = children ? (    children({ icon: defaultIcon, message })
+  const content = children ? (
+    children({ icon: defaultIcon, message })
   ) : (
     <View style={styles.row}>
       {defaultIcon}
@@ -258,10 +311,9 @@ export const ToastBar = React.memo(function ToastBar({
         layout={LinearTransition.duration(motion.queueShift).easing(
           motion.enterEasing,
         )}
-        exiting={buildExiting(motion, direction, measured, fling)}
-        style={styles.wrapper}
+        style={[styles.wrapper, { alignItems: align }]}
       >
-        <Animated.View style={[styles.wrapper, transformStyle]}>
+        <Animated.View style={[styles.wrapper, { alignItems: align }, transformStyle]}>
           <Pressable
             onPressIn={onPressIn}
             onPressOut={onPressOut}
@@ -274,9 +326,9 @@ export const ToastBar = React.memo(function ToastBar({
             accessibilityRole="alert"
             accessibilityLabel={toast.accessibilityLabel ?? extractText(message)}
             accessibilityHint={tapToDismiss ? 'Double tap to dismiss' : undefined}
-            style={styles.pressable}
+            style={[styles.pressable, { alignItems: align }]}
             onLayout={(event) => {
-              measured.current = event.nativeEvent.layout.height;
+              height.value = event.nativeEvent.layout.height;
             }}
           >
             <View
@@ -301,17 +353,28 @@ export const ToastBar = React.memo(function ToastBar({
               <GlassSurface
                 theme={theme}
                 glass={toast.glass}
+                // The material carries its own corner radius. expo-glass-effect
+                // reads `borderRadius` off the GlassView itself to configure
+                // UIKit's corner shape; clipping a square glass view with a
+                // rounded `overflow: hidden` parent instead cuts off the rim
+                // highlight at every corner and stops neighbouring toasts in a
+                // GlassContainer from merging.
+                radius={surfaceRadius}
                 // Must be threaded down from the Toaster. Without it the
                 // Reduce Transparency rung is unreachable through the public
                 // API, and a user who asked for no transparency still gets
                 // glass — which is the exact failure the ladder exists to
                 // prevent.
                 reduceTransparency={reduceTransparency}
+                // Glass cannot fade, so it materializes and dematerializes on
+                // the same clock as everything else.
+                visible={isVisible}
+                colorScheme={colorScheme}
+                enterDuration={motion.enter}
+                exitDuration={motion.exit}
                 style={StyleSheet.absoluteFill}
               />
-              <Animated.View entering={FadeIn.duration(motion.enter)} style={styles.content}>
-                <Animated.View style={contentStyle}>{content}</Animated.View>
-              </Animated.View>
+              <Animated.View style={[styles.content, contentStyle]}>{content}</Animated.View>
             </View>
           </Pressable>
         </Animated.View>
@@ -321,45 +384,13 @@ export const ToastBar = React.memo(function ToastBar({
 });
 
 /**
- * Exit is authored as a builder so it can close over the live motion config, the
- * travel direction, and the measured height. A module-level constant could do
- * none of those, which is why a single shared `exiting` value is not enough.
+ * Exit duration, shortened in proportion to the fling that caused it so the
+ * toast keeps up with the gesture instead of drifting. 1800px/s is roughly a
+ * deliberate flick and takes the full 25% off; nothing can take more.
  */
-function buildExiting(
-  motion: ToastTheme['motion'],
-  direction: number,
-  measured: React.RefObject<number>,
-  fling: { value: number },
-) {
-  return () => {
-    'worklet';
-    const height = measured.current ?? ASSUMED_HEIGHT;
-
-    // A hard fling gets a proportionally shorter exit, so the toast keeps up with
-    // the gesture instead of drifting. 1800px/s is roughly a deliberate flick.
-    const speed = Math.min(Math.abs(fling.value) / 1800, 1);
-    const duration = motion.exit * (1 - 0.25 * speed);
-
-    return {
-      initialValues: { transform: [{ translateY: 0 }, { scale: 1 }] },
-      animations: {
-        transform: [
-          {
-            translateY: withTiming(direction * height * motion.exitTranslate, {
-              duration,
-              easing: motion.exitEasing,
-            }),
-          },
-          {
-            scale: withTiming(motion.exitScale, {
-              duration,
-              easing: motion.exitEasing,
-            }),
-          },
-        ],
-      },
-    };
-  };
+export function exitDurationFor(motion: ToastTheme['motion'], fling: number): number {
+  const speed = Math.min(Math.abs(fling) / 1800, 1);
+  return motion.exit * (1 - 0.25 * speed);
 }
 
 /** Best-effort label extraction so iOS has something to announce. */
@@ -382,14 +413,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   surfaceWrap: {
-    width: '100%',
-    // Clips the opaque fallback's corners. Real glass rounds itself.
-    overflow: 'hidden',
+    // Hugs its content, up to `maxWidth`, like react-hot-toast's pill. At full
+    // width a two-word toast was a 340pt bar with the text pushed to one end.
+    flexShrink: 1,
+    // No `overflow: hidden`. Both rungs of GlassSurface round themselves, and
+    // clipping here would cut the glass rim and any GlassContainer merge.
     flexDirection: 'row',
     alignItems: 'center',
   },
   content: {
-    width: '100%',
+    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -397,11 +430,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    // Lets a long message wrap at the surface's maxWidth instead of pushing
+    // the close and action buttons out of the toast.
     flexShrink: 1,
-    // Without this the message claims the full intrinsic width and pushes the
-    // close button past the surface's overflow-hidden edge, so it renders but
-    // is invisible.
-    width: '100%',
   },
   // Exists so `iconStyle` has something to attach to. Without this wrapper the
   // resolved style had nowhere to land and was silently discarded.
@@ -410,9 +441,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   message: {
+    // Shrinks (wraps) rather than grows. A `flexGrow` here makes Yoga fill the
+    // whole available width in an at-most layout, which defeated the hugging
+    // surface and turned every toast into a full-width bar.
     flexShrink: 1,
-    // Absorbs the leftover width so the close button keeps its intrinsic size.
-    flexGrow: 1,
   },
   close: {
     width: 30,

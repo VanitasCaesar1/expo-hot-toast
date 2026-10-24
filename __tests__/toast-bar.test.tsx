@@ -327,9 +327,33 @@ describe('ToastBar — theming', () => {
     expect(style.paddingVertical).toBe(2);
     expect(style.paddingHorizontal).toBe(6);
     expect(style.gap).toBe(3);
-    // The wrapper clips the opaque fallback's corners; real glass rounds
-    // itself, so without this the radius is a lie on the fallback rung.
-    expect(style.overflow).toBe('hidden');
+    // The wrapper does not clip. Clipping a glass view with a rounded parent
+    // cuts its rim highlight and any GlassContainer merge; each rung of the
+    // surface rounds itself instead.
+    expect(style.overflow).toBeUndefined();
+  });
+
+  it('rounds the surface itself with the radius token', () => {
+    const theme = { ...defaultTheme, radius: 7 };
+    renderBar({}, { theme });
+
+    const surfaces = getViews().filter(
+      (view) => flatten(view.props.style).backgroundColor === theme.fallbackBackground,
+    );
+    expect(surfaces).toHaveLength(1);
+    const style = flatten(surfaces[0]!.props.style);
+    expect(style.borderRadius).toBe(7);
+    expect(style.borderCurve).toBe('continuous');
+  });
+
+  it('lets a per-toast style radius reach the surface', () => {
+    const theme = { ...defaultTheme, radius: 7 };
+    renderBar({ style: { borderRadius: 3 } }, { theme });
+
+    const surface = getViews().find(
+      (view) => flatten(view.props.style).backgroundColor === theme.fallbackBackground,
+    );
+    expect(flatten(surface!.props.style).borderRadius).toBe(3);
   });
 
   it('applies the text tokens to the message', () => {

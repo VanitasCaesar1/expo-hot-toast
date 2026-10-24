@@ -87,14 +87,18 @@ export function useToaster({
 
   // Resolve each toast's position once, here, because the visible/pending split
   // is computed per position and `depth` is meaningless without it.
+  //
+  // A toast that names no position belongs to the Toaster's default, not to
+  // `createToast`'s 'top-center' placeholder. Without this a bottom-anchored
+  // Toaster counted its toasts against the top-center bucket, so the visible cap
+  // and the stagger depth were computed for a stack that is not on screen.
   const toasts = useMemo(
     () =>
-      state.toasts.map((t) =>
-        t.resolvedPosition === t.position || t.position === undefined
-          ? t
-          : { ...t, resolvedPosition: t.position },
-      ),
-    [state.toasts],
+      state.toasts.map((t) => {
+        const resolved = t.position ?? defaultPosition;
+        return t.resolvedPosition === resolved ? t : { ...t, resolvedPosition: resolved };
+      }),
+    [state.toasts, defaultPosition],
   );
 
   const { pausedAt } = state;
@@ -212,7 +216,7 @@ export function useToaster({
           const now = Date.now();
           state.toasts.forEach((t) => {
             if (!t.visible || t.duration === Infinity) return;
-            const since = visibleSince.get(t.id) ?? t.createdAt;
+            const since = shownAt(visibleSince, t);
             if ((t.duration ?? 0) + t.pauseDuration - motion.enter - (now - since) <= 0) {
               toast.dismiss(t.id, toasterId, 'timeout');
             }
@@ -293,7 +297,7 @@ export function useToaster({
         const stagger = Math.min(t.depth * motion.stagger, motion.staggerMax);
         // Measured from when the toast became visible, falling back to creation
         // for the rare render where the map has not been written yet.
-        const since = visibleSince.get(t.id) ?? t.createdAt;
+        const since = shownAt(visibleSince, t);
         const budget =
           (t.duration ?? 0) + t.pauseDuration + stagger - motion.enter - (now - since);
 
@@ -314,6 +318,22 @@ export function useToaster({
   }, [visible, pausedAt, toasterId, motion, visibleSince]);
 
   return { toasts: visible, pending, startPause, endPause };
+}
+
+/**
+ * When the toast's current content became visible.
+ *
+ * Usually the moment it entered the visible slice. But a toast updated in place
+ * by id — `toast.promise` turning its loading toast into the success or error
+ * one is the common case — is re-created with a fresh `createdAt` under the same
+ * id. Measuring that toast from when the *loading* toast appeared would charge
+ * the whole wait to the outcome: a 1.5s request left a 2000ms success toast on
+ * screen for roughly 150ms. The later of the two timestamps is the one the
+ * reader actually saw.
+ */
+function shownAt(visibleSince: Map<string, number>, t: Toast): number {
+  const since = visibleSince.get(t.id);
+  return since === undefined ? t.createdAt : Math.max(since, t.createdAt);
 }
 
 /**

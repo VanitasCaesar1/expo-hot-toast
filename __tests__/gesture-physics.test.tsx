@@ -1,5 +1,6 @@
 import { render, screen, cleanup } from '@testing-library/react-native';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import * as React from 'react';
 import * as Reanimated from 'react-native-reanimated';
 import { ToastBar } from '../src/components/toast-bar';
 import type { ToastBarProps } from '../src/components/toast-bar';
@@ -16,12 +17,11 @@ import type { Toast } from '../src/core/types';
  * ones src handed over, driven directly, instead of a re-implementation of them
  * that would pass even if src were wrong.
  *
- * `buildExiting` is *not* exported, so the exit is exercised through the
- * `exiting` prop the bar actually passes to its outer `Animated.View`. The
+ * The exit is exercised the way the bar actually runs it: the toast is
+ * re-rendered with `visible: false`, which starts the presence animation. The
  * Reanimated stub in jest.setup.js collapses `withTiming` to its target value,
- * which would throw the duration away, so `withTiming` is spied on — before the
- * render, because `buildExiting` closes over it at mount — and the config is
- * read back from the recorded calls.
+ * which would throw the duration away, so `withTiming` is spied on and the
+ * config is read back from the recorded calls.
  */
 const mockGestureConfig: Array<Record<string, unknown>> = [];
 
@@ -65,8 +65,6 @@ interface PanEvent {
   velocityX: number;
 }
 
-/** The `exiting` builder, as Reanimated would receive it. */
-type ExitingBuilder = () => { initialValues: unknown; animations: unknown };
 
 const makeToast = (overrides: Partial<Toast> = {}): Toast => ({
   type: 'blank',
@@ -91,20 +89,22 @@ function mountBar(panThreshold: number, onDismiss: ToastBarProps['onDismiss']) {
   jest
     .spyOn(Reanimated, 'useSharedValue')
     .mockImplementation(((initial: number) => {
-      const box = { value: initial };
-      shared.push(box);
-      return box;
+      // Persisted across renders like the real hook, so a value a test writes
+      // is still the one the bar reads after a re-render.
+      const ref = React.useRef<{ value: number } | null>(null);
+      if (ref.current === null) {
+        ref.current = { value: initial };
+        shared.push(ref.current);
+      }
+      return ref.current;
     }) as unknown as typeof Reanimated.useSharedValue);
 
-  // Installed *before* the render, not after. `buildExiting` closes over
-  // `withTiming` when the bar mounts, so a spy added later would never be seen
-  // by the builder it is meant to observe.
   const withTiming = jest.spyOn(Reanimated, 'withTiming');
 
   mockGestureConfig.length = 0;
-  render(
+  const bar = (visible: boolean) => (
     <ToastBar
-      toast={makeToast()}
+      toast={makeToast({ visible, dismissed: !visible })}
       theme={defaultTheme}
       atTop={false}
       reverseOrder={false}
@@ -112,11 +112,11 @@ function mountBar(panThreshold: number, onDismiss: ToastBarProps['onDismiss']) {
       onPressIn={jest.fn()}
       onPressOut={jest.fn()}
       panThreshold={panThreshold}
-    />,
+    />
   );
+  const view = render(bar(true));
 
   const config = mockGestureConfig[0]!;
-  const exiting = findExiting(screen.toJSON());
 
   return {
     dragX: shared[0]!,
@@ -126,16 +126,17 @@ function mountBar(panThreshold: number, onDismiss: ToastBarProps['onDismiss']) {
     release: (event: Partial<PanEvent>) =>
       (config.onEnd as (e: Partial<PanEvent>) => void)(event),
     /**
-     * Durations handed to `withTiming` by one run of the exit builder. Cleared
-     * first, so the bar's own enter/exit animations — which also go through
-     * `withTiming` — cannot leak into the reading.
+     * Durations of the exit animations started by one dismissal. The bar is
+     * shown again first and the spy cleared, so the enter animation cannot leak
+     * into the reading.
      */
     exitDurations: (): number[] => {
+      view.rerender(bar(true));
       withTiming.mockClear();
-      exiting();
-      return withTiming.mock.calls.map(
-        (call) => (call[1] as { duration?: number } | undefined)?.duration ?? -1,
-      );
+      view.rerender(bar(false));
+      return withTiming.mock.calls
+        .filter((call) => call[0] === 0)
+        .map((call) => (call[1] as { duration?: number } | undefined)?.duration ?? -1);
     },
     config,
   };
@@ -255,15 +256,15 @@ describe('ToastBar — velocity-scaled exit', () => {
     const full = defaultTheme.motion.exit;
 
     fling.value = 0;
-    expect(exitDurations()).toEqual([full, full]);
+    expect(exitDurations()).toEqual([full]);
 
     // Half the speed shortens the exit by an eighth of it, floored at zero.
     fling.value = 900;
-    expect(exitDurations()).toEqual([full * 0.875, full * 0.875]);
+    expect(exitDurations()).toEqual([full * 0.875]);
 
     // 1800px/s is "a deliberate flick": the full 25% comes off.
     fling.value = 1800;
-    expect(exitDurations()).toEqual([full * 0.75, full * 0.75]);
+    expect(exitDurations()).toEqual([full * 0.75]);
   });
 
   it('clamps the shortening so an arbitrarily violent flick cannot skip the exit', () => {
@@ -271,21 +272,20 @@ describe('ToastBar — velocity-scaled exit', () => {
     const floored = defaultTheme.motion.exit * 0.75;
 
     fling.value = 1800;
-    expect(exitDurations()).toEqual([floored, floored]);
+    expect(exitDurations()).toEqual([floored]);
 
     fling.value = 90_000;
-    expect(exitDurations()).toEqual([floored, floored]);
+    expect(exitDurations()).toEqual([floored]);
   });
 
-  it('gives both exit animations the same duration', () => {
-    // translateY and scale are one animation of one toast. Driving them on
-    // different clocks is what makes an exit look like two things happening.
+  it('drives the whole exit from one animation', () => {
+    // Travel, scale and the content fade are one motion of one toast. Driving
+    // them on different clocks is what makes an exit look like two things
+    // happening.
     const { fling, exitDurations } = mountBar(72, jest.fn());
     fling.value = 1200;
 
-    const durations = exitDurations();
-    expect(durations).toHaveLength(2);
-    expect(durations[0]).toBe(durations[1]);
+    expect(exitDurations()).toHaveLength(1);
   });
 
   it('follows a fling observed on a real release', () => {
@@ -295,10 +295,7 @@ describe('ToastBar — velocity-scaled exit', () => {
 
     release({ translationX: 5, velocityX: 1800 });
     expect(fling.value).toBe(1800);
-    expect(exitDurations()).toEqual([
-      defaultTheme.motion.exit * 0.75,
-      defaultTheme.motion.exit * 0.75,
-    ]);
+    expect(exitDurations()).toEqual([defaultTheme.motion.exit * 0.75]);
   });
 });
 
@@ -410,21 +407,3 @@ describe('ToastBar — elastic resistance', () => {
  * Anchoring on the prop rather than a child index keeps this stable if the bar
  * gains another animated wrapper.
  */
-function findExiting(node: unknown): ExitingBuilder {
-  const found = search(node);
-  if (!found) throw new Error('no node with an exiting builder was rendered');
-  return found;
-}
-
-function search(node: unknown): ExitingBuilder | null {
-  if (!node || typeof node !== 'object') return null;
-  const candidate = node as { props?: Record<string, unknown>; children?: unknown[] };
-  if (typeof candidate.props?.exiting === 'function') {
-    return candidate.props.exiting as ExitingBuilder;
-  }
-  for (const child of candidate.children ?? []) {
-    const hit = search(child);
-    if (hit) return hit;
-  }
-  return null;
-}

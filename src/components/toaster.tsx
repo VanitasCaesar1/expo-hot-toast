@@ -18,6 +18,13 @@ import { useToastTheme, mergeTheme } from '../theme/tokens';
 import { useReduceMotion, useReduceTransparency, announce } from '../utils/a11y';
 import { triggerToastHaptic } from '../utils/haptics';
 import { ToastBar } from './toast-bar';
+import { resolveValue } from '../core/store';
+import Animated, {
+  LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 export interface ToasterProps {
   /** Default position for toasts that don't specify one. Default top-center. */
@@ -154,12 +161,30 @@ export function Toaster({
    * render: re-announcing on every theme change would make a screen reader
    * repeat itself, and a haptic on re-render would buzz indefinitely while a
    * toast sits on screen.
+   *
+   * Keyed on the toast's content as well as its id. Updating a toast in place
+   * by id re-creates it under the same id — that is exactly how `toast.promise`
+   * turns its loading toast into the outcome. An id-only key treated the outcome
+   * as already seen, so the success or error of every promise toast was never
+   * announced and never produced its haptic. A re-render keeps all three
+   * fields identical, so it still fires nothing.
    */
-  const seen = React.useRef(new Set<string>());
+  const seen = React.useRef(
+    new Map<string, Pick<Toast, 'createdAt' | 'type' | 'message'>>(),
+  );
   React.useEffect(() => {
     toasts.forEach((t) => {
-      if (!t.visible || seen.current.has(t.id)) return;
-      seen.current.add(t.id);
+      if (!t.visible) return;
+      const last = seen.current.get(t.id);
+      if (
+        last &&
+        last.createdAt === t.createdAt &&
+        last.type === t.type &&
+        last.message === t.message
+      ) {
+        return;
+      }
+      seen.current.set(t.id, { createdAt: t.createdAt, type: t.type, message: t.message });
 
       const label = t.accessibilityLabel ?? extractLabel(t.message, t);
       if (label) announce(label, t.type === 'error');
@@ -175,7 +200,7 @@ export function Toaster({
   // leak in exactly the component that should be allocating nothing.
   React.useEffect(() => {
     const live = new Set(toasts.map((t) => t.id));
-    seen.current.forEach((id) => {
+    seen.current.forEach((_last, id) => {
       if (!live.has(id)) seen.current.delete(id);
     });
   }, [toasts]);
@@ -194,6 +219,10 @@ export function Toaster({
   }, [toasts, position]);
 
   const keyboard = useKeyboard();
+
+  const glassConfig = typeof glass === 'object' && glass !== null ? glass : {};
+  const containerized = glass !== false && glassConfig.containerize !== false;
+  const containerSpacing = glassConfig.containerSpacing ?? resolvedGap;
 
   return (
     <View
@@ -219,9 +248,15 @@ export function Toaster({
         const keyboardInset = Math.max(0, keyboard.height - insets.bottom);
         const bottomInset = keyboardInset > 0 ? keyboardInset : insets.bottom;
 
+        // One GlassContainer per stack, not one per toast. UIKit only merges
+        // glass views that share a container, so a container holding a single
+        // toast merged nothing: the stack drew as separate chips.
+        const Stack = containerized ? GlassContainer : View;
+
         return (
-          <View
+          <Stack
             key={candidate}
+            {...(containerized ? { spacing: containerSpacing } : null)}
             pointerEvents="box-none"
             style={[
               styles.stack,
@@ -238,6 +273,10 @@ export function Toaster({
                 flexDirection:
                   anchoredTop === !reverseOrder ? 'column' : 'column-reverse',
               },
+              {
+                paddingLeft: insets.left + offset,
+                paddingRight: insets.right + offset,
+              },
               anchoredTop
                 ? { top: insets.top + offset }
                 : { bottom: bottomInset + offset },
@@ -250,7 +289,7 @@ export function Toaster({
                 toast={t}
                 atTop={anchoredTop}
                 reverseOrder={reverseOrder}
-                gap={resolvedGap}
+                colorScheme={colorScheme}
                 glass={mergeGlass(glass, t.glass)}
                 reduceTransparency={reduceTransparency}
                 // Per-toast tokens win over the Toaster's. `useToastTheme` has
@@ -267,7 +306,7 @@ export function Toaster({
                 {children}
               </ToastSlot>
             ))}
-          </View>
+          </Stack>
         );
       })}
     </View>
@@ -278,7 +317,7 @@ interface ToastSlotProps {
   toast: Toast;
   atTop: boolean;
   reverseOrder: boolean;
-  gap: number;
+  colorScheme?: 'light' | 'dark';
   glass: boolean | GlassConfig;
   reduceTransparency: boolean;
   theme: ReturnType<typeof useToastTheme>;
@@ -289,20 +328,12 @@ interface ToastSlotProps {
   children?: (props: { toast: Toast; theme: ToastSlotProps['theme'] }) => React.ReactNode;
 }
 
-/**
- * Wraps one toast, and is where GlassContainer earns its keep.
- *
- * Every toast is its own GlassView, so naively you get N separate floating
- * chips. Nesting them in a GlassContainer makes UIKit treat them as one
- * continuous material that flows and re-flows as the queue shifts — a merged
- * glass sheet rather than a stack of cards. This is the capability the web has
- * no equivalent for, and the main reason this package is not just a port.
- */
+/** Picks the renderer for one toast: custom element, render prop, or the bar. */
 function ToastSlot({
   toast,
   atTop,
   reverseOrder,
-  gap,
+  colorScheme,
   glass,
   reduceTransparency,
   theme,
@@ -312,13 +343,27 @@ function ToastSlot({
   onPressOut,
   children,
 }: ToastSlotProps) {
-  const body = children ? (
-    children({ toast, theme })
+  // `toast.custom` renders the caller's element as-is, with no bar, icon or
+  // material — the react-hot-toast contract. It previously went through the
+  // default bar like any other type, so a custom element was drawn inside a
+  // glass pill next to a stray glyph.
+  if (toast.type === 'custom') {
+    return <CustomToast toast={toast} motion={theme.motion} />;
+  }
+
+  // The Toaster-level `glass` setting is folded into the toast here. The bar
+  // reads `toast.glass`, so without this `<Toaster glass={false} />` changed
+  // nothing at all: every toast still rendered on glass.
+  const resolved = glass === toast.glass ? toast : { ...toast, glass };
+
+  return children ? (
+    children({ toast: resolved, theme })
   ) : (
     <ToastBar
-      toast={toast}
+      toast={resolved}
       theme={theme}
       reduceTransparency={reduceTransparency}
+      colorScheme={colorScheme}
       atTop={atTop}
       reverseOrder={reverseOrder}
       onDismiss={onDismiss}
@@ -327,12 +372,37 @@ function ToastSlot({
       panThreshold={panThreshold}
     />
   );
+}
 
-  const config = typeof glass === 'object' && glass !== null ? glass : {};
-  if (glass === false || config.containerize === false) return body;
+/**
+ * Placement and motion for a `toast.custom` element, and nothing else.
+ *
+ * Fades with the toast's `visible` flag rather than through an `exiting`
+ * builder, so the fade runs during the store's exit window instead of after it.
+ * A function message receives the toast, so a custom element can read
+ * `visible` and run its own animation instead.
+ */
+function CustomToast({ toast: t, motion }: { toast: Toast; motion: ToastSlotProps['theme']['motion'] }) {
+  const isVisible = t.visible;
+  // Starts at 0 and is driven from an effect, so the first frame fades in
+  // rather than appearing at full opacity.
+  const opacity = useSharedValue(0);
+  React.useEffect(() => {
+    opacity.value = withTiming(isVisible ? 1 : 0, {
+      duration: isVisible ? motion.enter : motion.exit,
+      easing: isVisible ? motion.enterEasing : motion.exitEasing,
+    });
+  }, [isVisible, motion, opacity]);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   return (
-    <GlassContainer spacing={config.containerSpacing ?? gap}>{body}</GlassContainer>
+    <Animated.View
+      layout={LinearTransition.duration(motion.queueShift).easing(motion.enterEasing)}
+      pointerEvents="box-none"
+      style={[styles.custom, t.style, style]}
+    >
+      {resolveValue(t.message, t)}
+    </Animated.View>
   );
 }
 
@@ -416,10 +486,14 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     elevation: 9999,
   },
+  custom: {
+    alignItems: 'center',
+  },
   stack: {
     position: 'absolute',
     left: 0,
     right: 0,
-    paddingHorizontal: 0,
+    // Set per stack from `offset`, so an edge-anchored toast keeps the same
+    // inset from the side as from the top or bottom.
   },
 });

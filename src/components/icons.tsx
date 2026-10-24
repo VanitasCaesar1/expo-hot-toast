@@ -36,7 +36,11 @@ const ACCENTS: Record<ToastIconKind, string> = {
 };
 
 export function ToastIcon({ kind, size, theme }: ToastIconProps) {
-  if (kind === 'blank') return null;
+  // Anything without a glyph of its own draws nothing. The bar casts
+  // `toast.type` straight to this union, so a `custom` toast routed through a
+  // bar previously fell through to the error branch and drew a red-less error
+  // circle with an undefined stroke.
+  if (kind !== 'success' && kind !== 'error' && kind !== 'loading') return null;
 
   if (kind === 'loading') {
     return (

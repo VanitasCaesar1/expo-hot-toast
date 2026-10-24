@@ -1,5 +1,9 @@
 import { render, screen, act } from '@testing-library/react-native';
-import { describe, expect, it, jest } from '@jest/globals';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 import * as React from 'react';
 import * as ReactNative from 'react-native';
 import { Text } from 'react-native';
@@ -93,6 +97,7 @@ function withGlass<T>(availability: Availability, run: (world: GlassWorld) => T)
 
 describe('GlassSurface — the glass rung', () => {
   it('renders a real GlassView when both predicates report available', () => {
+    jest.useFakeTimers();
     withGlass({}, ({ GlassSurface, GLASS_SUPPORTED }) => {
       expect(GLASS_SUPPORTED).toBe(true);
 
@@ -108,10 +113,56 @@ describe('GlassSurface — the glass rung', () => {
     expect(screen.queryByTestId('glass-view')).not.toBeNull();
     // A plain View cannot be handed an effect config, so this is the positive
     // signal that the glass component itself rendered rather than a fallback.
-    expect(screen.getByTestId('glass-view').props.glassEffectStyle).toBe('regular');
+    // The first frame installs no effect, so UIKit can animate it in.
+    expect(screen.getByTestId('glass-view').props.glassEffectStyle).toEqual({
+      style: 'none',
+      animate: false,
+      animationDuration: 0.4,
+    });
+
+    // One frame later the material is assigned with animation on, which is
+    // what makes UIKit materialize it rather than snap it on. Seconds, not ms.
+    act(() => {
+      jest.advanceTimersByTime(32);
+    });
+    expect(screen.getByTestId('glass-view').props.glassEffectStyle).toEqual({
+      style: 'regular',
+      animate: true,
+      animationDuration: 0.35,
+    });
+  });
+
+  it('dematerializes the glass when the toast is no longer visible', () => {
+    jest.useFakeTimers();
+    let view!: ReturnType<typeof render>;
+    let Surface!: typeof import('../src/components/glass-surface').GlassSurface;
+    withGlass({}, ({ GlassSurface }) => {
+      Surface = GlassSurface;
+      view = render(
+        <GlassSurface theme={defaultTheme} exitDuration={300}>
+          <Text>content</Text>
+        </GlassSurface>,
+      );
+    });
+    act(() => {
+      jest.advanceTimersByTime(32);
+    });
+
+    view.rerender(
+      <Surface theme={defaultTheme} visible={false} exitDuration={300}>
+        <Text>content</Text>
+      </Surface>,
+    );
+    // Animated out through the effect, never through opacity.
+    expect(screen.getByTestId('glass-view').props.glassEffectStyle).toEqual({
+      style: 'none',
+      animate: true,
+      animationDuration: 0.3,
+    });
   });
 
   it('forwards the configured tintColor and glassEffectStyle to the glass view', () => {
+    jest.useFakeTimers();
     withGlass({}, ({ GlassSurface }) => {
       render(
         <GlassSurface theme={defaultTheme} glass={{ tintColor: '#ff0066', style: 'clear' }}>
@@ -120,9 +171,12 @@ describe('GlassSurface — the glass rung', () => {
       );
     });
 
+    act(() => {
+      jest.advanceTimersByTime(32);
+    });
     const view = screen.getByTestId('glass-view');
     expect(view.props.tintColor).toBe('#ff0066');
-    expect(view.props.glassEffectStyle).toBe('clear');
+    expect(view.props.glassEffectStyle).toMatchObject({ style: 'clear' });
   });
 
   it('paints no theme background behind real glass', () => {
@@ -208,7 +262,7 @@ describe('GlassSurface — the opaque rungs', () => {
 });
 
 describe('Toaster — the glass stack', () => {
-  it('wraps each toast in a GlassContainer that contains its GlassView', () => {
+  it('puts the whole stack in one GlassContainer, so the toasts can merge', () => {
     const GUTTER = 12;
 
     withGlass({}, ({ Toaster, toast }) => {
@@ -219,22 +273,46 @@ describe('Toaster — the glass stack', () => {
       });
     });
 
+    // UIKit only merges glass views that share a container. One container per
+    // toast — the previous structure — merged nothing.
     const containers = screen.getAllByTestId('glass-container');
-    // One container per toast. Without it UIKit draws N separate floating
-    // chips; with it the stack reads as a single continuous material.
-    expect(containers).toHaveLength(2);
+    expect(containers).toHaveLength(1);
     expect(screen.getAllByTestId('glass-view')).toHaveLength(2);
+    // Both glass views sit inside the one container. `findAll` also matches the
+    // composite wrapper of each, so count distinct host views by their text.
+    expect(containers[0]!.findByProps({ children: 'first' })).toBeTruthy();
+    expect(containers[0]!.findByProps({ children: 'second' })).toBeTruthy();
 
-    containers.forEach((container) => {
-      const nested = container.findAll((node) => node.props?.testID === 'glass-view', {
-        deep: true,
+    // The merge distance follows the stack gap.
+    expect(containers[0]!.props.spacing).toBe(GUTTER);
+  });
+
+  it('forces the glass appearance when the Toaster forces a colour scheme', () => {
+    // Forced dark tokens mean light text. Glass that still followed a light
+    // system appearance put that text on a light material.
+    withGlass({}, ({ Toaster, toast }) => {
+      render(<Toaster colorScheme="dark" />);
+      act(() => {
+        toast('forced dark');
       });
-      expect(nested).toHaveLength(1);
     });
 
-    // The merge is driven by the stack gap, so the container knows how much
-    // material to leave between neighbours.
-    expect(containers[0]!.props.spacing).toBe(GUTTER);
+    expect(screen.getByTestId('glass-view').props.colorScheme).toBe('dark');
+  });
+
+  it('forces the opaque surface for every toast when the Toaster sets glass={false}', () => {
+    // The Toaster-level setting used to stop at the container decision and
+    // never reach the surface, so every toast still rendered on glass.
+    withGlass({}, ({ Toaster, toast }) => {
+      render(<Toaster glass={false} />);
+      act(() => {
+        toast('no glass here');
+      });
+    });
+
+    expect(screen.getByText('no glass here')).toBeTruthy();
+    expect(screen.queryByTestId('glass-view')).toBeNull();
+    expect(screen.queryByTestId('glass-container')).toBeNull();
   });
 
   it('drops the GlassContainer when containerize is false, keeping the GlassView', () => {
