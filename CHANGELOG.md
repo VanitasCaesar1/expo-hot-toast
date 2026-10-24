@@ -12,9 +12,9 @@ Initial release. Not yet published to npm; `main` previously pointed at
 ### Added
 
 - **Liquid Glass on iOS 26+** through `expo-glass-effect`, wrapping the genuine
-  `UIGlassEffect` / `UIGlassContainerEffect`. Each toast is its own `GlassView`
-  nested in a `GlassContainer`, so iOS merges the stack into one continuous
-  material that re-flows as the queue changes.
+  `UIGlassEffect` / `UIGlassContainerEffect`. Each toast is its own `GlassView`,
+  and a stack shares one `GlassContainer`, so neighbours blend when they come
+  within `containerSpacing` of each other.
 - **Three-rung fallback**: real `UIGlassEffect`; opaque tinted surface on
   iOS < 26 or when `UIDesignRequiresCompatibility=YES`; opaque surface when
   Reduce Transparency is enabled. The availability check alone is insufficient —
@@ -84,14 +84,40 @@ Upstream `react-hot-toast` v2.6.1 defects, each with a regression test in
 - **Explicit `undefined` shadowed fallbacks** during option resolution. Undefined
   keys are now deleted rather than stored.
 
+Found by running the example on an iOS 26.5 simulator:
+
+- `toast.promise` outcomes were timed from when the *loading* toast appeared, so
+  a slow request retired its success toast almost as soon as it showed. They now
+  get their full duration, and are announced and produce their haptic (an
+  id-only seen-set treated the outcome as already shown).
+- Toasts without a `position` were counted against `top-center` regardless of
+  the Toaster's `position`, skewing the visible cap and stagger.
+- `toast.custom` was drawn inside the default glass bar with a stray glyph. It
+  now renders the element as-is, like react-hot-toast.
+- `<Toaster glass={false}>` had no effect; the setting never reached the surface.
+- `<Toaster colorScheme>` forced the tokens but not the glass, so forced-dark
+  text could land on light glass.
+- Drag-to-dismiss moved the toast vertically under a horizontal finger, jumped
+  500px in one frame on release, and called the JS dismiss directly from a
+  UI-thread worklet.
+- Each toast had its own `GlassContainer`, so nothing could merge; the stack now
+  shares one.
+- The glass had no corner radius of its own and was clipped square by its
+  parent; the opaque rung's shadow was clipped away entirely.
+- The enter scale never animated, and on exit an empty glass pill sat on screen
+  for the whole exit window before shrinking a second time. Enter and exit now
+  run on one clock, and the glass materializes and dematerializes through
+  UIKit's effect animation instead of being popped on and off.
+- Every toast stretched to `maxWidth` (a `flexGrow` on the message); toasts now
+  hug their content, plain toasts no longer reserve an empty icon slot, and
+  left/right positions are no longer centred.
+- Reanimated warnings for a dependency array and a render-time shared-value read.
+
 ### Known limitations
 
-- **The glass stack has never been seen on a device.** Everything assertable
-  without hardware is asserted — all three fallback rungs, the `GlassContainer`
-  merge, the Reduce Transparency path through the public API — but the animation
-  timings and the actual `UIGlassEffect` render are unverified.
-  `npx expo run:ios` is additionally blocked by two React Native 0.86 / Xcode 27
-  toolchain failures unrelated to this package.
+- **Verified on the iOS 26.5 simulator only** — not on a physical device, on
+  Android, or on iOS < 26. Building the example under Xcode 27 needs two
+  toolchain workarounds unrelated to this package (see `example/README.md`).
 - Not available in React Native and deliberately not faked: `glassEffectID` shape
   morphing, `glassEffectTransition`, `.glass` / `.glassProminent` button styles,
   and automatic label-colour adaptation. Android gets a designed opaque surface,

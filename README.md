@@ -43,18 +43,20 @@ and `SafeAreaProvider` — see the Reanimated and Gesture Handler setup docs.
 ### Liquid Glass is real, not a blur approximation
 
 Toasts render through `expo-glass-effect`, which wraps the genuine
-`UIGlassEffect` / `UIGlassContainerEffect` classes. It works in Expo Go.
+`UIGlassEffect` / `UIGlassContainerEffect` classes. Verified on an iOS 26.5
+simulator (iPhone 17 Pro); not yet checked on a physical device.
 
-More interesting: each toast is its own `GlassView`, but they are nested in a
-`GlassContainer`. iOS then treats the stack as **one continuous material** that
-merges and re-flows as the queue reflows — a single glass sheet, not a pile of
-cards. The web has no equivalent for this.
+Each toast is its own `GlassView`, and every toast in a stack shares one
+`GlassContainer`, so UIKit treats them as one glass group: neighbours blend into
+each other when they come within `glass.containerSpacing` (default: the stack
+`gap`). At the default gap they read as separate pills.
 
-This is also why **opacity is never animated on the material**. A Liquid Glass
-view stops rendering entirely when its own or an ancestor's opacity reaches zero,
-and does not retry. So the bar animates `translateY` and `scale` only, and the
-opacity fade is confined to the icon and text *inside* the glass. A material
-that flies and shrinks reads as native; one that cross-fades reads as a bug.
+**Opacity is never animated on the material.** A Liquid Glass view can stop
+rendering when its own or an ancestor's opacity reaches zero. Instead the glass
+materializes on enter and dematerializes on exit through UIKit's own effect
+animation (`glassEffectStyle` animated to and from `'none'`), the bar moves with
+`translateY` and `scale`, and the opacity fade is confined to the icon and text
+*inside* the glass.
 
 ### Three-rung fallback, because two is not enough
 
@@ -63,6 +65,8 @@ that flies and shrinks reads as native; one that cross-fades reads as a bug.
 | iOS 26+, not opted out, transparency allowed | Real `UIGlassEffect` |
 | iOS < 26, or `UIDesignRequiresCompatibility=YES` | Opaque tinted surface |
 | Reduce Transparency enabled | Opaque tinted surface |
+| Android, web | Opaque tinted surface |
+| `glass: false` on the toast or the `<Toaster>` | Opaque tinted surface |
 
 The third rung is the one people miss: `isLiquidGlassAvailable()` still returns
 `true` when a user has turned Reduce Transparency on. Relying on the availability
@@ -152,7 +156,7 @@ Signatures that are stricter than they look, so you are not surprised by tsc:
 | `useToastTheme` | `(themeOverride?, colorScheme?) => ToastTheme` | both optional; reads `useColorScheme` when omitted |
 | `useGlassMode` | `(enabled: boolean) => 'glass' \| 'opaque'` | you pass the `glass` setting in |
 | `announce` | `(message: string, assertive: boolean) => void` | `assertive` is **required and positional** |
-| `<Toaster colorScheme>` | `'light' \| 'dark'` | there is no `'system'` — the default follows the OS, and this forces it |
+| `<Toaster colorScheme>` | `'light' \| 'dark'` | there is no `'system'` — the default follows the OS, and this forces both the tokens and the glass appearance |
 
 `closeButton` (and its `closeable` alias) is a **per-toast** option reached
 through `toastOptions`, not a top-level `<Toaster>` prop:
@@ -280,7 +284,7 @@ behind these choices is in [`RESEARCH.md`](./RESEARCH.md).
 ## Testing
 
 ```sh
-npm test                 # 284 tests
+npm test                 # 295 tests
 npm run typecheck
 npm run typecheck:example
 npm run verify:package   # tarball integrity
@@ -312,13 +316,11 @@ shape morphing, `glassEffectTransition`, `.glass` / `.glassProminent` button
 styles, and automatic label-colour adaptation. Android gets a designed opaque
 surface, not an imitation refraction.
 
-- **The glass stack has never been seen on a device.** Everything that can be
-  asserted without hardware is asserted — all three fallback rungs, the
-  `GlassContainer` merge, the Reduce Transparency path through the public API —
-  but the animation timings and the actual `UIGlassEffect` render are unverified.
-  The example app exists and `npx expo config` validates, but `expo run:ios` is
-  blocked by two React Native 0.86 / Xcode 27 toolchain failures unrelated to
-  this package. See `example/README.md`.
+- **Verified on the iOS 26.5 simulator only.** The example app runs there with
+  real `UIGlassEffect` toasts (success, error, `toast.promise`, actions, the
+  opaque rung, light and dark). It has not been run on a physical iPhone, on
+  Android, or on iOS < 26. Building it under Xcode 27 needs two toolchain
+  workarounds unrelated to this package; see `example/README.md`.
 - **Toasts do not appear above a presented modal sheet.** `FullWindowOverlay`
   would fix it and needs `react-native-screens`; deferred rather than coupled.
 - **No in-place `transition()`.** A cross-dissolve needs
