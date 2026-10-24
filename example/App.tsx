@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -183,6 +184,34 @@ function Screen() {
         </Section>
 
         <Section
+          header="Queue"
+          footer="Three toasts show at once; the rest wait and move up as space frees."
+          colors={colors}
+        >
+          <Row
+            colors={colors}
+            title="Burst of five"
+            detail="visibleToasts: 3"
+            onPress={() => {
+              for (let i = 1; i <= 5; i += 1) toast(`Item ${i} added to cart`);
+            }}
+          />
+          <Row
+            colors={colors}
+            title="Deduplicated"
+            detail="dedupeKey"
+            onPress={() => toast('Saving draft…', { dedupeKey: 'draft' })}
+          />
+          <Row
+            colors={colors}
+            title="From the bottom"
+            detail="position"
+            last
+            onPress={() => toast('Message sent', { position: 'bottom-center' })}
+          />
+        </Section>
+
+        <Section
           header="Material"
           footer="Before iOS 26, on Android and with Reduce Transparency on, toasts use an opaque surface instead of glass."
           colors={colors}
@@ -192,6 +221,29 @@ function Screen() {
             title="Opaque surface"
             detail="glass: false"
             onPress={() => toast('Drawn without glass', { glass: false })}
+          />
+          <Row
+            colors={colors}
+            title="Close button"
+            detail="closeButton"
+            onPress={() =>
+              toast('Export started. This can take a minute.', {
+                closeButton: true,
+                duration: 'long',
+              })
+            }
+          />
+          <Row
+            colors={colors}
+            title="Custom element"
+            detail="toast.custom()"
+            onPress={() =>
+              toast.custom(
+                <View style={[styles.custom, { backgroundColor: colors.tint }]}>
+                  <Text style={styles.customText}>Fully custom content</Text>
+                </View>,
+              )
+            }
           />
           <Row
             colors={colors}
@@ -261,5 +313,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   rowTitle: { fontSize: 17 },
-  rowDetail: { fontSize: 15, fontFamily: 'Menlo' },
+  rowDetail: {
+    fontSize: 15,
+    fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
+  },
+  custom: {
+    borderRadius: 999,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  customText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 });

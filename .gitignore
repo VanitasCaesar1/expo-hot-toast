@@ -71,3 +71,6 @@ pnpm-debug.log*
 .cache/
 tmp/
 .eslintcache
+
+# CI output from example/scripts/android-smoke.sh
+artifacts/

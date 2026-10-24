@@ -1,0 +1,12 @@
+# The same surfaces in dark mode. The script switches the system theme first.
+appId: dev.expohottoast.example
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Success"
+    timeout: 60000
+- tapOn: "Success"
+- tapOn: "Error"
+- tapOn: "With an action"
+- assertVisible: "Undo"
+- takeScreenshot: 11-dark-stack

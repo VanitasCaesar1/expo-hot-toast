@@ -10,6 +10,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "dev.expohottoast.example"
     },
+    "android": {
+      "package": "dev.expohottoast.example"
+    },
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#F2F2F7"

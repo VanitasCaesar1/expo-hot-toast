@@ -40,7 +40,6 @@ const peers = [
   'react-native-svg',
   'expo-glass-effect',
   'expo-haptics',
-  'expo-modules-core',
 ];
 const appModules = path.resolve(projectRoot, 'node_modules');
 

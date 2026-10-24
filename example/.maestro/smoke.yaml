@@ -1,0 +1,83 @@
+# Drives every row of the example and screenshots the result. Run by
+# scripts/android-smoke.sh in CI; works against an iOS simulator too.
+appId: dev.expohottoast.example
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Success"
+    timeout: 120000
+- takeScreenshot: 01-home
+
+- tapOn: "Success"
+- assertVisible: "Changes saved"
+- tapOn: "Error"
+- assertVisible: "Could not reach the server"
+- takeScreenshot: 02-success-and-error
+
+# Swipe a toast away horizontally.
+- swipe:
+    from:
+      text: "Could not reach the server"
+    direction: RIGHT
+- extendedWaitUntil:
+    notVisible: "Could not reach the server"
+    timeout: 3000
+
+- tapOn: "With an action"
+- assertVisible: "Undo"
+- takeScreenshot: 03-action
+- tapOn: "Undo"
+- assertVisible: "Message restored"
+
+- tapOn: "Promise"
+- assertVisible: "Uploading photo…"
+- takeScreenshot: 04-promise-loading
+- extendedWaitUntil:
+    visible: "Photo uploaded"
+    timeout: 6000
+- takeScreenshot: 05-promise-success
+
+- tapOn: "Promise that fails"
+- extendedWaitUntil:
+    visible: "Sync failed: offline"
+    timeout: 6000
+
+- scrollUntilVisible:
+    element:
+      text: "Dismiss all"
+    direction: DOWN
+- tapOn: "Dismiss all"
+- extendedWaitUntil:
+    notVisible: "Sync failed: offline"
+    timeout: 3000
+
+# Five at once: three show, two wait.
+- tapOn: "Burst of five"
+- assertVisible: "Item 5 added to cart"
+- assertNotVisible: "Item 1 added to cart"
+- takeScreenshot: 06-burst-queue
+- tapOn: "Dismiss all"
+
+# Three taps, one toast.
+- tapOn: "Deduplicated"
+- tapOn: "Deduplicated"
+- tapOn: "Deduplicated"
+- takeScreenshot: 07-dedupe
+
+- tapOn: "From the bottom"
+- assertVisible: "Message sent"
+- takeScreenshot: 08-bottom
+
+- tapOn: "Close button"
+- assertVisible: "Export started. This can take a minute."
+- takeScreenshot: 09-close-button
+- tapOn: "Dismiss"
+- extendedWaitUntil:
+    notVisible: "Export started. This can take a minute."
+    timeout: 3000
+
+- tapOn: "Opaque surface"
+- tapOn: "Custom element"
+- assertVisible: "Fully custom content"
+- takeScreenshot: 10-opaque-and-custom
