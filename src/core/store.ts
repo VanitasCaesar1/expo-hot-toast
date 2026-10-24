@@ -344,7 +344,17 @@ export function resolveToast(
   pick('important');
   pick('action');
   pick('dedupeKey');
-  pick('icon');
+  // `null` is a real value for the icon (hide it), not an absent one, so it
+  // must not fall through to a default the way `??` would let it.
+  put(
+    draft,
+    'icon',
+    toast.icon !== undefined
+      ? toast.icon
+      : typeOptions.icon !== undefined
+        ? typeOptions.icon
+        : (toastOptions.icon as Toast['icon']),
+  );
   pick('theme');
   pick('onDismiss');
 

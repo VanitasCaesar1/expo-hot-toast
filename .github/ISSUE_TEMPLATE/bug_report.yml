@@ -1,0 +1,46 @@
+name: Bug report
+description: Something does not work as documented.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: The smallest code that shows it. A snippet for example/App.tsx is ideal.
+      render: tsx
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options:
+        - iOS 26+ (Liquid Glass)
+        - iOS before 26
+        - Android
+        - Web
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device or simulator, and OS version
+      placeholder: iPhone 17 Pro simulator, iOS 26.5
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: Output of `npx expo-env-info`, or the versions of expo, react-native, react-native-reanimated, react-native-gesture-handler and expo-hot-toast.
+      render: text
+    validations:
+      required: true

@@ -54,6 +54,14 @@ Initial release. Not yet published to npm; `main` previously pointed at
   TypeScript source directly.
 - **Headless API** — `useToaster`, `useToasterStore`, and the store primitives —
   for building a custom renderer.
+- **`ContainerComponent`** on `<Toaster>`: render inside `FullWindowOverlay` (or
+  any wrapper) so toasts stay above native modals and sheets, without making
+  `react-native-screens` a dependency.
+- **`maxFontSizeMultiplier`** theme token (default 2) caps font scaling, since a
+  toast is limited to three lines.
+- **`icon: null`** hides a toast's icon, glyph included, as in react-hot-toast.
+- **Android CI**: the example is built and driven on an Android emulator with
+  Maestro for every change, with screenshots uploaded.
 
 ### Changed
 
@@ -139,6 +147,12 @@ Found in a source audit (2026-10-24):
 - Android buzzed the success haptic for blank and custom toasts, and a failed
   Android haptic was an unhandled rejection.
 
+### Documentation
+
+- The README is now a user guide; the design rationale moved to
+  `docs/design.md`, the competitive survey to `docs/research.md`, and
+  maintainer notes to `CONTRIBUTING.md`.
+
 ### Known limitations
 
 - **Verified on the iOS 26.5 simulator only** — not on a physical device, on
@@ -152,6 +166,6 @@ Found in a source audit (2026-10-24):
   `snapshotView(afterScreenUpdates:)`, a UIKit primitive; the nearest RN
   equivalent is an opacity animation that cannot touch the glass, and a
   cross-fade through a translucent material reads as wrong rather than smooth.
-- Toasts do not render above a presented sheet (`FullWindowOverlay` is not
-  used) — it would add `react-native-screens` as a dependency for a case most
-  apps never hit.
+- Toasts render above a presented sheet only when the Toaster is given
+  `ContainerComponent={FullWindowOverlay}`; it is not the default, so that
+  `react-native-screens` stays optional.

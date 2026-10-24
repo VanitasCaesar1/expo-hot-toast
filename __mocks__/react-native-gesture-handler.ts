@@ -1,4 +1,7 @@
+import { View } from 'react-native';
+
 export const GestureDetector = ({ children }: { children: unknown }) => children;
+export const GestureHandlerRootView = View;
 export const Gesture = {
   Pan: () => {
     const chain: Record<string, unknown> = {};
@@ -12,4 +15,4 @@ export const Gesture = {
   },
 };
 
-export default { Gesture, GestureDetector };
+export default { Gesture, GestureDetector, GestureHandlerRootView };

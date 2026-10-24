@@ -229,6 +229,11 @@ describe('resolveToast — the toast always beats a Toaster default', () => {
     expect(resolved[key]).toBe(own);
   });
 
+  it('keeps icon: null instead of falling back to a default icon', () => {
+    const resolved = resolveToast(baseToast({ icon: null }), { icon: 'theirs' });
+    expect(resolved.icon).toBeNull();
+  });
+
   it('lets a per-type default beat the Toaster default but not the toast', () => {
     const options = { position: 'bottom-center', success: { position: 'top-right' } } as const;
     expect(resolveToast(baseToast({ type: 'success', position: undefined }), options).position)
@@ -534,3 +539,12 @@ describe('store subscription', () => {
     vi.useRealTimers();
   });
 });
+
+describe('toastCssVars — null tokens', () => {
+  it('omits a null token rather than emitting null', () => {
+    const vars = toastCssVars(mergeTheme(defaultTheme, { maxFontSizeMultiplier: null }));
+    expect('--eh-toast-max-font-size-multiplier' in vars).toBe(false);
+    expect(toastCssVars()['--eh-toast-max-font-size-multiplier']).toBe(2);
+  });
+});
+

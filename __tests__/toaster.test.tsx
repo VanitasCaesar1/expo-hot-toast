@@ -1,6 +1,7 @@
-import { render, screen, act } from '@testing-library/react-native';
+import { render, screen, act, within } from '@testing-library/react-native';
+import * as React from 'react';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { Platform, Text } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Toaster } from '../src/components/toaster';
 import { triggerToastHaptic } from '../src/utils/haptics';
@@ -280,6 +281,42 @@ describe('Toaster — toastOptions', () => {
 
     expect(screen.getByText('own icon')).toBeTruthy();
     expect(screen.queryByText('default icon')).toBeNull();
+  });
+});
+
+describe('Toaster — ContainerComponent', () => {
+  it('renders the toasts inside the given container', () => {
+    // Stands in for react-native-screens' FullWindowOverlay.
+    const Overlay = ({ children }: { children?: React.ReactNode }) => (
+      <View testID="overlay">{children}</View>
+    );
+    render(<Toaster ContainerComponent={Overlay} />);
+    act(() => {
+      toast('above the sheet');
+    });
+
+    expect(within(screen.getByTestId('overlay')).getByText('above the sheet')).toBeTruthy();
+  });
+});
+
+describe('Toaster — font scaling', () => {
+  it('caps the message and the action at the theme multiplier', () => {
+    render(<Toaster />);
+    act(() => {
+      toast('scaled', { action: { label: 'Undo', onPress: () => {} } });
+    });
+
+    expect(screen.getByText('scaled').props.maxFontSizeMultiplier).toBe(2);
+    expect(screen.getByText('Undo').props.maxFontSizeMultiplier).toBe(2);
+  });
+
+  it('can be uncapped with null', () => {
+    render(<Toaster theme={{ maxFontSizeMultiplier: null }} />);
+    act(() => {
+      toast('free');
+    });
+
+    expect(screen.getByText('free').props.maxFontSizeMultiplier).toBeUndefined();
   });
 });
 

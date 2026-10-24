@@ -254,6 +254,12 @@ export interface ToastTheme {
   fontSize: number;
   lineHeight: number;
   fontWeight: TextStyle['fontWeight'];
+  /**
+   * Cap on Dynamic Type / font scale for toast text. A toast is capped at three
+   * lines, so at the largest accessibility sizes an uncapped message is cut
+   * off rather than enlarged. `null` removes the cap.
+   */
+  maxFontSizeMultiplier: number | null;
   /** Circular backdrop behind the close button, so it reads against glass. */
   closeButtonBackground: string;
   gap: number;

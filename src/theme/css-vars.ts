@@ -42,7 +42,8 @@ export function toastCssVars(theme: ToastTheme = defaultTheme): ToastCssVars {
   const vars: ToastCssVars = {};
 
   for (const [key, value] of Object.entries(theme)) {
-    if (key === 'motion') continue;
+    // `null` means "no value" (an uncapped font scale), not a CSS value.
+    if (key === 'motion' || value === null) continue;
     vars[`${PREFIX}-${toKebab(key)}`] = value as string | number;
   }
 

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { GlassContainer } from 'expo-glass-effect';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type {
   DefaultToastOptions,
@@ -74,6 +75,15 @@ export interface ToasterProps {
   containerStyle?: StyleProp<ViewStyle>;
   /** Freezes all timers in this region. */
   paused?: boolean;
+  /**
+   * Component to render the Toaster inside, instead of in place.
+   *
+   * Pass `FullWindowOverlay` from `react-native-screens` on iOS to show toasts
+   * above native modals and sheets, which otherwise cover them. The content is
+   * wrapped in its own `GestureHandlerRootView`, which gestures need inside a
+   * separate window.
+   */
+  ContainerComponent?: React.ComponentType<{ children?: React.ReactNode }>;
   /** Custom renderer. Falls back to the built-in bar. */
   children?: (props: { toast: Toast; theme: ReturnType<typeof useToastTheme> }) => React.ReactNode;
 }
@@ -109,6 +119,7 @@ export function Toaster({
   panThreshold = 72,
   containerStyle,
   paused,
+  ContainerComponent,
   children,
 }: ToasterProps) {
   const resolvedGap = gap ?? gutter ?? 14;
@@ -225,7 +236,7 @@ export function Toaster({
   const containerized = glass !== false && glassConfig.containerize !== false;
   const containerSpacing = glassConfig.containerSpacing ?? resolvedGap;
 
-  return (
+  const content = (
     <View
       // The whole tree is non-interactive except the toasts themselves, so a
       // toast can never swallow a tap meant for the screen behind it. rht does
@@ -311,6 +322,16 @@ export function Toaster({
         );
       })}
     </View>
+  );
+
+  if (!ContainerComponent) return content;
+
+  return (
+    <ContainerComponent>
+      <GestureHandlerRootView pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+        {content}
+      </GestureHandlerRootView>
+    </ContainerComponent>
   );
 }
 

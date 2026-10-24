@@ -210,7 +210,8 @@ export const ToastBar = React.memo(function ToastBar({
   // took the row gap, so plain toasts sat off-centre in their pill.
   const hasGlyph =
     iconKind === 'success' || iconKind === 'error' || iconKind === 'loading';
-  const defaultIcon = resolvedIcon == null && !hasGlyph ? null : (
+  // `icon: null` hides the icon, glyph included, as in react-hot-toast.
+  const defaultIcon = toast.icon === null || (resolvedIcon == null && !hasGlyph) ? null : (
     <View style={[styles.icon, toast.iconStyle]}>
       {resolvedIcon ?? (
         <ToastIcon kind={iconKind} size={theme.iconSize} theme={theme} />
@@ -241,6 +242,7 @@ export const ToastBar = React.memo(function ToastBar({
           toast.textStyle,
         ]}
         numberOfLines={3}
+        maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
       >
         {message}
       </Text>
@@ -285,6 +287,7 @@ export const ToastBar = React.memo(function ToastBar({
           ]}
         >
           <Text
+            maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
             style={[
               styles.actionLabel as TextStyle,
               {

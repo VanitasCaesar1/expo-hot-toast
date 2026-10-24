@@ -109,6 +109,13 @@ describe('ToastBar — icons', () => {
     expect(getSvg('Path').props.stroke).toBe(TOAST_ICON_ACCENTS.error);
   });
 
+  it('hides the glyph when icon is null', () => {
+    renderBar({ type: 'success', icon: null, message: 'no icon' });
+
+    expect(screen.getByText('no icon')).toBeTruthy();
+    expect(getSvgNodes('Svg')).toHaveLength(0);
+  });
+
   it('draws no icon at all for blank', () => {
     renderBar({ type: 'blank', message: 'quiet' });
 

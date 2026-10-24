@@ -1,422 +1,268 @@
 # expo-hot-toast
 
-`react-hot-toast` for Expo, with real Apple Liquid Glass on iOS 26+.
+[![CI](https://github.com/VanitasCaesar1/expo-hot-toast/actions/workflows/ci.yml/badge.svg)](https://github.com/VanitasCaesar1/expo-hot-toast/actions/workflows/ci.yml)
+[![Android](https://github.com/VanitasCaesar1/expo-hot-toast/actions/workflows/android.yml/badge.svg)](https://github.com/VanitasCaesar1/expo-hot-toast/actions/workflows/android.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
+The `react-hot-toast` API for Expo and React Native, drawn with Apple's real
+Liquid Glass material on iOS 26 and a designed opaque surface everywhere else.
+
+<!-- SCREENSHOTS -->
 
 ```tsx
 import { Toaster, toast } from 'expo-hot-toast';
 
-<Toaster />
+export default function App() {
+  return (
+    <>
+      <YourApp />
+      <Toaster />
+    </>
+  );
+}
 
-toast.success('Saved');
-toast.error('Upload failed');
-await toast.promise(save(), {
-  loading: 'Saving…',
-  success: 'Saved',
-  error: 'Could not save',
+toast.success('Changes saved');
+toast.error('Could not reach the server');
+await toast.promise(upload(photo), {
+  loading: 'Uploading photo…',
+  success: 'Photo uploaded',
+  error: 'Upload failed',
 });
 ```
 
+## Features
+
+- **Real Liquid Glass on iOS 26**, through `expo-glass-effect`'s native
+  `UIGlassEffect`, with stacked toasts sharing one glass container. No blur
+  imitation.
+- **A considered fallback.** iOS before 26, Android, web, and anyone with Reduce
+  Transparency on get an opaque surface with real colour, border and shadow.
+- **The react-hot-toast API you know**: `toast()`, `.success`, `.error`,
+  `.loading`, `.custom`, `.promise`, `.dismiss`, `<Toaster />`.
+- **A queue, not a pile.** Three toasts per position by default; the rest wait
+  and move up as space frees, so nothing expires unseen.
+- **Built for touch**: swipe to dismiss with fling velocity, press and hold to
+  pause, an optional close button and action button (Undo, Retry).
+- **Deduplication** with `dedupeKey`, so a handler firing twenty times shows one
+  toast.
+- **Accessible by default**: screen-reader announcements (assertive for
+  errors), Reduce Motion and Reduce Transparency, capped font scaling, and
+  distinct haptics for success and error.
+- **Safe areas and the keyboard** are handled; toasts never sit under the
+  Dynamic Island or behind the keyboard.
+- **Themable** through design tokens, with light and dark defaults and a CSS
+  variable export for NativeWind or Unistyles.
+
 ## Install
 
-Not yet on npm. Until it is, install it from GitHub. The compiled `lib/` is not
-committed, so npm runs the package's `prepare` script (`bob build`) after
-cloning; that installs the dev toolchain first and takes a minute or two:
+Not on npm yet. Install from GitHub; npm builds the package after cloning, which
+takes a minute or two:
 
 ```sh
 npm install github:VanitasCaesar1/expo-hot-toast
 ```
 
-Its peers are not installed automatically, so add them too:
+Then add the peer dependencies:
 
 ```sh
 npx expo install expo-glass-effect expo-haptics react-native-reanimated \
   react-native-gesture-handler react-native-safe-area-context react-native-svg
 ```
 
-The peer ranges allow Expo SDK 55+, React 19 and RN 0.80+, but the only
-combination tested so far is Expo SDK 57, React Native 0.86.3, Reanimated 4.7
-and Gesture Handler 3.3 (the example app's versions).
-`react-native-safe-area-context` must be **>=5.10.0** — 5.0.0 does not compile
-against RN 0.86's Yoga (`no member named 'unit' in 'facebook::yoga::StyleLength'`).
-Add the Reanimated Babel plugin and wrap your app in `GestureHandlerRootView`
-and `SafeAreaProvider` — see the Reanimated and Gesture Handler setup docs.
+Your app needs the Reanimated Babel plugin and must be wrapped in
+`GestureHandlerRootView` and `SafeAreaProvider`, as for any app using those
+libraries. Liquid Glass needs an app built with the iOS 26 SDK (Xcode 26 or
+newer) running on iOS 26.
 
-## What's different from the original
+Tested with Expo SDK 57, React Native 0.86, Reanimated 4.7 and Gesture Handler
+3.3. The peer ranges allow Expo SDK 55+, React 19 and React Native 0.80+.
+`react-native-safe-area-context` must be 5.10 or newer for React Native 0.86.
 
-### Liquid Glass is real, not a blur approximation
+## Platform support
 
-Toasts render through `expo-glass-effect`, which wraps the genuine
-`UIGlassEffect` / `UIGlassContainerEffect` classes. Verified on an iOS 26.5
-simulator (iPhone 17 Pro); not yet checked on a physical device.
+| Platform | Surface | Status |
+|---|---|---|
+| iOS 26+ | Liquid Glass | Verified on the iOS 26.5 simulator |
+| iOS before 26 | Opaque | Not yet run |
+| Android | Opaque | <!-- ANDROID_STATUS --> |
+| Web | Opaque | Not yet run |
 
-Each toast is its own `GlassView`, and every toast in a stack shares one
-`GlassContainer`, so UIKit treats them as one glass group: neighbours blend into
-each other when they come within `glass.containerSpacing` (default: the stack
-`gap`). At the default gap they read as separate pills.
+## Usage
 
-**Opacity is never animated on the material.** A Liquid Glass view can stop
-rendering when its own or an ancestor's opacity reaches zero. Instead the glass
-materializes on enter and dematerializes on exit through UIKit's own effect
-animation (`glassEffectStyle` animated to and from `'none'`), the bar moves with
-`translateY` and `scale`, and the opacity fade is confined to the icon and text
-*inside* the glass.
-
-### Three-rung fallback, because two is not enough
-
-| Condition | Surface |
-|---|---|
-| iOS 26+, not opted out, transparency allowed | Real `UIGlassEffect` |
-| iOS < 26, or `UIDesignRequiresCompatibility=YES` | Opaque tinted surface |
-| Reduce Transparency enabled | Opaque tinted surface |
-| Android, web | Opaque tinted surface |
-| `glass: false` on the toast or the `<Toaster>` | Opaque tinted surface |
-
-The third rung is the one people miss: `isLiquidGlassAvailable()` still returns
-`true` when a user has turned Reduce Transparency on. Relying on the availability
-check alone renders a translucent material to someone who explicitly asked not
-to see one. `expo-glass-effect`'s own non-iOS build renders a bare `<View>` with
-no effect, so the opaque rung is always drawn with real colour, border and
-shadow rather than left blank.
-
-### Theming via design tokens
-
-`style` props work as they do anywhere in RN. On top of that there is a token
-layer, and `toastCssVars()` emits it as CSS custom properties for NativeWind or
-Unistyles — without making either a dependency:
+### Toast types
 
 ```tsx
-import { toastCssVars } from 'expo-hot-toast';
-
-const vars = toastCssVars();
-
-// Unistyles
-const themes = { toast: { vars } };
-
-// NativeWind v4
-const toastTheme = { colors: { toast: vars } };
+toast('Message archived');                  // plain
+toast.success('Changes saved');
+toast.error('Could not reach the server');
+const id = toast.loading('Syncing…');       // stays until updated or dismissed
+toast.success('Synced', { id });            // update it in place
+toast.custom(<MyBanner />);                 // your element, no default surface
 ```
 
-`resolveTheme()` is pure and safe outside a component; `useToastTheme()` is the
-hook form with automatic light/dark.
+Every call returns the toast's id.
+
+### Promises
+
+```tsx
+await toast.promise(
+  save(draft),
+  {
+    loading: 'Saving…',
+    success: (result) => `Saved ${result.title}`,
+    error: (cause) => `Could not save: ${String(cause)}`,
+  },
+  { success: { duration: 'short' } },
+);
+```
+
+`toast.promise` returns the original promise, so `await` still rejects.
+
+### Options
+
+```tsx
+toast.error('Upload failed', {
+  duration: 'long',                         // 'short' 2s, 'long' 4.5s, 'infinite', or ms
+  position: 'bottom-center',
+  action: { label: 'Retry', onPress: retry },
+  closeButton: true,
+  dedupeKey: 'upload',
+  onDismiss: (id, reason) => log(reason),   // 'timeout' | 'swipe' | 'tap' | 'close' | 'action' | 'overflow' | 'programmatic'
+});
+```
+
+| Option | Default | |
+|---|---|---|
+| `duration` | 4000 (success 2000, loading infinite) | Number of ms, or `'short' \| 'long' \| 'infinite'` |
+| `position` | Toaster's `position` | `'top-left' \| 'top-center' \| 'top-right' \| 'bottom-…'` |
+| `id` | generated | Reuse an id to update a toast in place |
+| `icon` | per type | Any element; `null` hides it |
+| `action` | — | `{ label, onPress, color? }`; dismisses after `onPress` runs |
+| `closeButton` | `false` | Trailing close button; `closeButtonColor` tints it |
+| `dismissOnTap` | `true` on Android, `false` on iOS | Tap the toast to dismiss it |
+| `dedupeKey` / `dedupeWindowMs` | — / 1000 | Ignore a repeat while the first is on screen |
+| `important` | `true` for errors | Assertive screen-reader announcement |
+| `glass` | `true` | `false` forces the opaque surface; or a `GlassConfig` |
+| `theme` | — | Per-toast token overrides |
+| `style` / `textStyle` / `iconStyle` | — | Style overrides, applied last |
+| `accessibilityLabel` | the message | What screen readers announce |
+| `onDismiss` | — | Called with `(id, reason)` once the toast has left |
+| `toasterId` | `'default'` | Send the toast to a specific `<Toaster>` |
+
+Dismiss and remove:
 
 ```ts
-// resolveTheme takes a single options object, not positional arguments
-const t = resolveTheme({ colorScheme: 'dark', theme: { radius: 12 } });
-
-// useToastTheme(themeOverride?, colorScheme?)
-const t2 = useToastTheme({ radius: 12 });
+toast.dismiss(id);       // animate out; no id dismisses everything
+toast.remove(id);        // remove instantly
+toast.dismissAll();
 ```
 
-### RN affordances the web version has no concept of
-
-Safe-area insets (a top-anchored toast would otherwise sit inside the Dynamic
-Island), keyboard avoidance for bottom positions (the stack lifts clear of the
-keyboard; the lift is not animated), drag-to-dismiss with velocity
-fling, press-and-hold to freeze the queue, backgrounded-app expiry recovery,
-`accessibilityLiveRegion` on Android plus imperative announcements on iOS, and
-Reduce Motion handled as its own motion config rather than a skip-animation flag
-— so a reduced-motion user still gets the dismissal feedback.
-
-Haptics via `expo-haptics`, with distinct patterns for success and error.
-Loading is silent deliberately: it can sit on screen for a long time, and a
-repeating buzz is worse than none.
-
-## API
-
-`toast` mirrors `react-hot-toast`'s API, so an existing codebase mostly ports
-with search and replace (`ariaProps` and `className` have no equivalent; see
-"What's different" above):
-
-```ts
-toast(message, options?)   // returns id
-toast.success(…)  toast.error(…)
-toast.loading(…)           // duration: Infinity
-toast.custom(jsx, …)       // no default styling
-toast.promise(promise, { loading, success, error }, options?)
-toast.dismiss(id?, toasterId?, reason?)   toast.dismissAll(toasterId?, reason?)
-toast.remove(id?, toasterId?)            toast.removeAll(toasterId?)
-```
-
-`toast()` options: `duration` (number or preset), `position`, `toasterId`,
-`style` / `textStyle` / `iconStyle`, `theme`, `glass`, `important`, `closeButton`,
-`closeButtonColor`, `dismissOnTap`, `accessibilityLabel`, `action`, `dedupeKey`,
-`dedupeWindowMs`, `onDismiss`.
-
-`<Toaster />` props: `position`, `toastOptions`, `reverseOrder`, `gap`, `offset`,
-`visibleToasts`, `maxPending`, `dropPolicy`, `toasterId`, `theme`, `colorScheme`,
-`glass`, `panThreshold`, `paused`, `containerStyle`, and a render-prop `children`
-for a fully custom bar.
-
-`toastOptions` sets defaults for every toast in that Toaster, with per-type
-buckets on top. A toast's own options always win:
+### The Toaster
 
 ```tsx
 <Toaster
+  position="top-center"
+  visibleToasts={3}
   toastOptions={{
-    position: 'bottom-center',          // every toast…
-    success: { duration: 'short' },     // …success toasts…
+    closeButton: true,                    // every toast in this Toaster…
+    success: { duration: 'short' },       // …success toasts…
   }}
 />
-toast.success('Saved', { position: 'top-center' });  // …this one toast
+toast.success('Saved', { closeButton: false });   // …and this one toast wins
 ```
 
-Updating a toast by id (`toast.success('Done', { id })`) lands in whichever
-Toaster already holds it, so a `toasterId` is only needed when creating.
-
-Headless access for building your own renderer:
-
-```ts
-const { toasts, pending } = useToaster({ toastOptions, toasterId });
-```
-
-Signatures that are stricter than they look, so you are not surprised by tsc:
-
-| Export | Signature | Note |
+| Prop | Default | |
 |---|---|---|
-| `resolveTheme` | `({ theme?, colorScheme? }) => ToastTheme` | one options object, not positional |
-| `useToastTheme` | `(themeOverride?, colorScheme?) => ToastTheme` | both optional; reads `useColorScheme` when omitted |
-| `useGlassMode` | `(enabled: boolean) => 'glass' \| 'opaque'` | you pass the `glass` setting in |
-| `announce` | `(message: string, assertive: boolean) => void` | `assertive` is **required and positional** |
-| `<Toaster colorScheme>` | `'light' \| 'dark'` | there is no `'system'` — the default follows the OS, and this forces both the tokens and the glass appearance |
+| `position` | `'top-center'` | Where toasts without a `position` go |
+| `toastOptions` | — | Defaults for every toast, plus per-type buckets (`success`, `error`, `loading`, `blank`, `custom`) |
+| `visibleToasts` | 3 | How many show at once per position |
+| `maxPending` / `dropPolicy` | 10 / `'oldest'` | Queue size beyond the visible ones, and which end to drop when it overflows |
+| `gap` / `offset` | 14 / 16 | Space between toasts, and from the screen edge (added to the safe area) |
+| `reverseOrder` | `false` | Newest toast at the far end of the stack |
+| `theme` / `colorScheme` | system | Token overrides; force `'light'` or `'dark'` |
+| `glass` | `true` | `false` forces the opaque surface; or a `GlassConfig` |
+| `panThreshold` | 72 | Swipe distance that dismisses; 0 disables swiping |
+| `paused` | — | Freeze every timer, e.g. while a modal is open |
+| `toasterId` | `'default'` | Run several independent Toasters |
+| `ContainerComponent` | — | Render inside another component; see below |
+| `containerStyle` | — | Style for the full-screen container |
+| `children` | — | `({ toast, theme }) => element` to render each toast yourself |
 
-`closeButton` (and its `closeable` alias) is a **per-toast** option reached
-through `toastOptions`, not a top-level `<Toaster>` prop:
+### Above modals and sheets
 
-```tsx
-<Toaster toastOptions={{ closeButton: true }} />
-```
-
-## Upstream bugs fixed in the port
-
-Each of these was checked against the `react-hot-toast` v2.6.1 source published
-on npm. All but the concurrent-rendering one, which is structural, have a
-regression test here:
-
-- **Over-limit toasts were deleted, not dismissed.** `.slice(0, toastLimit)`
-  removed the 21st toast from the array, which unmounts it with no exit
-  animation — the toast a user is reading blinks out. Now the oldest is marked
-  dismissed so it plays its exit.
-- **`toast.promise` could orphan its loading toast.** It builds
-  `{ id, ...opts, ...opts.success }`, so an `id` in the promise's per-outcome
-  options (`toast.promise(p, msgs, { success: { id } })`) replaces the loading
-  toast's id; the loading toast is then never updated and spins forever. The id
-  is now spread last.
-- **Timers leaked and ignored `toasterId`.** The pending-removal map was never
-  cleared on unmount, and removal always dispatched to the `'default'` region,
-  so delayed removals never fired on any custom `toasterId`.
-- **Ids collided.** `genId()` was a bare module counter, so two copies of the
-  library in one bundle both produced `"1"`. Now time + counter + random.
-- **`useState` + a manual listener list** can tear under concurrent rendering
-  (upstream carries a TODO to switch). Replaced with `useSyncExternalStore`.
-- **Reduce Motion was cached forever** (`prefersReducedMotion` reads
-  `matchMedia` once), so toggling the OS setting mid-session did nothing.
-- **Explicit `undefined` shadowed fallbacks.** Options are resolved by spreading
-  the toast over the defaults, so `toast('x', { icon: undefined })` cleared a
-  Toaster-level icon. Undefined keys are now dropped instead.
-
-### Dismiss reasons
-
-A dismissed toast reports *why*, not just that it happened:
-
-```ts
-toast('Saved', { onDismiss: (id, reason) => log(id, reason) });
-// 'timeout' | 'swipe' | 'tap' | 'close' | 'action' | 'overflow' | 'programmatic'
-```
-
-`react-native-snackbar` has shipped `DISMISS_EVENT_*` constants since 2016, so
-this is settled ecosystem convention rather than an invention here. It matters:
-analytics that cannot distinguish "the user ignored it" from "we evicted it
-under load" are measuring the wrong thing. The first reason wins, so a toast that
-times out and is then swiped reports `timeout` — the cause that explains it.
-
-### Accessibility
-
-`important` selects an assertive live region; errors are assertive by default.
-Android honours this through a real `accessibilityLiveRegion`, and iOS announces
-imperatively (`announceForAccessibility`). On iOS the distinction cannot preempt
-an announcement already in flight, which is a platform limit rather than a choice.
-
-## Queue: a soft visible cap, not a hard limit
+Native modals cover the rest of the app, toasts included. On iOS, render the
+Toaster in `react-native-screens`' `FullWindowOverlay` to keep toasts on top:
 
 ```tsx
-<Toaster visibleToasts={3} maxPending={10} dropPolicy="oldest" gap={14} />
+import { Platform } from 'react-native';
+import { FullWindowOverlay } from 'react-native-screens';
+
+<Toaster ContainerComponent={Platform.OS === 'ios' ? FullWindowOverlay : undefined} />
 ```
 
-`react-hot-toast` hardcodes `TOAST_LIMIT = 20` and enforces it with
-`Array.slice`, so the 21st toast is deleted from the array outright — no exit
-animation, and the toast the user was reading blinks out. Twenty simultaneous
-toasts is also a wall of glass rather than a queue.
-
-Here the limit is **soft**. Up to `visibleToasts` are visible *per position*; the
-overflow stays stored with its timer **unarmed**, and is promoted into the freed
-slot on dismissal. Nothing is evicted until `visibleToasts + maxPending` is
-exceeded, at which point `dropPolicy` decides which end to drop — and even then
-the victim plays its exit and reports `dismissReason: 'overflow'`.
-
-Promotion is implicit: the visible slice is recomputed from the live list each
-render, so removing a toast promotes the next one with no imperative step to
-desynchronise.
-
-## Timing that respects the reader
-
-```ts
-duration: 2000                        // number, as before
-duration: 'short' | 'long' | 'infinite'
-```
-
-`'short'` = 2000, `'long'` = 4500, `'infinite'` never expires — snackbar has
-exported `LENGTH_SHORT` / `LENGTH_LONG` / `LENGTH_INDEFINITE` for a decade, and
-`@lucaleukert/expo-toast` settled on the same names independently.
-
-The deadline is then `duration + pauseDuration + stagger - enter`:
-
-- **`enter` is charged to the animation, not the reader.** Without this a 2000ms
-  success toast was on screen for 2000ms but readable for only 1650ms, because
-  the 350ms entrance came out of the same budget.
-- **`stagger` is added per stack position** (`depth * 320`, capped at 900ms), so
-  three toasts shown together retire at 2000 / 2320 / 2640 instead of all
-  collapsing on one frame — which reads as a glitch, not three events.
-- **Time runs from when a toast became *visible*,** not from creation, so a queued
-  toast that waited longer than its own duration is not retired on the tick it is
-  promoted. A visible toast pushed back into the queue by newer ones starts over
-  when it returns.
-
-`enter` and `stagger` are read from the Toaster's theme, so retuning the motion
-moves the deadlines with it.
-
-## Deduplication
-
-```ts
-toast('Saving…', { dedupeKey: 'save' });   // fires once
-toast('Saving…', { dedupeKey: 'save' });   // returns the SAME id, adds nothing
-```
-
-A spinner firing twenty times a second says nothing; one toast that updates in
-place says a lot. A duplicate is absorbed only while the earlier toast is still
-on screen and inside `dedupeWindowMs` (default 1000ms); once it has been
-dismissed, the next call shows a new toast. None of the JS toast libraries
-surveyed in [`RESEARCH.md`](./RESEARCH.md) had this. Bounded to 500 keys.
-
-## Actions
+### Theming
 
 ```tsx
-toast.error('Upload failed', { action: { label: 'Retry', onPress: retry } });
+<Toaster
+  theme={{
+    radius: 14,
+    fontSize: 16,
+    actionColor: '#FF9500',
+    motion: { enter: 300 },
+  }}
+/>
 ```
 
-Dismissed with `reason: 'action'`, after `onPress` runs — so the queue never shows
-a message describing something that has already been undone.
+Tokens cover colours, radius, padding, maximum width, shadow, type, icon size,
+the action colour, `maxFontSizeMultiplier` and every motion duration and curve.
+Light and dark defaults follow the system unless `colorScheme` is set.
+`resolveTheme()` gives you the resolved tokens outside a component, and
+`toastCssVars()` exports them as CSS custom properties for NativeWind or
+Unistyles.
 
-## Naming
+### Custom rendering
 
-`gap` (not `gutter`), `visibleToasts` (not `toastLimit`), `closeButton` (not
-`closeable`). Both old names still work as deprecated aliases. The research
-behind these choices is in [`RESEARCH.md`](./RESEARCH.md).
+Render each toast yourself and keep the queue, timers and gestures:
 
-## Testing
-
-```sh
-npm test                 # vitest (logic) + jest (components)
-npm run typecheck
-npm run typecheck:example
-npm run verify:package   # tarball integrity
-npm run verify:consumer  # consumer typechecks against the packed tarball
+```tsx
+<Toaster>
+  {({ toast }) => <MyToast message={toast.message} type={toast.type} />}
+</Toaster>
 ```
 
-Five gates. The example is typechecked against the library's real public types,
-and `verify:consumer` installs the packed tarball into a throwaway project and
-typechecks a consumer against it under both `moduleResolution: bundler` (Metro,
-webpack, Expo) and `node16` (strictest exports-map check). Unit tests cannot
-reach any of that — they run against `src/`, while users get `lib/`.
+Or go fully headless with `useToaster()`, which returns the visible and pending
+toasts for one Toaster plus `startPause` / `endPause`.
 
-Two runners, split by what they need. Vitest covers the pure logic — reducer,
-option resolution, `toast.promise`, toasterId routing, theme merging — because it
-needs no renderer and is an order of magnitude faster. Jest runs on the real
-React Native renderer via `jest-expo`, so component tests exercise genuine host
-components and real style resolution rather than string stubs.
+## Coming from react-hot-toast
 
-Reanimated is stubbed in Jest. Its animations are worklets that execute on the UI
-thread and never run in a unit test, so there is nothing to simulate; the stub
-exists so components mount and keep their host output inspectable. Its shipped
-`mock` cannot be used because it imports a TurboModule that does not exist under
-Jest.
+Most code ports by changing the import. The differences:
+
+- `className` and `ariaProps` do not exist; use `style`, `theme` and
+  `accessibilityLabel`.
+- At most three toasts show per position (`visibleToasts`) instead of twenty;
+  the rest queue rather than being dropped.
+- `gutter` is `gap` and `toastLimit` is `visibleToasts`; the old names still work.
+- `useToaster` takes one options object (`{ toastOptions, toasterId }`) and
+  returns `{ toasts, pending, startPause, endPause }`; position offsets come from
+  layout, so there is no `calculateOffset` or `updateHeight`.
+- `onDismiss`, `action`, `closeButton`, `dedupeKey`, symbolic durations and
+  swipe to dismiss are additions.
+
+[`docs/design.md`](./docs/design.md) explains the decisions behind the queue,
+the timing and the glass, including the react-hot-toast bugs fixed along the way.
 
 ## Known limitations
 
-Not available in React Native, and deliberately not faked: `glassEffectID`
-shape morphing, `glassEffectTransition`, `.glass` / `.glassProminent` button
-styles, and automatic label-colour adaptation. Android gets a designed opaque
-surface, not an imitation refraction.
-
-- **Verified on the iOS 26.5 simulator only.** The example app runs there with
-  real `UIGlassEffect` toasts (success, error, `toast.promise`, actions, the
-  opaque rung, light and dark). It has not been run on a physical iPhone, on
-  Android, or on iOS < 26. Building it under Xcode 27 needs two toolchain
-  workarounds unrelated to this package; see `example/README.md`.
-- **Toasts do not appear above a presented modal sheet.** `FullWindowOverlay`
-  would fix it and needs `react-native-screens`; deferred rather than coupled.
-- **No in-place `transition()`.** A cross-dissolve needs
-  `snapshotView(afterScreenUpdates:)`, a UIKit primitive. The nearest RN
-  equivalent is an opacity animation that cannot touch the glass, and a
-  cross-fade through a translucent material reads as wrong rather than smooth.
-
-## Build and release
-
-`main` is a compiled CommonJS build, `module` is ESM, `types` is generated, and
-the `react-native` export condition points at `src/index.ts` so Metro consumes
-the TypeScript source directly — which is what keeps Reanimated worklets working.
-
-```sh
-npm run build            # bob: commonjs + module + typescript
-npm run verify:package   # assert the tarball is publishable
-npm run verify:consumer  # typecheck a consumer against the packed tarball
-npm publish              # prepublishOnly runs test + typecheck + build first
-```
-
-`verify:consumer` is the one that matters most. `npm run typecheck` passing
-proves only that `src/` is internally consistent; it says nothing about whether
-the `exports` map's `types` conditions resolve or whether the `.d.ts` files were
-emitted where `main` claims. All three of those broke while building this
-package, and none is reachable from a unit test.
-
-Two things that look like bugs and are not:
-
-- **`bob build` always warns** `The esm option is disabled, but the
-  exports['.'].require field is set`. `esm` defaults to `false` in bob's shared
-  `compile()`, and the `commonjs` target never sets it — so any library
-  publishing both formats trips this unconditionally. Verified in bob 0.43.1.
-- **Type declarations are emitted twice**, under `lib/typescript/commonjs/` and
-  `lib/typescript/module/`, because the two formats need separate declaration
-  trees under `"type": "module"`. `types` and each `exports` condition point at
-  the matching one; bob validates these paths and fails the build if they drift.
-
-## Dependency resolution
-
-`.npmrc` sets `legacy-peer-deps=true`, which looks like a shortcut and is not.
-The conflict is unresolvable by any version choice:
-
-| Package | Declares |
-|---|---|
-| `react-native-reanimated@4.7` | `peer react-native-worklets: "0.13.x"` — **required** |
-| `expo-modules-core@57.0.20` | `peerOptional react-native-worklets: "^0.7.4 … ^0.10.0"` — **stale** |
-
-Those ranges do not intersect, and downgrading worklets to satisfy the second
-breaks Reanimated outright. The conflict is cosmetic — expo-modules-core only
-peers on worklets *optionally*, for its own JSI integration, so 0.13 costs it
-nothing — but strict resolution still refuses, which leaves the lockfile
-unreproducible and `npm ci` broken. Recording the flag means a fresh clone
-installs the tree the tests were written against.
-
-The package has no runtime dependencies of its own, only peers, so
-`npm audit --omit=dev` reports **0 vulnerabilities**. The dev tree (checked
-2026-10-24) reports advisories in the Expo CLI toolchain (`@expo/cli`,
-`node-forge`, `xcode`, …) whose only offered fix is `npm audit fix --force`, which
-"fixes" them by downgrading `expo` to SDK 44. They are dev-only and left in
-place.
+- Native modals cover toasts unless you use `ContainerComponent` (above).
+- No morphing between toasts (`glassEffectID`) or in-place cross-fade: React
+  Native has no equivalent that works with glass.
+- Android draws an opaque surface; it does not imitate glass.
 
 ## Contributing
 
-Issues and pull requests are welcome; see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+Issues and pull requests are welcome. [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+covers setup, the test gates and how releases work.
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT

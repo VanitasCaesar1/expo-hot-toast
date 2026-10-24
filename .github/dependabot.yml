@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # Workflow actions only. The npm tree is pinned to one Expo SDK, and SDK
+  # bumps are done by hand together with the example app.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

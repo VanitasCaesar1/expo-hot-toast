@@ -89,6 +89,7 @@ export const defaultTheme: ToastTheme = {
   fontSize: 15,
   lineHeight: 20,
   fontWeight: '500',
+  maxFontSizeMultiplier: 2,
   closeButtonBackground: 'rgba(0,0,0,0.07)',
   gap: 10,
   iconSize: 22,
