@@ -10,7 +10,7 @@ Node 22.12 or newer (Vitest 5 requires it; the published package itself only
 needs a bundler).
 
 ```sh
-npm ci      # .npmrc sets legacy-peer-deps; see "Dependency resolution" below
+npm ci
 npm test    # vitest (pure logic) + jest (components on the RN renderer)
 ```
 
@@ -83,19 +83,13 @@ Releases are published from GitHub: publishing a GitHub release runs
 provenance. It uses npm trusted publishing, so the package must be linked to
 this repository on npmjs.com first.
 
-## Dependency resolution
+## Dependencies
 
-`.npmrc` sets `legacy-peer-deps=true`, which looks like a shortcut and is not:
-
-| Package | Declares |
-|---|---|
-| `react-native-reanimated@4.7` | `peer react-native-worklets: "0.13.x"` — required |
-| `expo-modules-core@57` (via `expo`) | `peerOptional react-native-worklets: "^0.7.4 … ^0.10.0"` — stale |
-
-The ranges do not intersect, and downgrading worklets breaks Reanimated. The
-conflict is cosmetic (expo-modules-core only peers on worklets optionally), but
-strict resolution refuses it and `npm ci` fails. The example app has its own
-copy of the flag because npm reads `.npmrc` only from the project it runs in.
+The dev toolchain and the example both use exactly the versions Expo SDK 57
+expects; check with `npx expo install --check` in `example/` after changing
+anything. Mixing in newer Reanimated or Worklets than the SDK ships brings back
+a peer conflict with `expo-modules-core`, and a native module from another SDK
+can crash at launch on Android while working on iOS.
 
 The package itself has no runtime dependencies, only peers, so
 `npm audit --omit=dev` reports nothing. The dev tree reports advisories in the

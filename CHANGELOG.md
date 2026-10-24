@@ -71,7 +71,8 @@ Initial release. Not yet published to npm; `main` previously pointed at
 - The example app uses exactly Expo SDK 57's expected versions. It previously
   pinned a pre-SDK 57 `expo-haptics` that crashed on launch on Android
   (`NoClassDefFoundError: AnyTypeProvider`), and newer Reanimated / Worklets
-  than the SDK ships, which forced `legacy-peer-deps`.
+  than the SDK ships, which forced `legacy-peer-deps`. The library's own dev
+  toolchain is aligned the same way, so neither needs `.npmrc` any more.
 - `expo-modules-core` is no longer a runtime dependency. Nothing imported it, and
   pinning it could install a second copy next to the app's own.
 - A `prepare` script builds `lib/` on install from GitHub; before it, a git
