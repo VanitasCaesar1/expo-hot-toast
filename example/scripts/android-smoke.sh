@@ -8,6 +8,13 @@ APK=example/android/app/build/outputs/apk/release/app-release.apk
 OUT=artifacts/android
 mkdir -p "$OUT"
 
+# A cold, GPU-less emulator often shows "Pixel Launcher isn't responding" over
+# the app. Hide system error dialogs and give the launcher time to settle.
+adb shell settings put global hide_error_dialogs 1 || true
+adb shell settings put secure anr_show_background 0 || true
+sleep 20
+adb shell input keyevent KEYCODE_HOME || true
+
 adb install -r "$APK"
 adb shell cmd uimode night no
 

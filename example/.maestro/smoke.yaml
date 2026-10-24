@@ -7,6 +7,12 @@ appId: dev.expohottoast.example
 ---
 - launchApp:
     clearState: true
+# Dismiss a system "isn't responding" dialog if the emulator shows one anyway.
+- runFlow:
+    when:
+      visible: ".*isn't responding.*"
+    commands:
+      - tapOn: "Wait"
 - extendedWaitUntil:
     visible: "Success"
     timeout: 120000
