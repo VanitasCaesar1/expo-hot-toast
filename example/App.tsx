@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import {
   Platform,
   Pressable,
@@ -14,6 +14,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import * as Linking from 'expo-linking';
 import { Toaster, toast } from 'expo-hot-toast';
 
 /** iOS system colours, so the screen reads as a stock grouped list. */
@@ -43,8 +44,9 @@ type Palette = (typeof palette)['light'];
 /**
  * Set at bundle time by the Android CI job. On an emulator without a GPU each
  * tap takes about three seconds, so a 2-second toast (or a 1.6-second request)
- * is gone before the test runner can read it. Automated runs stretch both; the
- * flow clears toasts by tapping them instead of waiting.
+ * is gone before the test runner can read it. Automated runs stretch both, and
+ * turn on tap to dismiss (off by default on iOS) so the flow can clear toasts
+ * by tapping them instead of waiting.
  */
 const E2E = process.env.EXPO_PUBLIC_E2E === '1';
 const REQUEST_MS = E2E ? 5000 : 1600;
@@ -54,6 +56,53 @@ function settleAfter(ms: number, message?: string): Promise<void> {
   return new Promise((resolve, reject) =>
     setTimeout(() => (message ? reject(new Error(message)) : resolve()), ms),
   );
+}
+
+/**
+ * A scripted run of toasts, for recording demos at a natural pace. Opened with
+ * a deep link (`expohottoast://demo?run=1`; change `run` to play it again), so
+ * a recording does not depend on how fast a test runner can tap. Every toast
+ * names its own duration, which beats the E2E Toaster default.
+ */
+function useDemo() {
+  const url = Linking.useURL();
+
+  useEffect(() => {
+    if (!url?.includes('demo')) return undefined;
+
+    const steps: Array<[number, () => void]> = [
+      [500, () => toast.success('Changes saved', { duration: 2600 })],
+      [1400, () => toast.error('Could not reach the server', { duration: 3400 })],
+      [
+        5000,
+        () => {
+          void toast.promise(
+            settleAfter(1800),
+            { loading: 'Uploading photo…', success: 'Photo uploaded', error: 'Upload failed' },
+            { success: { duration: 2400 } },
+          );
+        },
+      ],
+      [
+        9800,
+        () =>
+          toast('Message archived', {
+            duration: 3200,
+            action: { label: 'Undo', onPress: () => toast.success('Message restored') },
+          }),
+      ],
+      ...[1, 2, 3, 4, 5].map(
+        (n): [number, () => void] => [
+          13600 + n * 120,
+          () => toast(`Item ${n} added to cart`, { duration: 1800 }),
+        ],
+      ),
+      [20500, () => toast('Message sent', { position: 'bottom-center', duration: 2600 })],
+    ];
+
+    const timers = steps.map(([at, run]) => setTimeout(run, at));
+    return () => timers.forEach(clearTimeout);
+  }, [url]);
 }
 
 function Row({
@@ -120,6 +169,7 @@ function Screen() {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const colors = palette[scheme];
   const insets = useSafeAreaInsets();
+  useDemo();
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -266,7 +316,7 @@ function Screen() {
         </Section>
       </ScrollView>
 
-      <Toaster toastOptions={E2E ? { duration: 20000 } : undefined} />
+      <Toaster toastOptions={E2E ? { duration: 20000, dismissOnTap: true } : undefined} />
     </View>
   );
 }

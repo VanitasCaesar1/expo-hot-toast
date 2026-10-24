@@ -1,0 +1,88 @@
+name: iOS
+
+# Builds the example for the iOS simulator and runs it on iOS 26 with Liquid
+# Glass, driving every demo row with Maestro and recording the scripted demo
+# used for the README. Runs on GitHub's macOS runner, so the native build never
+# touches a contributor's machine.
+#
+# Branches named ci/* run it too, so a change can be checked before it lands.
+
+on:
+  push:
+    branches: [main, 'ci/**']
+    paths:
+      - 'src/**'
+      - 'example/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'example/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulator:
+    name: Example on an iOS 26 simulator
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            example/package-lock.json
+
+      # Xcode 26 builds Expo SDK 57's precompiled modules as shipped; Xcode 27
+      # needs the workarounds in example/README.md.
+      - run: sudo xcode-select -s /Applications/Xcode_26.6.app
+
+      - run: npm ci
+      - run: npm ci
+        working-directory: example
+
+      - name: Generate the native project
+        run: npx expo prebuild --platform ios
+        working-directory: example
+
+      # Release embeds the JS bundle, so the simulator needs no Metro.
+      - name: Build the app
+        working-directory: example/ios
+        env:
+          # Longer toasts for automated runs; see E2E in example/App.tsx.
+          EXPO_PUBLIC_E2E: '1'
+        run: >
+          xcodebuild -quiet
+          -workspace expohottoastexample.xcworkspace
+          -scheme expohottoastexample
+          -configuration Release
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build
+          CODE_SIGNING_ALLOWED=NO
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Run on the simulator
+        run: bash example/scripts/ios-smoke.sh
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ios-smoke
+          path: artifacts/ios
+          retention-days: 14

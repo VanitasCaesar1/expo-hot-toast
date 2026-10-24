@@ -2,6 +2,7 @@
   "expo": {
     "name": "expo-hot-toast example",
     "slug": "expo-hot-toast-example",
+    "scheme": "expohottoast",
     "version": "0.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
