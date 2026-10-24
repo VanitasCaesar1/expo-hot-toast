@@ -62,6 +62,11 @@ export interface UseToasterResult {
   pending: Toast[];
   startPause: () => void;
   endPause: () => void;
+  /**
+   * The same two functions, grouped the way react-hot-toast returns them, so
+   * `const { toasts, handlers } = useToaster()` compiles unchanged.
+   */
+  handlers: { startPause: () => void; endPause: () => void };
 }
 
 export function useToaster({
@@ -327,7 +332,10 @@ export function useToaster({
     };
   }, [visible, pausedAt, toasterId, motion, visibleSince]);
 
-  return { toasts: visible, pending, startPause, endPause };
+  // Memoized so `handlers` is as stable as the functions it wraps.
+  const handlers = useMemo(() => ({ startPause, endPause }), [startPause, endPause]);
+
+  return { toasts: visible, pending, startPause, endPause, handlers };
 }
 
 /**

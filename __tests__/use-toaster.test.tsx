@@ -340,6 +340,22 @@ describe('useToaster — pausing', () => {
     expect(only(result.current.toasts).dismissed).toBe(true);
   });
 
+  it('exposes startPause and endPause again under handlers, as react-hot-toast does', () => {
+    const { result } = renderHook(() => useToaster());
+
+    expect(result.current.handlers.startPause).toBe(result.current.startPause);
+    expect(result.current.handlers.endPause).toBe(result.current.endPause);
+
+    act(() => {
+      result.current.handlers.startPause();
+    });
+    expect(getState().pausedAt).toBeDefined();
+    act(() => {
+      result.current.handlers.endPause();
+    });
+    expect(getState().pausedAt).toBeUndefined();
+  });
+
   it('ignores endPause when the region was never paused', () => {
     const { result } = renderHook(() => useToaster());
 

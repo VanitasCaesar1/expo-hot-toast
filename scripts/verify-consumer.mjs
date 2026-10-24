@@ -107,7 +107,9 @@ const props: ToasterProps = {
 void [rt, theme, override, vars, node, darkTheme, props];
 
 export function Screen() {
-  const { toasts } = useToaster({ toasterId: 'main' } as UseToasterOptions);
+  const { toasts, handlers } = useToaster({ toasterId: 'main' } as UseToasterOptions);
+  handlers.startPause();
+  handlers.endPause();
   const t: Toast | undefined = toasts[0];
   const type: ToastType | undefined = t?.type;
   const motion: MotionConfig = useToastTheme().motion;
