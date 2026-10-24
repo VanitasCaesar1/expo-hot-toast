@@ -14,17 +14,18 @@ appId: dev.expohottoast.example
     commands:
       - tapOn: "Wait"
 - extendedWaitUntil:
-    visible: "Success"
+    visible:
+      id: "row-success"
     timeout: 120000
 - takeScreenshot: 01-home
 
 # Success and error stack at the top, newest nearest the edge.
 - tapOn:
-    text: "Success"
+    id: "row-success"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Changes saved"
 - tapOn:
-    text: "Error"
+    id: "row-error"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Could not reach the server"
 - takeScreenshot: 02-success-and-error
@@ -44,7 +45,7 @@ appId: dev.expohottoast.example
 
 # Action button: runs the handler, then dismisses.
 - tapOn:
-    text: "With an action"
+    id: "row-with-an-action"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Undo"
 - takeScreenshot: 03-action
@@ -58,7 +59,7 @@ appId: dev.expohottoast.example
 
 # Promise: loading, then the outcome in place of it.
 - tapOn:
-    text: "Promise"
+    id: "row-promise"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Uploading photo…"
 - takeScreenshot: 04-promise-loading
@@ -69,7 +70,7 @@ appId: dev.expohottoast.example
 - takeScreenshot: 05-promise-success
 - tapOn: "Photo uploaded"
 - tapOn:
-    text: "Promise that fails"
+    id: "row-promise-that-fails"
     waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
     visible: "Sync failed: offline"
@@ -82,7 +83,7 @@ appId: dev.expohottoast.example
 # Five at once: the newest three show, the other two wait their turn and are
 # promoted as space frees.
 - tapOn:
-    text: "Burst of five"
+    id: "row-burst-of-five"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Item 5 added to cart"
 - assertVisible: "Item 3 added to cart"
@@ -106,13 +107,13 @@ appId: dev.expohottoast.example
 
 # Three taps, one toast: dismissing it leaves nothing behind.
 - tapOn:
-    text: "Deduplicated"
+    id: "row-deduplicated"
     waitToSettleTimeoutMs: 300
 - tapOn:
-    text: "Deduplicated"
+    id: "row-deduplicated"
     waitToSettleTimeoutMs: 300
 - tapOn:
-    text: "Deduplicated"
+    id: "row-deduplicated"
     waitToSettleTimeoutMs: 300
 - takeScreenshot: 07-dedupe
 - tapOn: "Saving draft…"
@@ -121,7 +122,7 @@ appId: dev.expohottoast.example
     timeout: 5000
 
 - tapOn:
-    text: "From the bottom"
+    id: "row-from-the-bottom"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Message sent"
 - takeScreenshot: 08-bottom
@@ -132,11 +133,11 @@ appId: dev.expohottoast.example
 
 - scrollUntilVisible:
     element:
-      text: "Custom element"
+      id: "row-custom-element"
     direction: DOWN
 
 - tapOn:
-    text: "Close button"
+    id: "row-close-button"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Export started. This can take a minute."
 - takeScreenshot: 09-close-button
@@ -146,11 +147,11 @@ appId: dev.expohottoast.example
     timeout: 5000
 
 - tapOn:
-    text: "Opaque surface"
+    id: "row-opaque-surface"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Drawn without glass"
 - tapOn:
-    text: "Custom element"
+    id: "row-custom-element"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Fully custom content"
 - takeScreenshot: 10-opaque-and-custom

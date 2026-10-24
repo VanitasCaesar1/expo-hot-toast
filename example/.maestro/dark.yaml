@@ -9,16 +9,17 @@ appId: dev.expohottoast.example
     commands:
       - tapOn: "Wait"
 - extendedWaitUntil:
-    visible: "Success"
+    visible:
+      id: "row-success"
     timeout: 60000
 - tapOn:
-    text: "Success"
+    id: "row-success"
     waitToSettleTimeoutMs: 300
 - tapOn:
-    text: "Error"
+    id: "row-error"
     waitToSettleTimeoutMs: 300
 - tapOn:
-    text: "With an action"
+    id: "row-with-an-action"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Changes saved"
 - assertVisible: "Could not reach the server"

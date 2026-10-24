@@ -38,24 +38,24 @@ status=0
 xcrun simctl ui "$UDID" appearance dark
 (cd "$OUT" && maestro --device "$UDID" test ../../example/.maestro/dark.yaml) || status=$?
 
-# The scripted demo, opened by deep link once the app is up so the recording
-# starts on a settled screen. Each run uses a new URL so it plays again.
+# The scripted demo, started by a long-press on the title (see playDemo in
+# App.tsx). A deep link would not do: iOS asks "Open in ...?" first, and the
+# recording showed that dialog instead of the demo. Recording runs around the
+# whole flow; the clips are trimmed later.
 record_demo() {
-  local name=$1 run=$2
+  local name=$1
   xcrun simctl terminate "$UDID" "$APP_ID" || true
-  xcrun simctl launch "$UDID" "$APP_ID" > /dev/null
-  sleep 10
   xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$OUT/$name.mp4" &
   local recorder=$!
   sleep 2
-  xcrun simctl openurl "$UDID" "expohottoast://demo?run=$run"
-  sleep 27
+  (cd "$OUT" && maestro --device "$UDID" test ../../example/.maestro/demo.yaml) || true
+  sleep 26
   kill -INT "$recorder" || true
   wait "$recorder" || true
 }
-record_demo demo-dark 1
+record_demo demo-dark
 xcrun simctl ui "$UDID" appearance light
-record_demo demo-light 2
+record_demo demo-light
 
 cp -R "$HOME/.maestro/tests" "$OUT/maestro-debug" 2>/dev/null || true
 xcrun simctl shutdown "$UDID" || true

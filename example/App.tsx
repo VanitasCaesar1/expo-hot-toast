@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
   Platform,
   Pressable,
@@ -14,7 +14,6 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import * as Linking from 'expo-linking';
 import { Toaster, toast } from 'expo-hot-toast';
 
 /** iOS system colours, so the screen reads as a stock grouped list. */
@@ -59,50 +58,42 @@ function settleAfter(ms: number, message?: string): Promise<void> {
 }
 
 /**
- * A scripted run of toasts, for recording demos at a natural pace. Opened with
- * a deep link (`expohottoast://demo?run=1`; change `run` to play it again), so
- * a recording does not depend on how fast a test runner can tap. Every toast
+ * A scripted run of toasts, for recording demos at a natural pace. Started by a
+ * long-press on the title (testID `play-demo`), so a recording depends on one
+ * tap, not on how fast a test runner can tap through every row. Every toast
  * names its own duration, which beats the E2E Toaster default.
  */
-function useDemo() {
-  const url = Linking.useURL();
-
-  useEffect(() => {
-    if (!url?.includes('demo')) return undefined;
-
-    const steps: Array<[number, () => void]> = [
-      [500, () => toast.success('Changes saved', { duration: 2600 })],
-      [1400, () => toast.error('Could not reach the server', { duration: 3400 })],
-      [
-        5000,
-        () => {
-          void toast.promise(
-            settleAfter(1800),
-            { loading: 'Uploading photo…', success: 'Photo uploaded', error: 'Upload failed' },
-            { success: { duration: 2400 } },
-          );
-        },
+function playDemo() {
+  const steps: Array<[number, () => void]> = [
+    [1000, () => toast.success('Changes saved', { duration: 2600 })],
+    [1900, () => toast.error('Could not reach the server', { duration: 3400 })],
+    [
+      5500,
+      () => {
+        void toast.promise(
+          settleAfter(1800),
+          { loading: 'Uploading photo…', success: 'Photo uploaded', error: 'Upload failed' },
+          { success: { duration: 2400 } },
+        );
+      },
+    ],
+    [
+      10300,
+      () =>
+        toast('Message archived', {
+          duration: 3200,
+          action: { label: 'Undo', onPress: () => toast.success('Message restored') },
+        }),
+    ],
+    ...[1, 2, 3, 4, 5].map(
+      (n): [number, () => void] => [
+        14100 + n * 120,
+        () => toast(`Item ${n} added to cart`, { duration: 1800 }),
       ],
-      [
-        9800,
-        () =>
-          toast('Message archived', {
-            duration: 3200,
-            action: { label: 'Undo', onPress: () => toast.success('Message restored') },
-          }),
-      ],
-      ...[1, 2, 3, 4, 5].map(
-        (n): [number, () => void] => [
-          13600 + n * 120,
-          () => toast(`Item ${n} added to cart`, { duration: 1800 }),
-        ],
-      ),
-      [20500, () => toast('Message sent', { position: 'bottom-center', duration: 2600 })],
-    ];
-
-    const timers = steps.map(([at, run]) => setTimeout(run, at));
-    return () => timers.forEach(clearTimeout);
-  }, [url]);
+    ),
+    [21000, () => toast('Message sent', { position: 'bottom-center', duration: 2600 })],
+  ];
+  steps.forEach(([at, run]) => setTimeout(run, at));
 }
 
 function Row({
@@ -121,6 +112,9 @@ function Row({
   return (
     <Pressable
       onPress={onPress}
+      // Stable handles for the Maestro flows: on iOS the row's accessible text
+      // is its title and detail together, so matching the title alone fails.
+      testID={`row-${title.toLowerCase().replace(/[^a-z]+/g, '-')}`}
       accessibilityRole="button"
       style={({ pressed }) => [
         styles.row,
@@ -169,7 +163,6 @@ function Screen() {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const colors = palette[scheme];
   const insets = useSafeAreaInsets();
-  useDemo();
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -181,7 +174,9 @@ function Screen() {
           { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 },
         ]}
       >
-        <Text style={[styles.title, { color: colors.label }]}>expo-hot-toast</Text>
+        <Pressable testID="play-demo" onLongPress={playDemo} accessibilityRole="header">
+          <Text style={[styles.title, { color: colors.label }]}>expo-hot-toast</Text>
+        </Pressable>
         <Text style={[styles.subtitle, { color: colors.secondary }]}>
           The react-hot-toast API for Expo. On iOS 26 each toast is drawn with
           the system Liquid Glass material.

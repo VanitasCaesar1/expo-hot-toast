@@ -32,23 +32,23 @@ adb shell pkill -INT screenrecord || true
 sleep 3
 adb pull /sdcard/smoke.mp4 "$OUT/smoke.mp4" || true
 
-# The scripted demo, opened by deep link once the app is up so the recording
-# starts on a settled screen. Each run uses a new URL so it plays again.
+# The scripted demo, started by a long-press on the title (see playDemo in
+# App.tsx). Recording runs around the whole flow; the clips are trimmed later.
 APP_ID=dev.expohottoast.example
 record_demo() {
-  local name=$1 run=$2
+  local name=$1
   adb shell am force-stop "$APP_ID"
-  adb shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 > /dev/null
-  sleep 15
-  adb shell screenrecord --time-limit 27 "/sdcard/$name.mp4" &
+  adb shell screenrecord "/sdcard/$name.mp4" &
   sleep 1
-  adb shell am start -a android.intent.action.VIEW -d "expohottoast://demo?run=$run" "$APP_ID" > /dev/null
-  sleep 28
+  (cd "$OUT" && maestro test ../../example/.maestro/demo.yaml) || true
+  sleep 26
+  adb shell pkill -INT screenrecord || true
+  sleep 3
   adb pull "/sdcard/$name.mp4" "$OUT/$name.mp4" || true
 }
-record_demo demo-dark 1
+record_demo demo-dark
 adb shell cmd uimode night no
-record_demo demo-light 2
+record_demo demo-light
 
 adb logcat -d > "$OUT/logcat.txt" || true
 # Maestro keeps its own logs, and a screenshot at the failing step.

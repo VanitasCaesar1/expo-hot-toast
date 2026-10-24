@@ -1,0 +1,16 @@
+# Starts the scripted demo (playDemo in App.tsx) for the README and website
+# recordings. The scripts record the screen around this flow.
+appId: dev.expohottoast.example
+---
+- launchApp
+- runFlow:
+    when:
+      visible: ".*isn't responding.*"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "row-success"
+    timeout: 60000
+- longPressOn:
+    id: "play-demo"
