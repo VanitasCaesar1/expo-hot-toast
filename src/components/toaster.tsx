@@ -77,6 +77,11 @@ export interface ToasterProps {
   /** Freezes all timers in this region. */
   paused?: boolean;
   /**
+   * Play a haptic when a success or error toast appears. Default true. A
+   * toast's own `haptics` option wins.
+   */
+  haptics?: boolean;
+  /**
    * Component to render the Toaster inside, instead of in place.
    *
    * Pass `FullWindowOverlay` from `react-native-screens` on iOS to show toasts
@@ -120,6 +125,7 @@ export function Toaster({
   panThreshold = 72,
   containerStyle,
   paused,
+  haptics = true,
   ContainerComponent,
   children,
 }: ToasterProps) {
@@ -199,14 +205,18 @@ export function Toaster({
       }
       seen.current.set(t.id, { createdAt: t.createdAt, type: t.type, message: t.message });
 
-      const label = t.accessibilityLabel ?? extractLabel(t.message);
+      // The message, then the description, as one announcement.
+      const spoken = [extractLabel(t.message), t.description == null ? undefined : extractLabel(t.description)]
+        .filter(Boolean)
+        .join('. ');
+      const label = t.accessibilityLabel ?? (spoken || undefined);
       if (label) announce(label, t.important ?? t.type === 'error');
 
       // A loading toast is a placeholder, not an outcome. Buzzing for it would
       // be both premature and, for a long request, unbearable.
-      if (t.type !== 'loading') triggerToastHaptic(t.type);
+      if (t.type !== 'loading' && (t.haptics ?? haptics)) triggerToastHaptic(t.type);
     });
-  }, [toasts]);
+  }, [toasts, haptics]);
 
   // The seen-set is a de-duplication guard, not state. If it is never pruned it
   // grows for the lifetime of the app, one entry per toast ever shown — a slow

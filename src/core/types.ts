@@ -30,6 +30,11 @@ export interface ToastOptions {
   id?: string;
   icon?: Renderable;
   /**
+   * A second, quieter line under the message, for detail the message does not
+   * need: 'Upload failed' / 'Check your connection and try again'.
+   */
+  description?: Renderable;
+  /**
    * `'short'` = 2000, `'long'` = 4500, `'infinite'` never expires.
    *
    * Snackbars have exported `LENGTH_SHORT` / `LENGTH_LONG` / `LENGTH_INDEFINITE`
@@ -62,6 +67,17 @@ export interface ToastOptions {
   theme?: ToastThemeOverride;
   /** Per-toast glass override. `false` forces the opaque fallback surface. */
   glass?: boolean | GlassConfig;
+  /**
+   * Colour success and error toasts by their outcome: a green or red tinted
+   * surface and text (`theme.rich`), and a matching tint on Liquid Glass.
+   * Other types are unaffected. Default false.
+   */
+  richColors?: boolean;
+  /**
+   * Play the success or error haptic when this toast appears. Default true;
+   * `<Toaster haptics={false}>` turns it off for a whole Toaster.
+   */
+  haptics?: boolean;
 
   /** iOS announcement string. Defaults to the rendered message. */
   accessibilityLabel?: string;
@@ -150,6 +166,7 @@ export interface Toast {
   toasterId?: string;
   message: ValueOrFunction<Renderable, Toast>;
   icon?: Renderable;
+  description?: Renderable;
 
   duration?: number;
   /** Original symbolic request, kept for the settings/Toaster layers. */
@@ -176,6 +193,8 @@ export interface Toast {
   iconTheme?: IconTheme;
   theme?: ToastThemeOverride;
   glass?: boolean | GlassConfig;
+  richColors?: boolean;
+  haptics?: boolean;
   accessibilityLabel?: string;
   dismissOnTap?: boolean;
   closeButton?: boolean;
@@ -288,6 +307,10 @@ export interface ToastTheme {
   fontSize: number;
   lineHeight: number;
   fontWeight: TextStyle['fontWeight'];
+  /** The `description` line under the message. */
+  descriptionColor: string;
+  descriptionFontSize: number;
+  descriptionLineHeight: number;
   /**
    * Cap on Dynamic Type / font scale for toast text. A toast is capped at three
    * lines, so at the largest accessibility sizes an uncapped message is cut
@@ -300,11 +323,30 @@ export interface ToastTheme {
   iconSize: number;
   actionColor: string;
   actionPaddingHorizontal: number;
+  /** Outcome colours for toasts with `richColors`. */
+  rich: RichPalette;
   motion: MotionConfig;
 }
 
-export interface ToastThemeOverride extends Partial<Omit<ToastTheme, 'motion'>> {
+/** One outcome's colours under `richColors`. */
+export interface RichColors {
+  /** Fill of the opaque surface. */
+  background: string;
+  border: string;
+  /** Message and description text. */
+  color: string;
+  /** Tint laid over Liquid Glass. */
+  tint: string;
+}
+
+export interface RichPalette {
+  success: RichColors;
+  error: RichColors;
+}
+
+export interface ToastThemeOverride extends Partial<Omit<ToastTheme, 'motion' | 'rich'>> {
   motion?: Partial<MotionConfig>;
+  rich?: { success?: Partial<RichColors>; error?: Partial<RichColors> };
 }
 
 export type ResolvedTheme = ToastTheme;

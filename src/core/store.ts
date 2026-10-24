@@ -338,6 +338,9 @@ export function resolveToast(
   pick('position');
   pick('removeDelay');
   pick('glass');
+  pick('richColors');
+  pick('haptics');
+  pick('description');
   pick('accessibilityLabel');
   pick('dismissOnTap');
   // `closeButton` is the canonical name; `closeable` is honoured as an alias

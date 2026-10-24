@@ -88,6 +88,8 @@ export type {
   MotionConfig,
   Renderable,
   ResolvedTheme,
+  RichColors,
+  RichPalette,
   Toast,
   // Backs `ToastOptions.action` and `Toast.action`.
   ToastAction,

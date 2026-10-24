@@ -40,8 +40,12 @@ jest.mock('react-native-gesture-handler', () => ({
           config.activeOffsetX = value;
           return chain;
         },
-        failOffsetY: (value: unknown) => {
-          config.failOffsetY = value;
+        activeOffsetY: (value: unknown) => {
+          config.activeOffsetY = value;
+          return chain;
+        },
+        onStart: (cb: unknown) => {
+          config.onStart = cb;
           return chain;
         },
         onUpdate: (cb: unknown) => {
@@ -63,6 +67,8 @@ jest.mock('react-native-gesture-handler', () => ({
 interface PanEvent {
   translationX: number;
   velocityX: number;
+  translationY: number;
+  velocityY: number;
 }
 
 
@@ -84,7 +90,7 @@ const makeToast = (overrides: Partial<Toast> = {}): Toast => ({
  * callbacks, the two shared values in declaration order (`dragX`, then `fling`),
  * and the `exiting` builder.
  */
-function mountBar(panThreshold: number, onDismiss: ToastBarProps['onDismiss']) {
+function mountBar(panThreshold: number, onDismiss: ToastBarProps['onDismiss'], atTop = false) {
   const shared: Array<{ value: number }> = [];
   jest
     .spyOn(Reanimated, 'useSharedValue')
@@ -106,7 +112,7 @@ function mountBar(panThreshold: number, onDismiss: ToastBarProps['onDismiss']) {
     <ToastBar
       toast={makeToast({ visible, dismissed: !visible })}
       theme={defaultTheme}
-      atTop={false}
+      atTop={atTop}
       reverseOrder={false}
       onDismiss={onDismiss}
       onPressIn={jest.fn()}
@@ -117,14 +123,26 @@ function mountBar(panThreshold: number, onDismiss: ToastBarProps['onDismiss']) {
   const view = render(bar(true));
 
   const config = mockGestureConfig[0]!;
+  let dragging = false;
 
   return {
     dragX: shared[0]!,
     fling: shared[1]!,
-    drag: (event: Partial<PanEvent>) =>
-      (config.onUpdate as (e: Partial<PanEvent>) => void)(event),
-    release: (event: Partial<PanEvent>) =>
-      (config.onEnd as (e: Partial<PanEvent>) => void)(event),
+    // Declared after `height` and `presence`.
+    dragY: shared[4]!,
+    // A drag starts with onStart, as Gesture Handler does on activation, and
+    // events carry both axes; a test names only the axis it is about.
+    drag: (event: Partial<PanEvent>) => {
+      if (!dragging) {
+        (config.onStart as () => void)();
+        dragging = true;
+      }
+      (config.onUpdate as (e: Partial<PanEvent>) => void)({ translationY: 0, velocityY: 0, ...event });
+    },
+    release: (event: Partial<PanEvent>) => {
+      dragging = false;
+      (config.onEnd as (e: Partial<PanEvent>) => void)({ translationY: 0, velocityY: 0, ...event });
+    },
     /**
      * Durations of the exit animations started by one dismissal. The bar is
      * shown again first and the spy cleared, so the enter animation cannot leak
@@ -157,8 +175,9 @@ describe('ToastBar — drag thresholds', () => {
     const { config } = mountBar(72, jest.fn());
 
     expect(config.enabled).toBe(true);
+    // Either axis activates it; the drag then locks to the one it started on.
     expect(config.activeOffsetX).toEqual([-12, 12]);
-    expect(config.failOffsetY).toEqual([-14, 14]);
+    expect(config.activeOffsetY).toEqual([-12, 12]);
   });
 
   it('disables the pan gesture entirely when panThreshold is 0', () => {
@@ -458,3 +477,67 @@ describe('ToastBar — release judged on the release event', () => {
   });
 });
 
+
+/*
+ * Toward the toast's own edge dismisses, the way a notification is flicked
+ * away: up for a top toast, down for a bottom one. Away from the edge resists.
+ */
+describe('ToastBar — vertical swipe', () => {
+  it('dismisses a top toast flicked up past two thirds of its height', () => {
+    const onDismiss = jest.fn();
+    const { drag, release, dragY } = mountBar(72, onDismiss, true);
+
+    drag({ translationY: -20 });
+    drag({ translationY: -50 });
+    expect(dragY.value).toBe(-50);
+    release({ translationY: -50, velocityY: 0 });
+
+    expect(onDismiss).toHaveBeenCalledWith('swipe-me', 'swipe');
+  });
+
+  it('dismisses a bottom toast flicked down', () => {
+    const onDismiss = jest.fn();
+    const { drag, release } = mountBar(72, onDismiss, false);
+
+    drag({ translationY: 50 });
+    release({ translationY: 50, velocityY: 0 });
+
+    expect(onDismiss).toHaveBeenCalledWith('swipe-me', 'swipe');
+  });
+
+  it('dismisses a short, fast flick toward the edge', () => {
+    const onDismiss = jest.fn();
+    const { drag, release } = mountBar(72, onDismiss, true);
+
+    drag({ translationY: -14 });
+    release({ translationY: -14, velocityY: -900 });
+
+    expect(onDismiss).toHaveBeenCalled();
+  });
+
+  it('resists, and never dismisses, a drag away from the edge', () => {
+    const onDismiss = jest.fn();
+    const { drag, release, dragY } = mountBar(72, onDismiss, true);
+
+    drag({ translationY: 200 });
+    expect(dragY.value).toBeGreaterThan(0);
+    expect(dragY.value).toBeLessThan(40);
+    release({ translationY: 200, velocityY: 1500 });
+
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it('locks to the axis the drag started on', () => {
+    const onDismiss = jest.fn();
+    const { drag, release, dragX, dragY } = mountBar(72, onDismiss, true);
+
+    // Starts sideways, then wanders up: it stays a sideways drag.
+    drag({ translationX: 20, translationY: -4 });
+    drag({ translationX: 24, translationY: -60 });
+    expect(dragY.value).toBe(0);
+    expect(dragX.value).toBe(24);
+    release({ translationX: 24, translationY: -60, velocityX: 0, velocityY: 0 });
+
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+});

@@ -8,6 +8,8 @@ export const Gesture = {
     const add = () => chain;
     chain.enabled = () => add();
     chain.activeOffsetX = () => add();
+    chain.activeOffsetY = () => add();
+    chain.onStart = () => add();
     chain.failOffsetY = () => add();
     chain.onUpdate = () => add();
     chain.onEnd = () => add();

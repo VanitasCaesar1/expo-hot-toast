@@ -43,8 +43,14 @@ export function toastCssVars(theme: ToastTheme = defaultTheme): ToastCssVars {
 
   for (const [key, value] of Object.entries(theme)) {
     // `null` means "no value" (an uncapped font scale), not a CSS value.
-    if (key === 'motion' || value === null) continue;
+    if (key === 'motion' || key === 'rich' || value === null) continue;
     vars[`${PREFIX}-${toKebab(key)}`] = value as string | number;
+  }
+  // `rich` is nested, so it flattens: --eh-toast-rich-error-background.
+  for (const [type, colors] of Object.entries(theme.rich)) {
+    for (const [key, value] of Object.entries(colors)) {
+      vars[`${PREFIX}-rich-${type}-${toKebab(key)}`] = value as string;
+    }
   }
 
   return { ...vars, ...motionVars(theme) };

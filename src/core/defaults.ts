@@ -91,12 +91,19 @@ export const defaultTheme: ToastTheme = {
   fontSize: 15,
   lineHeight: 20,
   fontWeight: '500',
+  descriptionColor: 'rgba(60,60,67,0.78)',
+  descriptionFontSize: 13,
+  descriptionLineHeight: 18,
   maxFontSizeMultiplier: 2,
   closeButtonBackground: 'rgba(0,0,0,0.07)',
   gap: 10,
   iconSize: 22,
   actionColor: '#0A84FF',
   actionPaddingHorizontal: 12,
+  rich: {
+    success: { background: '#ECFDF3', border: '#BFF5D6', color: '#00702A', tint: 'rgba(52,199,89,0.22)' },
+    error: { background: '#FFF0F0', border: '#FFD9DA', color: '#C8000F', tint: 'rgba(255,59,48,0.22)' },
+  },
   motion: defaultMotion,
 };
 
@@ -109,13 +116,25 @@ export function mergeTheme(
   base: ToastTheme,
   ...overrides: (ToastThemeOverride | undefined)[]
 ): ToastTheme {
-  let result: ToastTheme = { ...base, motion: { ...base.motion } };
+  let result: ToastTheme = {
+    ...base,
+    motion: { ...base.motion },
+    rich: { success: { ...base.rich.success }, error: { ...base.rich.error } },
+  };
 
   for (const override of overrides) {
     if (!override) continue;
-    const { motion, ...rest } = override;
+    const { motion, rich, ...rest } = override;
     result = { ...result, ...rest } as ToastTheme;
     if (motion) result.motion = { ...result.motion, ...motion };
+    // One level deeper for the same reason: overriding only the error tint must
+    // not drop the success palette.
+    if (rich) {
+      result.rich = {
+        success: { ...result.rich.success, ...rich.success },
+        error: { ...result.rich.error, ...rich.error },
+      };
+    }
   }
 
   return result;

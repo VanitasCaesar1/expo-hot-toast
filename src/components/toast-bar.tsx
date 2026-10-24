@@ -82,6 +82,8 @@ export interface ToastBarProps {
   children?: (props: {
     icon: React.ReactNode;
     message: React.ReactNode;
+    /** The `description` option, or undefined. */
+    description?: React.ReactNode;
   }) => React.ReactNode;
 }
 
@@ -109,7 +111,31 @@ export const ToastBar = React.memo(function ToastBar({
 }: ToastBarProps) {
   const slot = React.useContext(ToastBarContext);
 
-  const theme = themeProp ?? slot?.theme ?? defaultTheme;
+  const baseTheme = themeProp ?? slot?.theme ?? defaultTheme;
+  // `richColors` recolours success and error toasts by outcome: the surface,
+  // its border and the text take the outcome palette, and glass takes a tint.
+  const rich =
+    toast.richColors && (toast.type === 'success' || toast.type === 'error')
+      ? baseTheme.rich[toast.type]
+      : undefined;
+  const theme = React.useMemo(
+    () =>
+      rich
+        ? {
+            ...baseTheme,
+            fallbackBackground: rich.background,
+            border: rich.border,
+            color: rich.color,
+            descriptionColor: rich.color,
+          }
+        : baseTheme,
+    [baseTheme, rich],
+  );
+  const glassConfig = typeof toast.glass === 'object' ? toast.glass : undefined;
+  const glass =
+    rich && toast.glass !== false
+      ? { ...glassConfig, tintColor: glassConfig?.tintColor ?? rich.tint }
+      : toast.glass;
   const reduceTransparency = reduceTransparencyProp ?? slot?.reduceTransparency ?? false;
   const reduceMotion = reduceMotionProp ?? slot?.reduceMotion ?? false;
   const colorScheme = colorSchemeProp ?? slot?.colorScheme;
@@ -135,6 +161,11 @@ export const ToastBar = React.memo(function ToastBar({
   // 0 = off screen, 1 = settled. One clock for travel, scale and the content
   // fade, so enter and exit read as one motion rather than three.
   const presence = useSharedValue(0);
+  // Vertical drag, toward the toast's own edge: up for a top toast, down for a
+  // bottom one, the way a notification is flicked away.
+  const dragY = useSharedValue(0);
+  // Which axis the current drag locked to: 0 undecided, 1 sideways, 2 vertical.
+  const dragAxis = useSharedValue(0);
 
   // Which horizontal direction dismisses. Either works, but only one should
   // count as "let go of me" — the other is a push-back.
@@ -145,6 +176,9 @@ export const ToastBar = React.memo(function ToastBar({
   // `undefined`, every comparison becomes NaN, and the elastic-resistance branch
   // silently never runs.
   const dismissalSign = 1;
+  // The vertical equivalent: toward the anchored edge. Declared here for the
+  // same closure reason as `dismissalSign`.
+  const edgeSign = atTop ? -1 : 1;
 
   // Travel always points away from the stack's anchor: a top-anchored toast
   // enters from above, a bottom-anchored one rises from below. rht does this
@@ -216,7 +250,7 @@ export const ToastBar = React.memo(function ToastBar({
         // by the release handler, and zeroing the offset here snapped it back
         // to the centre for the length of the exit.
         { translateX: dragX.value },
-        { translateY: direction * height.value * travel * (1 - p) },
+        { translateY: direction * height.value * travel * (1 - p) + dragY.value },
         { scale: from + (1 - from) * p },
         { rotateZ: `${(dragX.value / 40) * 4}deg` },
       ],
@@ -304,11 +338,45 @@ export const ToastBar = React.memo(function ToastBar({
       Gesture.Pan()
         .enabled(panThreshold > 0)
         .activeOffsetX([-12, 12])
-        .failOffsetY([-14, 14])
+        .activeOffsetY([-12, 12])
+        .onStart(() => {
+          dragAxis.value = 0;
+        })
         .onUpdate((event) => {
-          dragX.value = resistWrongWay(event.translationX, dismissalSign);
+          // The drag locks to whichever axis it starts along, so a sideways
+          // swipe never drifts vertically and a flick up never slides sideways.
+          if (dragAxis.value === 0) {
+            dragAxis.value = Math.abs(event.translationX) >= Math.abs(event.translationY) ? 1 : 2;
+          }
+          if (dragAxis.value === 1) {
+            dragX.value = resistWrongWay(event.translationX, dismissalSign);
+          } else {
+            dragY.value = resistWrongWay(event.translationY, edgeSign);
+          }
         })
         .onEnd((event) => {
+          if (dragAxis.value === 2) {
+            // A toast is short, so the vertical distance is shorter too: about
+            // two thirds of its own height, or a flick toward the edge.
+            const travel = resistWrongWay(event.translationY, edgeSign);
+            dragY.value = travel;
+            const towardEdge = travel * edgeSign > 0;
+            const farEnough = towardEdge && Math.abs(travel) > Math.min(panThreshold, 44);
+            const fastEnough = event.velocityY * edgeSign > 600;
+            fling.value = Math.abs(event.velocityY);
+            if (farEnough || fastEnough) {
+              const speed = Math.min(Math.abs(event.velocityY) / 1800, 1);
+              dragY.value = withTiming(travel + edgeSign * (height.value + 160), {
+                duration: exitMs * (1 - 0.25 * speed),
+                easing: exitEasing,
+              });
+              runOnJS(swipeAway)();
+            } else {
+              dragY.value = withTiming(0, { duration: 200, easing: enterEasing });
+            }
+            return;
+          }
+
           // Judged on the release event's own translation, not the last
           // update's. A quick swipe can deliver only a few updates before the
           // finger lifts (on Android, three updates reached 18px of a 135px
@@ -336,7 +404,7 @@ export const ToastBar = React.memo(function ToastBar({
             dragX.value = withTiming(0, { duration: 200, easing: enterEasing });
           }
         }),
-    [panThreshold, dragX, fling, exitMs, exitEasing, enterEasing, swipeAway],
+    [panThreshold, dragX, dragY, dragAxis, edgeSign, height, fling, exitMs, exitEasing, enterEasing, swipeAway],
   );
 
   // A per-toast `style.borderRadius` wins over the token, same as for the
@@ -345,6 +413,12 @@ export const ToastBar = React.memo(function ToastBar({
     (StyleSheet.flatten(toast.style)?.borderRadius as number | undefined) ?? theme.radius;
 
   const message = resolveValue(toast.message, toast);
+  const description = toast.description;
+  // What a grouped toast reads aloud: the message, then the description.
+  const spokenText =
+    [extractText(message), description == null ? undefined : extractText(description)]
+      .filter(Boolean)
+      .join('. ') || undefined;
   const iconKind = toast.type as ToastIconKind;
 
   // A function icon receives the resolved toast, same as a function message.
@@ -379,30 +453,55 @@ export const ToastBar = React.memo(function ToastBar({
   // the flag actually reaches Android, which has real live regions.
   const assertive = toast.important ?? toast.type === 'error';
 
+  const messageText = (
+    <Text
+      style={[
+        styles.message,
+        {
+          color: theme.color,
+          fontSize: theme.fontSize,
+          lineHeight: theme.lineHeight,
+          fontWeight: theme.fontWeight,
+        },
+        toast.textStyle,
+      ]}
+      numberOfLines={3}
+      // Ungrouped toasts read the message on its own, so a custom label
+      // belongs here instead of on the container.
+      accessibilityLabel={hasButtons ? toast.accessibilityLabel : undefined}
+      maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
+    >
+      {message}
+    </Text>
+  );
+
   const content = children ? (
-    children({ icon: defaultIcon, message })
+    children({ icon: defaultIcon, message, description })
   ) : (
     <View style={styles.row}>
       {defaultIcon}
-      <Text
-        style={[
-          styles.message,
-          {
-            color: theme.color,
-            fontSize: theme.fontSize,
-            lineHeight: theme.lineHeight,
-            fontWeight: theme.fontWeight,
-          },
-          toast.textStyle,
-        ]}
-        numberOfLines={3}
-        // Ungrouped toasts read the message on its own, so a custom label
-        // belongs here instead of on the container.
-        accessibilityLabel={hasButtons ? toast.accessibilityLabel : undefined}
-        maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
-      >
-        {message}
-      </Text>
+      {description == null ? (
+        messageText
+      ) : (
+        <View style={styles.texts}>
+          {messageText}
+          {typeof description === 'string' || typeof description === 'number' ? (
+            <Text
+              style={{
+                color: theme.descriptionColor,
+                fontSize: theme.descriptionFontSize,
+                lineHeight: theme.descriptionLineHeight,
+              }}
+              numberOfLines={3}
+              maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
+            >
+              {description}
+            </Text>
+          ) : (
+            description
+          )}
+        </View>
+      )}
       {closeable ? (
         <Pressable
           onPress={() => onDismiss(toast.id, 'close')}
@@ -490,7 +589,7 @@ export const ToastBar = React.memo(function ToastBar({
             accessible={!hasButtons}
             accessibilityRole={hasButtons ? undefined : 'alert'}
             accessibilityLabel={
-              hasButtons ? undefined : (toast.accessibilityLabel ?? extractText(message))
+              hasButtons ? undefined : (toast.accessibilityLabel ?? spokenText)
             }
             accessibilityHint={tapToDismiss && !hasButtons ? 'Double tap to dismiss' : undefined}
             style={[styles.pressable, { alignItems: align }]}
@@ -519,7 +618,7 @@ export const ToastBar = React.memo(function ToastBar({
             >
               <GlassSurface
                 theme={theme}
-                glass={toast.glass}
+                glass={glass}
                 // The material carries its own corner radius. expo-glass-effect
                 // reads `borderRadius` off the GlassView itself to configure
                 // UIKit's corner shape; clipping a square glass view with a
@@ -618,6 +717,11 @@ const styles = StyleSheet.create({
   icon: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Message and description, stacked. Shrinks like the message does.
+  texts: {
+    flexShrink: 1,
+    gap: 2,
   },
   message: {
     // Shrinks (wraps) rather than grows. A `flexGrow` here makes Yoga fill the
