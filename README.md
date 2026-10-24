@@ -9,7 +9,11 @@ Toasts for Expo and React Native, with the react-hot-toast API. On iOS 26 each
 toast is drawn in Apple's own Liquid Glass; everywhere else, on a designed
 opaque surface.
 
-<!-- SCREENSHOTS -->
+<p align="center">
+  <img src="./docs/media/demo.gif" width="732" alt="The same toasts on iOS 26, in Liquid Glass, and on Android, on an opaque surface" />
+  <br />
+  <sub>iOS 26 (Liquid Glass) and Android, recorded in CI</sub>
+</p>
 
 **[Documentation](https://vanitascaesar1.github.io/expo-hot-toast/docs/)** ·
 [Website](https://vanitascaesar1.github.io/expo-hot-toast/)

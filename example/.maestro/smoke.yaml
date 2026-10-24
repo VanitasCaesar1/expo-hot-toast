@@ -91,11 +91,13 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-with-a-description"
     waitToSettleTimeoutMs: 300
-- assertVisible: "Check your connection and try again."
+# On iOS the toast is one accessibility element labelled with the message
+# and the description together, so match within it.
+- assertVisible: ".*Check your connection and try again.*"
 - takeScreenshot: 06a-description
-- tapOn: "Could not upload photo"
+- tapOn: ".*Could not upload photo.*"
 - extendedWaitUntil:
-    notVisible: "Could not upload photo"
+    notVisible: ".*Could not upload photo.*"
     timeout: 5000
 
 # Rich colours, then flicked up and away like a notification.

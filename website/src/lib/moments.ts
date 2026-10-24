@@ -1,6 +1,6 @@
 /**
  * The scripted demo (playDemo in example/App.tsx), as moments in the clips.
- * `at` is seconds into each platform's trimmed clip. The clips begin 0.8 s after
+ * `at` is seconds into each platform's trimmed clip. The clips begin 0.95 s after
  * the long-press that starts the demo (cut-media.py's TRIM), hence LEAD.
  */
 export interface Moment {
@@ -11,7 +11,7 @@ export interface Moment {
   at: { ios: number; android: number };
 }
 
-const LEAD = { ios: -0.8, android: -0.8 };
+const LEAD = { ios: -0.95, android: -0.95 };
 const step = (seconds: number) => ({ ios: LEAD.ios + seconds, android: LEAD.android + seconds });
 
 export const moments: Moment[] = [

@@ -29,13 +29,13 @@ from pathlib import Path
 
 # Seconds into each recording where the demo starts. Update per CI run.
 START = {
-    ('ios', 'dark'): 91.2,
+    ('ios', 'dark'): 67.9,
     ('ios', 'light'): 74.75,
-    ('android', 'dark'): 24.2,
-    ('android', 'light'): 27.1,
+    ('android', 'dark'): 23.75,
+    ('android', 'light'): 25.9,
 }
 # Seconds after START that each clip begins. Keep equal to -LEAD in moments.ts.
-TRIM = 0.8
+TRIM = 0.95
 # Long enough for the last toast (Message sent, at 21 s, for 2.6 s) to leave.
 LENGTH = 24.2
 # Seconds into the demo for the poster and still: the error has stacked above
