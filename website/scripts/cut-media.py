@@ -11,14 +11,15 @@ The simulator and emulator recordings run around the whole Maestro flow, so the
 scripted demo starts a minute or more into each file, at a different point every
 run. START is where the long-press that starts the demo lands in each file; find
 it by stepping through frames until the first toast ("Changes saved") appears,
-and subtract 1.0 s (playDemo fires it at 1000 ms). Everything in
-src/lib/moments.ts is measured from that point.
+and subtract 1.0 s (playDemo fires it at 1000 ms). Clips begin TRIM seconds
+after that point, which drops the long-press artefact before the first toast;
+src/lib/moments.ts subtracts the same TRIM (its LEAD).
 
 Writes to website/public/media:
-  <platform>-demo-<scheme>.mp4   the demo, 25 s, H.264, 540 px wide
+  <platform>-demo-<scheme>.mp4   the demo, H.264, 720 px wide
   <platform>-demo-<scheme>.jpg   its poster (the success + error stack)
-  <platform>-stack-<scheme>.jpg  a 600x480 still of the top of the screen
-  <platform>-queue-<scheme>.jpg  the same crop during the burst of five
+  <platform>-stack-<scheme>.jpg  an 800x424 still: the full width of the top
+                                 of the screen at the same moment
 Needs ffmpeg on PATH.
 """
 
@@ -30,21 +31,18 @@ from pathlib import Path
 START = {
     ('ios', 'dark'): 91.2,
     ('ios', 'light'): 74.75,
-    ('android', 'dark'): None,
-    ('android', 'light'): None,
+    ('android', 'dark'): 24.2,
+    ('android', 'light'): 27.1,
 }
+# Seconds after START that each clip begins. Keep equal to -LEAD in moments.ts.
+TRIM = 0.8
 # Long enough for the last toast (Message sent, at 21 s, for 2.6 s) to leave.
-LENGTH = 25.0
+LENGTH = 24.2
 # Seconds into the demo for the poster and still: the error has stacked above
 # the success toast, both icons drawn.
 STILL_AT = 2.6
-# Seconds into the demo where three cart toasts show and two wait. Per clip,
-# because a recording that stalls drifts from the script's timing.
-QUEUE_AT = {
-    ('ios', 'dark'): 15.0,
-    ('ios', 'light'): 15.2,
-}
-WIDTH = 540
+# The lenses on the site show the clip at up to about 560 CSS px.
+WIDTH = 720
 
 MEDIA = Path(__file__).resolve().parent.parent / 'public' / 'media'
 
@@ -59,7 +57,7 @@ def cut(src: Path, platform: str, scheme: str, start: float) -> None:
     # when the screen changes); resample to a steady 30 fps so browsers seek
     # predictably.
     ffmpeg(
-        '-ss', f'{start}', '-i', str(src), '-t', f'{LENGTH}',
+        '-ss', f'{start + TRIM}', '-i', str(src), '-t', f'{LENGTH}',
         '-vf', f'fps=30,scale={WIDTH}:-2:flags=lanczos',
         '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '27',
         '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
@@ -70,19 +68,13 @@ def cut(src: Path, platform: str, scheme: str, start: float) -> None:
         '-vf', f'scale={WIDTH}:-2:flags=lanczos', '-q:v', '4',
         f'{base}.jpg',
     )
-    # The still is the top of the screen at the same moment, cropped to 5:4.
+    # The still is the full width of the top of the screen, down to the list, so no toast
+    # is cut at the sides.
     ffmpeg(
         '-ss', f'{start + STILL_AT}', '-i', str(src), '-frames:v', '1',
-        '-vf', 'crop=iw:iw*0.8:0:0,scale=600:480:flags=lanczos', '-q:v', '4',
+        '-vf', 'crop=iw:iw*0.53:0:0,scale=800:424:flags=lanczos', '-q:v', '3',
         str(MEDIA / f'{platform}-stack-{scheme}.jpg'),
     )
-    queue_at = QUEUE_AT.get((platform, scheme))
-    if queue_at is not None:
-        ffmpeg(
-            '-ss', f'{start + queue_at}', '-i', str(src), '-frames:v', '1',
-            '-vf', 'crop=iw:iw*0.8:0:0,scale=600:480:flags=lanczos', '-q:v', '4',
-            str(MEDIA / f'{platform}-queue-{scheme}.jpg'),
-        )
 
 
 def main() -> None:
