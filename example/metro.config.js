@@ -11,11 +11,15 @@ const config = getDefaultConfig(projectRoot);
 // one bundle produce a second hooks dispatcher and "invalid hook call" at
 // runtime, which is exactly the failure a monorepo Expo app hits by default.
 config.watchFolders = [libraryRoot];
-// Only the app's node_modules. Everything the library imports is a peer the app
-// already installs; the library's own node_modules holds devDependency copies
-// of those peers for its tests, and they must never reach this bundle.
+// The app's node_modules first. Everything the library imports is a peer the
+// app already installs; the library's own node_modules holds devDependency
+// copies of those peers for its tests, and they must never reach this bundle —
+// `resolveRequest` below pins each one to the app's copy.
+//
+// Hierarchical lookup stays on: npm may nest a package under its dependent
+// (expo-asset under expo, for instance), and with lookup disabled Metro cannot
+// see it at all.
 config.resolver.nodeModulesPaths = [path.resolve(projectRoot, 'node_modules')];
-config.resolver.disableHierarchicalLookup = true;
 
 // Map the bare specifier onto the library root. Preferred over a `file:..`
 // dependency because npm would install a copy rather than link the working
@@ -24,8 +28,8 @@ config.resolver.extraNodeModules = {
   'expo-hot-toast': libraryRoot,
 };
 
-// `nodeModulesPaths` alone is not enough: Expo's resolver still walks up from a
-// file under ../src and finds ../node_modules first. That put two copies of
+// `nodeModulesPaths` alone is not enough: Metro walks up from a file under
+// ../src and finds ../node_modules first. That put two copies of
 // Reanimated in the bundle (crash on launch: "Tried to register two views with
 // the same name REASharedTransitionBoundary") and the library's
 // gesture-handler 2.x beside the app's 3.x native module. Every peer the
