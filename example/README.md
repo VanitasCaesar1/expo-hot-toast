@@ -1,9 +1,9 @@
 # Example app
 
-Exercises every public surface of the library: all six positions, `toast.promise`
-resolving and rejecting, queue bursts that exceed the limit, drag-to-dismiss,
-press-and-hold pause, and an explicit `glass={false}` toast to show the opaque
-fallback side by side with real glass.
+A single plain screen for trying the library and for recording demos: success,
+error, `toast.promise` resolving and rejecting, a toast with an Undo action, a
+`glass: false` toast for the opaque rung, and dismiss-all. It follows the system
+light/dark setting.
 
 ```sh
 cd example
@@ -38,27 +38,35 @@ RNCSafeAreaViewShadowNode.cpp:19:12: error: no member named 'unit' in
 
 `~5.10.0` resolves correctly.
 
-## Known toolchain blocker
+## Building under Xcode 27 (verified 2026-10-24)
 
-As of the last attempt, `npx expo run:ios` still fails on two **toolchain**
-issues that are unrelated to the library:
+The app builds and runs on an iOS 26.5 simulator with Xcode 27.1, but needs two
+workarounds for **toolchain** issues in Expo 57 / React Native 0.86 — no file of
+`expo-hot-toast` is involved. `example/ios` is generated and git-ignored, so
+both have to be reapplied after `npx expo prebuild --clean` or a reinstall.
 
-```
-❌  Script '[CP-User] Build ExpoModulesJSI xcframework' failed
-❌  (node_modules/react-native/ReactCommon/hermes/inspector-modern/chrome/
-      Registration.h:16:10)
-```
+1. **Build Expo modules from source.** The precompiled Expo xcframeworks were
+   built with Swift 6.3.1 and Xcode 27 ships Swift 6.4 (`this SDK is not
+   supported by the compiler`). Add `"EXPO_USE_PRECOMPILED_MODULES": "false"`
+   to `ios/Podfile.properties.json` and run `pod install` in `ios/`.
+2. **Patch the ExpoModulesJSI interface.** Swift 6.4 emits a module interface
+   for `expo-modules-jsi` that does not compile
+   (`cannot find type '__ObjC::expo' in scope`). Delete the four-line
+   `extension __ObjC::expo.__ObjC::CppError : Swift::Error { … }` block from the
+   `*.swiftinterface` files under
+   `node_modules/expo-modules-jsi/apple/Products/ExpoModulesJSI.xcframework`
+   and rebuild.
 
-Both are native build failures in React Native 0.86 / Expo 57 under Xcode 27, not
-in `expo-hot-toast` — no source file of the library is implicated. Until they
-resolve, the app cannot be launched here and the visual behaviour of the glass
-stack remains unverified on device. See the "Known limitations" section of the
-root README.
+## Metro: one copy of every peer
 
-The JavaScript bundle itself is fine: `npx expo config` validates, the example
-typechecks against the library's real types (`npm run typecheck:example` from
-the repo root), and all component behaviour is covered by the Jest suite in
-`__tests__`.
+The library's own `node_modules` contains every peer as a devDependency, and
+Expo's resolver walks up from `../src` into it regardless of
+`nodeModulesPaths`. Left alone, the bundle gets two copies of Reanimated (the
+app crashes on launch with `Tried to register two views with the same name
+REASharedTransitionBoundary`) and the library's gesture-handler 2.x next to the
+app's 3.x native module. `metro.config.js` therefore pins each peer to the app's
+copy in a `resolveRequest`. A consumer app installing the package from npm or
+GitHub does not have this problem.
 
 ## Why `.npmrc` is duplicated here
 
