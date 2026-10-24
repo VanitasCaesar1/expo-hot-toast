@@ -41,11 +41,13 @@ const palette = {
 type Palette = (typeof palette)['light'];
 
 /**
- * Set at bundle time by the Android CI job. An emulator without a GPU is slow
- * enough that a 2-second toast can expire before the test runner reads the
- * screen, so automated runs give every toast longer.
+ * Set at bundle time by the Android CI job. On an emulator without a GPU each
+ * tap takes about three seconds, so a 2-second toast (or a 1.6-second request)
+ * is gone before the test runner can read it. Automated runs stretch both; the
+ * flow clears toasts by tapping them instead of waiting.
  */
 const E2E = process.env.EXPO_PUBLIC_E2E === '1';
+const REQUEST_MS = E2E ? 5000 : 1600;
 
 /** Resolves after `ms`, or rejects with `message` when one is given. */
 function settleAfter(ms: number, message?: string): Promise<void> {
@@ -153,7 +155,7 @@ function Screen() {
             title="Promise"
             detail="toast.promise()"
             onPress={() => {
-              void toast.promise(settleAfter(1600), {
+              void toast.promise(settleAfter(REQUEST_MS), {
                 loading: 'Uploading photo…',
                 success: 'Photo uploaded',
                 error: 'Upload failed',
@@ -166,7 +168,7 @@ function Screen() {
             detail="toast.promise()"
             onPress={() => {
               toast
-                .promise(settleAfter(1600, 'offline'), {
+                .promise(settleAfter(REQUEST_MS, 'offline'), {
                   loading: 'Syncing…',
                   success: 'Synced',
                   error: (cause) => `Sync failed: ${(cause as Error).message}`,
@@ -208,7 +210,7 @@ function Screen() {
             title="Deduplicated"
             detail="dedupeKey"
             onPress={() =>
-              toast('Saving draft…', { dedupeKey: 'draft', dedupeWindowMs: 5000 })
+              toast('Saving draft…', { dedupeKey: 'draft', dedupeWindowMs: E2E ? 20000 : 3000 })
             }
           />
           <Row
@@ -264,7 +266,7 @@ function Screen() {
         </Section>
       </ScrollView>
 
-      <Toaster toastOptions={E2E ? { duration: 6000 } : undefined} />
+      <Toaster toastOptions={E2E ? { duration: 20000 } : undefined} />
     </View>
   );
 }

@@ -15,5 +15,6 @@ appId: dev.expohottoast.example
     text: "With an action"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Changes saved"
+- assertVisible: "Could not reach the server"
 - assertVisible: "Undo"
 - takeScreenshot: 11-dark-stack

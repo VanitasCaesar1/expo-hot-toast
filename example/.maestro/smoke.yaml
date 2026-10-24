@@ -1,8 +1,8 @@
 # Drives every row of the example and screenshots the result. Run by
-# scripts/android-smoke.sh in CI, against a build with EXPO_PUBLIC_E2E=1 so
-# toasts last 6 seconds. Taps skip Maestro's settle-wait (a spinner never
-# settles, and a toast could expire meanwhile), and the flow waits for toasts
-# to clear between groups so none sits on top of the next row to tap.
+# scripts/android-smoke.sh in CI against a build with EXPO_PUBLIC_E2E=1, where
+# toasts last 20 seconds and requests take 5: on a GPU-less emulator each tap
+# takes about three. Toasts are cleared by tapping them (tap-to-dismiss is on by
+# default on Android) rather than by waiting, which tests that too.
 appId: dev.expohottoast.example
 ---
 - launchApp:
@@ -12,7 +12,7 @@ appId: dev.expohottoast.example
     timeout: 120000
 - takeScreenshot: 01-home
 
-# Success and error stack at the top.
+# Success and error stack at the top, newest nearest the edge.
 - tapOn:
     text: "Success"
     waitToSettleTimeoutMs: 300
@@ -23,19 +23,20 @@ appId: dev.expohottoast.example
 - assertVisible: "Could not reach the server"
 - takeScreenshot: 02-success-and-error
 
-# Swipe one away.
+# Swipe one away, tap the other away.
 - swipe:
     from:
       text: "Could not reach the server"
     direction: RIGHT
 - extendedWaitUntil:
     notVisible: "Could not reach the server"
-    timeout: 4000
+    timeout: 5000
+- tapOn: "Changes saved"
 - extendedWaitUntil:
     notVisible: "Changes saved"
-    timeout: 10000
+    timeout: 5000
 
-# Action button.
+# Action button: runs the handler, then dismisses.
 - tapOn:
     text: "With an action"
     waitToSettleTimeoutMs: 300
@@ -43,11 +44,13 @@ appId: dev.expohottoast.example
 - takeScreenshot: 03-action
 - tapOn: "Undo"
 - assertVisible: "Message restored"
+- assertNotVisible: "Message archived"
+- tapOn: "Message restored"
 - extendedWaitUntil:
     notVisible: "Message restored"
-    timeout: 10000
+    timeout: 5000
 
-# Promise: loading, then the outcome in place.
+# Promise: loading, then the outcome in place of it.
 - tapOn:
     text: "Promise"
     waitToSettleTimeoutMs: 300
@@ -55,34 +58,47 @@ appId: dev.expohottoast.example
 - takeScreenshot: 04-promise-loading
 - extendedWaitUntil:
     visible: "Photo uploaded"
-    timeout: 8000
+    timeout: 15000
+- assertNotVisible: "Uploading photo…"
 - takeScreenshot: 05-promise-success
+- tapOn: "Photo uploaded"
 - tapOn:
     text: "Promise that fails"
     waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
     visible: "Sync failed: offline"
-    timeout: 8000
+    timeout: 15000
+- tapOn: "Sync failed: offline"
 - extendedWaitUntil:
     notVisible: "Sync failed: offline"
-    timeout: 12000
+    timeout: 5000
 
-# Five at once: three show, two wait their turn.
+# Five at once: the newest three show, the other two wait their turn and are
+# promoted as space frees.
 - tapOn:
     text: "Burst of five"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Item 5 added to cart"
+- assertVisible: "Item 3 added to cart"
+- assertNotVisible: "Item 2 added to cart"
 - assertNotVisible: "Item 1 added to cart"
 - takeScreenshot: 06-burst-queue
-# The waiting two are promoted as the first three leave.
+- tapOn: "Item 5 added to cart"
+- extendedWaitUntil:
+    visible: "Item 2 added to cart"
+    timeout: 5000
+- tapOn: "Item 4 added to cart"
 - extendedWaitUntil:
     visible: "Item 1 added to cart"
-    timeout: 15000
+    timeout: 5000
+- tapOn: "Item 3 added to cart"
+- tapOn: "Item 2 added to cart"
+- tapOn: "Item 1 added to cart"
 - extendedWaitUntil:
     notVisible: "Item 1 added to cart"
-    timeout: 15000
+    timeout: 5000
 
-# Three taps, one toast.
+# Three taps, one toast: dismissing it leaves nothing behind.
 - tapOn:
     text: "Deduplicated"
     waitToSettleTimeoutMs: 300
@@ -93,15 +109,20 @@ appId: dev.expohottoast.example
     text: "Deduplicated"
     waitToSettleTimeoutMs: 300
 - takeScreenshot: 07-dedupe
+- tapOn: "Saving draft…"
+- extendedWaitUntil:
+    notVisible: "Saving draft…"
+    timeout: 5000
 
 - tapOn:
     text: "From the bottom"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Message sent"
 - takeScreenshot: 08-bottom
+- tapOn: "Message sent"
 - extendedWaitUntil:
     notVisible: "Message sent"
-    timeout: 10000
+    timeout: 5000
 
 - scrollUntilVisible:
     element:
@@ -116,11 +137,12 @@ appId: dev.expohottoast.example
 - tapOn: "Dismiss"
 - extendedWaitUntil:
     notVisible: "Export started. This can take a minute."
-    timeout: 4000
+    timeout: 5000
 
 - tapOn:
     text: "Opaque surface"
     waitToSettleTimeoutMs: 300
+- assertVisible: "Drawn without glass"
 - tapOn:
     text: "Custom element"
     waitToSettleTimeoutMs: 300
