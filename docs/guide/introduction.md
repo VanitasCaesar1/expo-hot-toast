@@ -44,8 +44,12 @@ differences.
 Beyond that API, it adds what a phone needs:
 
 - **A queue.** Three toasts show per position; the rest wait their turn.
-- **Gestures.** Swipe a toast away; press and hold to pause every timer.
+- **Gestures.** Flick a toast away like a notification; press and hold to
+  pause every timer.
+- **A collapsed stack**, if you want one: older toasts tuck behind the newest
+  and fan out when pressed.
 - **Actions and a close button**, for Undo and for toasts people need to clear.
+- **A description line and rich colours** for outcomes that need more.
 - **Deduplication**, so twenty identical calls show one toast.
 - **Accessibility**: screen reader announcements, Reduce Motion, Reduce
   Transparency, capped font scaling and a haptic for success and error.

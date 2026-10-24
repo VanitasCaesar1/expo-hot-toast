@@ -44,6 +44,9 @@ Liquid Glass draws its own material and ignores the fill, border and shadow.
 | `lineHeight` | `20` | same | |
 | `fontWeight` | `'500'` | same | |
 | `maxFontSizeMultiplier` | `2` | same | Cap on system text size; `null` removes it |
+| `descriptionColor` | `rgba(60,60,67,0.78)` | `rgba(235,235,245,0.68)` | The description line |
+| `descriptionFontSize` | `13` | same | |
+| `descriptionLineHeight` | `18` | same | |
 
 ## Buttons
 
@@ -52,6 +55,22 @@ Liquid Glass draws its own material and ignores the fill, border and shadow.
 | `actionColor` | `#0A84FF` | same | Action button label |
 | `actionPaddingHorizontal` | `12` | same | |
 | `closeButtonBackground` | `rgba(0,0,0,0.07)` | `rgba(255,255,255,0.18)` | Circle behind the × |
+
+## Rich colours
+
+Used by toasts with `richColors`. Override one field without losing the rest:
+`theme={{ rich: { error: { tint: 'rgba(255,0,0,0.3)' } } }}`.
+
+| Token | Light | Dark | |
+|---|---|---|---|
+| `rich.success.background` | `#ECFDF3` | `#032313` | Opaque surface |
+| `rich.success.border` | `#BFF5D6` | `#0B4425` | |
+| `rich.success.color` | `#00702A` | `#5FE39A` | Message and description |
+| `rich.success.tint` | `rgba(52,199,89,0.22)` | `rgba(48,209,88,0.26)` | Tint over Liquid Glass |
+| `rich.error.background` | `#FFF0F0` | `#2E0809` | |
+| `rich.error.border` | `#FFD9DA` | `#561317` | |
+| `rich.error.color` | `#C8000F` | `#FF8F92` | |
+| `rich.error.tint` | `rgba(255,59,48,0.22)` | `rgba(255,69,58,0.26)` | |
 
 ## Motion
 

@@ -29,6 +29,7 @@ order: 3
 | `maxPending` | `number` | `10` | Toasts that wait beyond the visible ones |
 | `dropPolicy` | `'oldest'` or `'newest'` | `'oldest'` | Which toast to drop when the queue is full |
 | `paused` | `boolean` | `false` | Freeze every timer |
+| `stacked` | `boolean` | `false` | Collapse each stack behind its newest toast; press to fan it out |
 
 ## Defaults and appearance
 
@@ -38,7 +39,8 @@ order: 3
 | `theme` | partial [theme tokens](./theme-tokens.md) | none | Token overrides |
 | `colorScheme` | `'light'` or `'dark'` | the system's | Force light or dark tokens |
 | `glass` | `boolean` or `GlassConfig` | `true` | `false` draws the opaque surface everywhere |
-| `panThreshold` | `number` | `72` | Swipe distance that dismisses; `0` turns swiping off |
+| `panThreshold` | `number` | `72` | Sideways swipe distance that dismisses; `0` turns swiping off |
+| `haptics` | `boolean` | `true` | Play a haptic for success and error toasts |
 | `children` | `({ toast, theme }) => ReactNode` | none | Draw each toast yourself; see [Custom rendering](./custom-rendering.md) |
 
 ## GlassConfig

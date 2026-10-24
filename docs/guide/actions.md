@@ -48,11 +48,16 @@ are not usually tappable. Set `dismissOnTap` to choose for yourself:
 
 ## Swipe to dismiss
 
-Drag a toast to the right, past 72 px, to dismiss it. A fast fling in either
-direction also dismisses. Dragging left resists, so a toast you push the wrong
-way springs back.
+Flick a toast toward its edge, the way you dismiss a notification: up for a
+toast at the top of the screen, down for one at the bottom. About two thirds of
+its height is enough, or a quick flick.
 
-Change the distance, or turn swiping off, on the Toaster:
+Or drag it to the right, past 72 px. A fast fling sideways in either direction
+also dismisses. Dragging away from the edge, or to the left, resists, so a
+toast you push the wrong way springs back. Each drag follows the direction it
+starts in.
+
+Change the sideways distance, or turn swiping off, on the Toaster:
 
 ```tsx
 <Toaster panThreshold={120} />   // farther

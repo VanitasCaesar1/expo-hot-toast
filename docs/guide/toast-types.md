@@ -30,6 +30,17 @@ Each returns the toast's id, a string.
 The message can be a string, any element, or a function that receives the
 toast and returns either.
 
+## A description
+
+`description` adds a second, quieter line under the message, for detail the
+message does not need. Screen readers hear it after the message.
+
+```tsx
+toast.error('Could not upload photo', {
+  description: 'Check your connection and try again.',
+});
+```
+
 ## Custom toasts
 
 `toast.custom` draws your element with no surface, icon or padding, but it

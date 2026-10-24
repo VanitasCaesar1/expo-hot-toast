@@ -10,8 +10,8 @@ There are three levels, from least to most work.
 ## 1. Rearrange the inside, keep the surface
 
 Pass the Toaster a function and return a `<ToastBar>`. Its child function
-receives the built-in `icon` and `message`; arrange them, and add your own
-elements. The surface, gestures, timers and motion stay as they are.
+receives the built-in `icon`, the `message` and the toast's `description`;
+arrange them, and add your own elements. The surface, gestures, timers and motion stay as they are.
 
 ```tsx
 import { Pressable, Text } from 'react-native';

@@ -30,4 +30,4 @@ safe-area-context 5.7.
   another, but React Native has no way to drive that with glass yet, so toasts
   enter and leave separately.
 - **Android draws an opaque surface.** It does not imitate glass.
-- **Haptics cannot be turned off** yet.
+- **`toast.custom` toasts do not collapse** in a `stacked` Toaster.

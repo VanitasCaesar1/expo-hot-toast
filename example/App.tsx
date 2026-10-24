@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   Platform,
@@ -164,6 +165,7 @@ function Screen() {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const colors = palette[scheme];
   const insets = useSafeAreaInsets();
+  const [stacked, setStacked] = useState(false);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -226,7 +228,6 @@ function Screen() {
             colors={colors}
             title="With an action"
             detail="action: Undo"
-            last
             onPress={() =>
               toast('Message archived', {
                 action: {
@@ -236,11 +237,28 @@ function Screen() {
               })
             }
           />
+          <Row
+            colors={colors}
+            title="With a description"
+            detail="description"
+            onPress={() =>
+              toast.error('Could not upload photo', {
+                description: 'Check your connection and try again.',
+              })
+            }
+          />
+          <Row
+            colors={colors}
+            title="Rich colours"
+            detail="richColors"
+            last
+            onPress={() => toast.success('Payment received', { richColors: true })}
+          />
         </Section>
 
         <Section
           header="Queue"
-          footer="Three toasts show at once; the rest wait and move up as space frees."
+          footer="Three toasts show at once; the rest wait and move up as space frees. Stacked tucks them behind the newest; press to fan them out."
           colors={colors}
         >
           <Row
@@ -263,8 +281,18 @@ function Screen() {
             colors={colors}
             title="From the bottom"
             detail="position"
-            last
             onPress={() => toast('Message sent', { position: 'bottom-center' })}
+          />
+          <Row
+            colors={colors}
+            title="Stacked"
+            detail={`stacked: ${stacked}`}
+            last
+            onPress={() => {
+              // Start each mode from an empty screen.
+              toast.dismiss();
+              setStacked((on) => !on);
+            }}
           />
         </Section>
 
@@ -312,7 +340,10 @@ function Screen() {
         </Section>
       </ScrollView>
 
-      <Toaster toastOptions={E2E ? { duration: 60000, dismissOnTap: true } : undefined} />
+      <Toaster
+        stacked={stacked}
+        toastOptions={E2E ? { duration: 60000, dismissOnTap: true } : undefined}
+      />
     </View>
   );
 }

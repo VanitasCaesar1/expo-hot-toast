@@ -87,8 +87,37 @@ appId: dev.expohottoast.example
     notVisible: "Sync failed: offline"
     timeout: 5000
 
+# A description under the message.
+- tapOn:
+    id: "row-with-a-description"
+    waitToSettleTimeoutMs: 300
+- assertVisible: "Check your connection and try again."
+- takeScreenshot: 06a-description
+- tapOn: "Could not upload photo"
+- extendedWaitUntil:
+    notVisible: "Could not upload photo"
+    timeout: 5000
+
+# Rich colours, then flicked up and away like a notification.
+- tapOn:
+    id: "row-rich-colours"
+    waitToSettleTimeoutMs: 300
+- assertVisible: "Payment received"
+- takeScreenshot: 06b-rich-colours
+- swipe:
+    from:
+      text: "Payment received"
+    direction: UP
+- extendedWaitUntil:
+    notVisible: "Payment received"
+    timeout: 5000
+
 # Five at once: the newest three show, the other two wait their turn and are
 # promoted as space frees.
+- scrollUntilVisible:
+    element:
+      id: "row-burst-of-five"
+    direction: DOWN
 - tapOn:
     id: "row-burst-of-five"
     waitToSettleTimeoutMs: 300
@@ -136,6 +165,26 @@ appId: dev.expohottoast.example
 - tapOn: "Message sent"
 - extendedWaitUntil:
     notVisible: "Message sent"
+    timeout: 5000
+
+# Stacked: three toasts collapse behind the newest. Toggling clears the screen.
+- scrollUntilVisible:
+    element:
+      id: "row-stacked"
+    direction: DOWN
+- tapOn:
+    id: "row-stacked"
+    waitToSettleTimeoutMs: 300
+- tapOn:
+    id: "row-burst-of-five"
+    waitToSettleTimeoutMs: 300
+- assertVisible: "Item 5 added to cart"
+- takeScreenshot: 08b-stacked
+- tapOn:
+    id: "row-stacked"
+    waitToSettleTimeoutMs: 300
+- extendedWaitUntil:
+    notVisible: "Item 5 added to cart"
     timeout: 5000
 
 - scrollUntilVisible:

@@ -41,6 +41,7 @@ Things react-hot-toast does not have:
 
 - [`action`](./actions.md) buttons and a [`closeButton`](./actions.md#a-close-button)
 - [Swipe to dismiss](./actions.md#swipe-to-dismiss), and press and hold to pause
+- A [`description`](./toast-types.md#a-description) line, [`richColors`](./theming.md#rich-colours) and a [collapsed stack](./positions.md#a-collapsed-stack)
 - [`dedupeKey`](./timing-and-queue.md#deduplication)
 - [`onDismiss`](./toast-types.md#dismiss-and-remove) with a reason
 - Duration presets: `'short'`, `'long'`, `'infinite'`

@@ -40,6 +40,19 @@ bottom of a bottom stack. `reverseOrder` puts it at the far end instead.
 <Toaster reverseOrder />
 ```
 
+## A collapsed stack
+
+`stacked` folds each stack behind its newest toast: older toasts tuck
+underneath, each a little smaller, with only their edges showing. Press the
+stack to fan it out; it folds back a moment after you let go.
+
+```tsx
+<Toaster stacked />
+```
+
+With a screen reader running, the stack stays fanned out, so every toast can
+be read. It also stays fanned out with `reverseOrder`.
+
 ## Several Toasters
 
 Give each Toaster an id, and send toasts to it with `toasterId`. Toasts without

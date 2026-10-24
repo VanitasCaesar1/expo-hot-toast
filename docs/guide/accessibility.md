@@ -22,6 +22,8 @@ toast('Your session expires in one minute', { important: true });
 iOS cannot interrupt an announcement already in progress, so there `important`
 has no effect.
 
+A `description` is announced after the message.
+
 A toast whose message is an element, not a string, has no text to announce.
 Give it one:
 
@@ -56,5 +58,16 @@ the `maxFontSizeMultiplier` token, or remove it with `null`:
 
 Success and error toasts trigger a haptic when they appear: a light tap for
 success and a firmer one for errors on iOS, and the matching notification
-pattern on Android. Other types do not. There is currently no option to turn
-haptics off.
+pattern on Android. Other types do not.
+
+Turn them off for a Toaster, or for one toast:
+
+```tsx
+<Toaster haptics={false} />
+toast.success('Saved', { haptics: false });
+```
+
+## Collapsed stacks
+
+A `stacked` Toaster hides the content of toasts tucked behind the front one.
+While VoiceOver or TalkBack is running, the stack stays fanned out instead.
