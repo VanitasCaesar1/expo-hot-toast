@@ -106,10 +106,25 @@ appId: dev.expohottoast.example
     waitToSettleTimeoutMs: 300
 - assertVisible: "Payment received"
 - takeScreenshot: 06b-rich-colours
-- swipe:
-    from:
-      text: "Payment received"
-    direction: UP
+# An element swipe aims at a point near the top of the screen, which on iOS is
+# only about 16pt above a top toast: too short and slow to count. So iOS gets
+# an explicit flick from the toast (it sits around 12% down) to the top edge.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - swipe:
+          start: "50%, 12%"
+          end: "50%, 1%"
+          duration: 150
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - swipe:
+          from:
+            text: "Payment received"
+          direction: UP
 - extendedWaitUntil:
     notVisible: "Payment received"
     timeout: 5000
