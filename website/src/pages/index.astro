@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import ScreenCrop from '../components/ScreenCrop.astro';
 import DemoWindow from '../components/DemoWindow.astro';
+import Playground from '../components/Playground.astro';
 import CopyInstall from '../components/CopyInstall.astro';
 import Icon from '../components/Icon.astro';
 import CodePanel from '../components/CodePanel.astro';
@@ -114,6 +115,14 @@ const faq = [
       <p>Pick a call to jump the recording to it. These are screen recordings from CI, not mockups.</p>
     </header>
     <DemoWindow />
+  </section>
+
+  <section class="band" aria-labelledby="play">
+    <header class="head inset" data-reveal>
+      <h2 id="play" class="display">Now try it yourself.</h2>
+      <p>The real library, in your browser. Tap, flick, press and hold.</p>
+    </header>
+    <Playground />
   </section>
 
   <section class="band" aria-labelledby="surfaces">

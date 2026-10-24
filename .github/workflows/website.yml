@@ -1,7 +1,8 @@
 name: Website
 
-# Builds website/ (Astro) and publishes it to GitHub Pages. The docs page
-# renders README.md, so a README change redeploys the site too.
+# Builds website/ (Astro) and publishes it to GitHub Pages. The docs come from
+# docs/guide, and the playground is the example app exported for the web, so
+# changes to either (or to the library) redeploy the site too.
 
 on:
   push:
@@ -9,6 +10,8 @@ on:
     paths:
       - 'website/**'
       - 'docs/guide/**'
+      - 'src/**'
+      - 'example/**'
       - '.github/workflows/website.yml'
   workflow_dispatch:
 
@@ -31,7 +34,17 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: website/package-lock.json
+          cache-dependency-path: |
+            website/package-lock.json
+            package-lock.json
+            example/package-lock.json
+      # The playground: the example app, with the library, built for the web.
+      - run: npm ci
+      - run: npm ci
+        working-directory: example
+      - name: Export the playground
+        run: npx expo export --platform web --output-dir ../website/public/playground
+        working-directory: example
       - run: npm ci
         working-directory: website
       - run: npx astro check

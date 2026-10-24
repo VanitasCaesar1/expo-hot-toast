@@ -81,3 +81,4 @@ website/.astro/
 
 # Expo web export (the website playground)
 example/web-dist/
+website/public/playground/
