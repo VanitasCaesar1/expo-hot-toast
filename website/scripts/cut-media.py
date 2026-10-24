@@ -18,6 +18,7 @@ Writes to website/public/media:
   <platform>-demo-<scheme>.mp4   the demo, 25 s, H.264, 540 px wide
   <platform>-demo-<scheme>.jpg   its poster (the success + error stack)
   <platform>-stack-<scheme>.jpg  a 600x480 still of the top of the screen
+  <platform>-queue-<scheme>.jpg  the same crop during the burst of five
 Needs ffmpeg on PATH.
 """
 
@@ -37,6 +38,12 @@ LENGTH = 25.0
 # Seconds into the demo for the poster and still: the error has stacked above
 # the success toast, both icons drawn.
 STILL_AT = 2.6
+# Seconds into the demo where three cart toasts show and two wait. Per clip,
+# because a recording that stalls drifts from the script's timing.
+QUEUE_AT = {
+    ('ios', 'dark'): 15.0,
+    ('ios', 'light'): 15.2,
+}
 WIDTH = 540
 
 MEDIA = Path(__file__).resolve().parent.parent / 'public' / 'media'
@@ -69,6 +76,13 @@ def cut(src: Path, platform: str, scheme: str, start: float) -> None:
         '-vf', 'crop=iw:iw*0.8:0:0,scale=600:480:flags=lanczos', '-q:v', '4',
         str(MEDIA / f'{platform}-stack-{scheme}.jpg'),
     )
+    queue_at = QUEUE_AT.get((platform, scheme))
+    if queue_at is not None:
+        ffmpeg(
+            '-ss', f'{start + queue_at}', '-i', str(src), '-frames:v', '1',
+            '-vf', 'crop=iw:iw*0.8:0:0,scale=600:480:flags=lanczos', '-q:v', '4',
+            str(MEDIA / f'{platform}-queue-{scheme}.jpg'),
+        )
 
 
 def main() -> None:

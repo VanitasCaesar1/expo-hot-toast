@@ -34,7 +34,7 @@ const ogImage = new URL(url('media/og.png'), Astro.site);
     <!-- Reveal-on-scroll only hides content once JS is known to be running. -->
     <script is:inline>document.documentElement.classList.add('js');</script>
   </head>
-  <body>
+  <body id="top">
     <Nav />
     <main class="frame">
       <slot />

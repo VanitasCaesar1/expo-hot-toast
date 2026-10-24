@@ -257,7 +257,10 @@ pending toasts for one Toaster plus `startPause` / `endPause` (also as
 
 ## Coming from react-hot-toast
 
-Most code ports by changing the import. The differences:
+react-hot-toast renders DOM elements, so it runs only on the web; it cannot
+render in a React Native app. expo-hot-toast rebuilds its API on native views,
+so toast code written for a React web app ports by changing the import. The
+differences:
 
 - `className` and `ariaProps` do not exist; use `style`, `theme` and
   `accessibilityLabel`.
@@ -265,10 +268,9 @@ Most code ports by changing the import. The differences:
   the rest queue rather than being dropped.
 - `gutter` is `gap` and `toastLimit` is `visibleToasts`; the old names still work.
 - `useToaster` takes one options object (`{ toastOptions, toasterId }`) and
-  returns `{ toasts, pending, startPause, endPause }`; position offsets come from
-  layout, so there is no `calculateOffset` or `updateHeight`.
-- `useToaster` returns `handlers: { startPause, endPause }` like react-hot-toast;
-  there is no `calculateOffset` or `updateHeight` because layout places toasts.
+  returns `{ toasts, pending, startPause, endPause }`, plus
+  `handlers: { startPause, endPause }` as in react-hot-toast. Layout places
+  toasts, so there is no `calculateOffset` or `updateHeight`.
 - `iconTheme.secondary` is accepted but unused: the built-in glyphs are stroked
   marks rather than filled discs.
 - `onDismiss`, `action`, `closeButton`, `dedupeKey`, symbolic durations and

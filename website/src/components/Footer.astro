@@ -1,17 +1,68 @@
 ---
+import Icon from './Icon.astro';
 import { url, REPO_URL } from '../lib/url';
+
+const columns = [
+  {
+    title: 'Docs',
+    links: [
+      { label: 'Installation', href: url('docs/installation') },
+      { label: 'The Toaster', href: url('docs/the-toaster') },
+      { label: 'Promises', href: url('docs/promises') },
+      { label: 'Theming', href: url('docs/theming') },
+      { label: 'From react-hot-toast', href: url('docs/coming-from-react-hot-toast') },
+    ],
+  },
+  {
+    title: 'Project',
+    links: [
+      { label: 'GitHub', href: REPO_URL },
+      { label: 'Changelog', href: `${REPO_URL}/blob/main/CHANGELOG.md` },
+      { label: 'Issues', href: `${REPO_URL}/issues` },
+      { label: 'Design notes', href: url('docs/design-notes') },
+      { label: 'MIT licence', href: `${REPO_URL}/blob/main/LICENSE` },
+    ],
+  },
+  {
+    title: 'Built on',
+    links: [
+      { label: 'expo-glass-effect', href: 'https://docs.expo.dev/versions/latest/sdk/glass-effect/' },
+      { label: 'Reanimated', href: 'https://docs.swmansion.com/react-native-reanimated/' },
+      { label: 'Gesture Handler', href: 'https://docs.swmansion.com/react-native-gesture-handler/' },
+      { label: 'react-hot-toast', href: 'https://react-hot-toast.com' },
+    ],
+  },
+];
 ---
 
 <footer class="frame band">
-  <p class="wordmark display" aria-hidden="true">expo-hot-toast</p>
-  <div class="inset row">
-    <p>MIT licensed open source, for Expo and React Native.</p>
-    <nav aria-label="Footer">
-      <a href={url('docs')}>Docs</a>
-      <a href={REPO_URL}>GitHub</a>
-      <a href={`${REPO_URL}/blob/main/CHANGELOG.md`}>Changelog</a>
-      <a href={`${REPO_URL}/issues`}>Issues</a>
-    </nav>
+  <div class="top">
+    <div class="sign inset">
+      <a class="brand" href={url()}><span class="pill" aria-hidden="true"></span>expo-hot-toast</a>
+      <p>Toasts for Expo and React Native. Apple's own Liquid Glass on iOS 26, a designed surface everywhere else.</p>
+      <a class="button" href={REPO_URL}><Icon name="github" /> Star on GitHub</a>
+    </div>
+    {
+      columns.map((c) => (
+        <nav class="col" aria-label={c.title}>
+          <p class="label">{c.title}</p>
+          <ul>
+            {c.links.map((l) => (
+              <li>
+                <a href={l.href}>{l.label}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ))
+    }
+  </div>
+
+  <p class="wordmark display" aria-hidden="true">expo-<span>hot</span>-toast</p>
+
+  <div class="bottom inset">
+    <p>MIT licensed. The API follows react-hot-toast by Timo Lins; this project is not affiliated with it.</p>
+    <a href="#top" class="up">Back to top ↑</a>
   </div>
 </footer>
 
@@ -19,43 +70,131 @@ import { url, REPO_URL } from '../lib/url';
   footer {
     border-bottom: 1px solid var(--line);
     margin-bottom: 48px;
-  }
-  /* The sign-off: the name in outline, as wide as the frame. */
-  .wordmark {
-    margin: 0;
-    padding: 40px var(--pad) 0;
-    font-size: clamp(48px, 12.4vw, 160px);
-    line-height: 0.9;
-    letter-spacing: -0.045em;
-    white-space: nowrap;
-    color: transparent;
-    -webkit-text-stroke: 1px rgb(243 241 236 / 0.22);
-    user-select: none;
     overflow: hidden;
   }
-  .row {
-    border-top: 1px solid var(--line);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px 32px;
-    justify-content: space-between;
+  .top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+  }
+  .sign {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 20px;
+    padding-block: 56px;
+  }
+  .brand {
+    display: inline-flex;
     align-items: center;
-    padding-block: 28px;
-    color: var(--muted);
-    font-size: 14px;
+    gap: 10px;
+    color: var(--text);
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-decoration: none;
   }
-  p {
+  .pill {
+    width: 22px;
+    height: 10px;
+    border-radius: 5px;
+    background: var(--accent);
+  }
+  .sign p {
     margin: 0;
+    max-width: 34ch;
+    color: var(--muted);
+    line-height: 1.55;
   }
-  nav {
-    display: flex;
-    gap: 24px;
+  .col {
+    padding: 56px 24px;
+    border-left: 1px solid var(--line);
+  }
+  .col .label {
+    margin: 0 0 18px;
+    color: var(--faint);
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
   }
   a {
     color: var(--muted);
     text-decoration: none;
   }
-  a:hover {
+  .col a:hover,
+  .up:hover {
     color: var(--text);
+  }
+
+  /*
+   * The sign-off: the name as wide as the frame, cut off by the bottom bar so it
+   * reads as a horizon rather than a heading. "hot" carries the accent.
+   */
+  .wordmark {
+    margin: 0;
+    padding: 24px var(--pad) 0;
+    border-top: 1px solid var(--line);
+    height: 0.78em;
+    font-size: clamp(40px, 13.2vw, 176px);
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+    white-space: nowrap;
+    overflow: hidden;
+    background: linear-gradient(rgb(243 241 236 / 0.2), rgb(243 241 236 / 0.03));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    user-select: none;
+  }
+  .wordmark span {
+    background: linear-gradient(var(--accent), rgb(255 173 59 / 0.12));
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .bottom {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 32px;
+    justify-content: space-between;
+    align-items: center;
+    padding-block: 24px;
+    border-top: 1px solid var(--line);
+    color: var(--faint);
+    font-size: 13px;
+  }
+  .bottom p {
+    margin: 0;
+  }
+  .up {
+    color: var(--muted);
+  }
+
+  @media (max-width: 960px) {
+    .top {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .sign {
+      grid-column: 1 / -1;
+      border-bottom: 1px solid var(--line);
+    }
+    .col:nth-child(2) {
+      border-left: 0;
+    }
+    .col {
+      padding: 32px var(--pad);
+    }
+  }
+  @media (max-width: 560px) {
+    .top {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .col:nth-child(4) {
+      border-left: 0;
+      border-top: 1px solid var(--line);
+    }
   }
 </style>
