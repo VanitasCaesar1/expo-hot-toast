@@ -18,14 +18,14 @@ const failures = [];
 const fail = (msg) => failures.push(msg);
 
 // `npm pack --json --dry-run` lists exactly what would be published. Scripts
-// are skipped: `prepare` would rebuild and print to stdout, corrupting the JSON,
-// and this check is about the build that is already on disk.
-const packed = JSON.parse(
-  execFileSync('npm', ['pack', '--json', '--dry-run', '--ignore-scripts'], {
-    cwd: root,
-    encoding: 'utf8',
-  }),
-)[0];
+// are skipped, because this check is about the build already on disk, but some
+// npm versions still run `prepare` and print its log to stdout ahead of the
+// JSON — so the JSON array is cut out of the output rather than parsed whole.
+const packOutput = execFileSync('npm', ['pack', '--json', '--dry-run', '--ignore-scripts'], {
+  cwd: root,
+  encoding: 'utf8',
+});
+const packed = JSON.parse(packOutput.slice(packOutput.search(/^\[/m)))[0];
 const files = new Set(packed.files.map((f) => f.path));
 
 /* 1. Every path declared in package.json must exist on disk. */

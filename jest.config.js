@@ -12,11 +12,13 @@ module.exports = {
   /**
    * Reanimated 4 delegates to react-native-worklets, whose native build reads
    * `global.__workletsModuleProxy` at import time — which does not exist under
-   * Jest, so the suite dies before a single test runs. Its shipped resolver
-   * strips the `.native` extension from those requests and loads the plain
-   * build instead, which is inert and safe to import.
+   * Jest, so the suite dies before a single test runs. Worklets' shipped
+   * resolver strips the `.native` extension from those requests and loads the
+   * plain build instead, which is inert and safe to import. (Reanimated 4.7
+   * re-exports it as `react-native-reanimated/jest/resolver.js`; 4.5, which
+   * Expo SDK 57 installs, does not.)
    */
-  resolver: 'react-native-reanimated/jest/resolver.js',
+  resolver: 'react-native-worklets/jest/resolver.js',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testMatch: ['<rootDir>/__tests__/**/*.test.tsx'],
   transformIgnorePatterns: [
