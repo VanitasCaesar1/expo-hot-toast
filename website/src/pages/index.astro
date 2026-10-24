@@ -6,6 +6,7 @@ import CopyInstall from '../components/CopyInstall.astro';
 import Icon from '../components/Icon.astro';
 import CodePanel from '../components/CodePanel.astro';
 import { url } from '../lib/url';
+import { SETUP_PROMPT } from '../lib/ai';
 
 const migrate = `- import toast, { Toaster } from 'react-hot-toast';
 + import toast, { Toaster } from 'expo-hot-toast';`;
@@ -78,6 +79,10 @@ const faq = [
         <a class="button primary" href={url('docs/installation')}>Quick start <Icon name="arrow-right" /></a>
         <CopyInstall />
       </div>
+      <button type="button" class="ai-link enter" style="--i: 4" data-copy={SETUP_PROMPT}>
+        <span class="idle-label">Using an AI agent? Copy a setup prompt <Icon name="copy" /></span>
+        <span class="done-label">Prompt copied. Paste it into your agent.</span>
+      </button>
     </div>
     <div class="hero-devices">
       <div class="glow" aria-hidden="true"></div>
@@ -179,11 +184,28 @@ const faq = [
   <section class="band start dots-wrap" aria-labelledby="start">
     <div class="start-inner inset">
       <h2 id="start" class="display huge" data-reveal>Ship your first toast.</h2>
-      <CopyInstall showCommand />
-      <div class="setup">
-        <CodePanel code={setup} lang="tsx" file="App.tsx" />
+      <div class="start-grid">
+        <div class="by-hand">
+          <p class="label">By hand</p>
+          <CopyInstall showCommand />
+          <div class="setup">
+            <CodePanel code={setup} lang="tsx" file="App.tsx" />
+          </div>
+          <a class="button primary" href={url('docs/installation')}>Quick start <Icon name="arrow-right" /></a>
+        </div>
+        <div class="by-agent">
+          <p class="label">With an AI agent</p>
+          <p>Paste this into Claude Code, Cursor or Codex. It installs the package and its peers, wires the app root and swaps your toasts, using the full docs as plain text.</p>
+          <pre class="prompt-preview" aria-label="The setup prompt">{SETUP_PROMPT}</pre>
+          <button type="button" class="button copy-button" data-copy={SETUP_PROMPT}>
+            <span class="idle-label"><Icon name="copy" /> Copy prompt</span>
+            <span class="done-label"><Icon name="check" /> Copied</span>
+          </button>
+          <p class="llms">
+            For tools that read docs: <a href={url('llms.txt')}>llms.txt</a> · <a href={url('llms-full.txt')}>llms-full.txt</a>
+          </p>
+        </div>
       </div>
-      <a class="button primary" href={url('docs/installation')}>Quick start <Icon name="arrow-right" /></a>
     </div>
   </section>
 </Base>
@@ -534,9 +556,95 @@ const faq = [
     justify-items: start;
     padding-block: 88px;
   }
+  .start-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(28px, 4vw, 56px);
+    width: 100%;
+  }
+  .by-hand,
+  .by-agent {
+    display: grid;
+    gap: 18px;
+    align-content: start;
+    justify-items: start;
+    min-width: 0;
+  }
+  .by-hand .label,
+  .by-agent .label {
+    margin: 0;
+    color: var(--accent);
+  }
+  .by-agent > p:not(.label) {
+    margin: 0;
+    color: var(--muted);
+    max-width: 46ch;
+  }
+  /* The prompt itself, shown so nobody pastes something they have not read. */
+  .prompt-preview {
+    width: 100%;
+    max-height: 236px;
+    margin: 0;
+    padding: 16px 18px;
+    overflow: auto;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    font: 12.5px/1.6 var(--mono);
+    white-space: pre-wrap;
+    mask-image: linear-gradient(#000 78%, transparent);
+    -webkit-mask-image: linear-gradient(#000 78%, transparent);
+  }
+  .by-agent .copy-button span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .by-agent .copy-button .done-label,
+  .by-agent .copy-button[data-copied] .idle-label {
+    display: none;
+  }
+  .by-agent .copy-button[data-copied] .done-label {
+    display: inline-flex;
+  }
+  .by-agent .llms {
+    color: var(--faint);
+    font-size: 14px;
+  }
+  .by-agent .llms a {
+    color: var(--muted);
+  }
   .setup {
     width: 100%;
-    max-width: 600px;
+  }
+  .ai-link {
+    margin-top: 18px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 14.5px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgb(255 173 59 / 0.5);
+    text-underline-offset: 4px;
+  }
+  .ai-link:hover {
+    color: var(--text);
+  }
+  .ai-link span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ai-link .done-label,
+  .ai-link[data-copied] .idle-label {
+    display: none;
+  }
+  .ai-link[data-copied] .done-label {
+    display: inline-flex;
+    color: var(--accent);
   }
   .huge {
     font-size: clamp(52px, 8.6vw, 124px);
@@ -562,7 +670,8 @@ const faq = [
     .features {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .migrate {
+    .migrate,
+    .start-grid {
       grid-template-columns: minmax(0, 1fr);
     }
     .migrate > .inset {

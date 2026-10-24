@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Icon from '../../components/Icon.astro';
 import { GROUPS, loadDocs, renderDocs } from '../../lib/docs';
+import { pageMarkdown } from '../../lib/ai';
 import { url, REPO_URL } from '../../lib/url';
 
 export async function getStaticPaths() {
@@ -15,6 +16,7 @@ export async function getStaticPaths() {
 
 const { page, pages, index } = Astro.props;
 const groups = GROUPS;
+const markdown = pageMarkdown(page.slug);
 const prev = pages[index - 1];
 const next = pages[index + 1];
 ---
@@ -48,6 +50,14 @@ const next = pages[index + 1];
       <p class="label crumb">{page.group}</p>
       <h1 class="display">{page.title}</h1>
       {page.description && <p class="lede">{page.description}</p>}
+      <div class="page-tools">
+        <button type="button" class="tool" data-copy={markdown}>
+          <span class="idle-label"><Icon name="copy" /> Copy page</span>
+          <span class="done-label"><Icon name="check" /> Copied</span>
+        </button>
+        <a class="tool" href={url(`docs/md/${page.slug}.md`)}>Markdown</a>
+        <a class="tool" href={url('llms.txt')}>llms.txt</a>
+      </div>
       <Fragment set:html={page.html} />
       <footer class="pager">
         {prev ? (
@@ -161,9 +171,7 @@ const next = pages[index + 1];
   }
   /* The page's one-line summary, from its frontmatter. */
   .lede {
-    margin: 0 0 36px;
-    padding-bottom: 28px;
-    border-bottom: 1px solid var(--line);
+    margin: 0 0 20px;
     color: var(--muted);
     font-size: 19px;
     line-height: 1.5;
@@ -182,6 +190,45 @@ const next = pages[index + 1];
     font-size: 19px;
     font-weight: 600;
     scroll-margin-top: 84px;
+  }
+  /* Copy the page as Markdown for an AI tool, or open it raw. */
+  .page-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 36px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted) !important;
+    font: 500 12.5px var(--mono);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .tool:hover {
+    color: var(--text) !important;
+    border-color: color-mix(in srgb, var(--line) 50%, var(--text));
+  }
+  .tool span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tool .done-label,
+  .tool[data-copied] .idle-label {
+    display: none;
+  }
+  .tool[data-copied] .done-label {
+    display: inline-flex;
+    color: var(--accent);
   }
   .prose :global(p),
   .prose :global(li) {

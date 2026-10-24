@@ -38,7 +38,7 @@ const columns = [
 <footer class="frame band">
   <div class="top">
     <div class="sign inset">
-      <a class="brand" href={url()}><span class="pill" aria-hidden="true"></span>expo-hot-toast</a>
+      <a class="brand" href={url()}><img class="mark" src={url('mark.svg')} alt="" width="36" height="36" />expo-hot-toast</a>
       <p>Toasts for Expo and React Native. Apple's own Liquid Glass on iOS 26, a designed surface everywhere else.</p>
       <a class="button" href={REPO_URL}><Icon name="github" /> Star on GitHub</a>
     </div>
@@ -93,11 +93,11 @@ const columns = [
     letter-spacing: -0.01em;
     text-decoration: none;
   }
-  .pill {
-    width: 22px;
-    height: 10px;
-    border-radius: 5px;
-    background: var(--accent);
+  .mark {
+    display: block;
+    width: 36px;
+    height: 36px;
+    margin-block: -8px;
   }
   .sign p {
     margin: 0;
@@ -129,28 +129,24 @@ const columns = [
     color: var(--text);
   }
 
-  /*
-   * The sign-off: the name as wide as the frame, cut off by the bottom bar so it
-   * reads as a horizon rather than a heading. "hot" carries the accent.
-   */
+  /* The sign-off: the name, whole and as wide as the frame. "hot" carries the accent. */
   .wordmark {
     margin: 0;
-    padding: 24px var(--pad) 0;
+    padding: clamp(28px, 4vw, 48px) var(--pad) clamp(36px, 5vw, 64px);
     border-top: 1px solid var(--line);
-    height: 0.78em;
-    font-size: clamp(40px, 13.2vw, 176px);
-    line-height: 0.9;
+    font-size: clamp(44px, 12.6vw, 168px);
+    line-height: 1.02;
     letter-spacing: -0.05em;
     white-space: nowrap;
     overflow: hidden;
-    background: linear-gradient(rgb(243 241 236 / 0.2), rgb(243 241 236 / 0.03));
+    background: linear-gradient(rgb(243 241 236 / 0.24), rgb(243 241 236 / 0.07));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
     user-select: none;
   }
   .wordmark span {
-    background: linear-gradient(var(--accent), rgb(255 173 59 / 0.12));
+    background: linear-gradient(#ffc56b, #ff9a12);
     -webkit-background-clip: text;
     background-clip: text;
   }

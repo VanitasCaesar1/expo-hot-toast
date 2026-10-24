@@ -8,7 +8,7 @@ const inDocs = path.includes('/docs');
 <header class="frame bar-wrap">
   <div class="bar inset">
     <a class="wordmark" href={url()}>
-      <span class="mark" aria-hidden="true"></span>
+      <img class="mark" src={url('mark.svg')} alt="" width="34" height="34" />
       expo-hot-toast
     </a>
     <nav aria-label="Primary">
@@ -57,12 +57,12 @@ const inDocs = path.includes('/docs');
     letter-spacing: -0.02em;
     text-decoration: none;
   }
-  /* The mark is a toast: a pill. */
+  /* The mark is a hot toast: an amber toast whose icon is a flame. */
   .mark {
-    width: 22px;
-    height: 10px;
-    border-radius: 999px;
-    background: var(--accent);
+    display: block;
+    width: 34px;
+    height: 34px;
+    margin-block: -8px;
   }
   nav {
     display: flex;
