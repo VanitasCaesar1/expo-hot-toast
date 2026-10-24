@@ -36,13 +36,18 @@ export interface ToastIconProps {
   reduceMotion?: boolean;
 }
 
-const CHECK_PATH = 'M20 6L9 17l-5-5';
 /**
- * Length of CHECK_PATH, from its two segments: (20,6) to (9,17), then (9,17) to
- * (4,12). Needed because the draw-in is a dash offset, which has to start at
+ * Short leg first, then the long one, left to right: the order a hand draws a
+ * tick. The draw-in reveals the path from its start, so the same shape written
+ * from the top-right end drew itself backwards.
+ */
+const CHECK_PATH = 'M4 12l5 5L20 6';
+/**
+ * Length of CHECK_PATH, from its two segments: (4,12) to (9,17), then (9,17) to
+ * (20,6). Needed because the draw-in is a dash offset, which has to start at
  * exactly the path length: shorter shows a stub, longer delays the first pixel.
  */
-export const CHECK_PATH_LENGTH = Math.hypot(11, 11) + Math.hypot(5, 5);
+export const CHECK_PATH_LENGTH = Math.hypot(5, 5) + Math.hypot(11, 11);
 
 /**
  * react-hot-toast's checkmark timing: 200ms ease-out, starting 200ms after the

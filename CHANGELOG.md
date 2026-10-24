@@ -60,6 +60,14 @@ Initial release. Not yet published to npm; `main` previously pointed at
 - **`maxFontSizeMultiplier`** theme token (default 2) caps font scaling, since a
   toast is limited to three lines.
 - **`icon: null`** hides a toast's icon, glyph included, as in react-hot-toast.
+- From react-hot-toast 2.6: **`iconTheme`** (`primary` colours the built-in
+  glyph and spinner), **animated icons** (the icon pops in using the motion
+  tokens `iconPop` / `iconPopDelay` / `iconEasing`, which were defined but
+  unused; the check draws itself short leg first; the error mark follows the
+  circle; none of it under Reduce Motion), a **drop-in `<ToastBar>`** that reads
+  its wiring from the Toaster so `<Toaster>{t => <ToastBar toast={t} />}` works,
+  **`removeDelay`** (typed before but ignored), and **`handlers`** on
+  `useToaster()`.
 - **Android CI**: the example is built and driven on an Android emulator with
   Maestro for changes to the library, example or package files, with
   screenshots uploaded.

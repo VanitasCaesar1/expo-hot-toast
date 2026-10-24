@@ -38,7 +38,8 @@ await toast.promise(upload(photo), {
 - **A considered fallback.** iOS before 26, Android, web, and anyone with Reduce
   Transparency on get an opaque surface with real colour, border and shadow.
 - **The react-hot-toast API you know**: `toast()`, `.success`, `.error`,
-  `.loading`, `.custom`, `.promise`, `.dismiss`, `<Toaster />`.
+  `.loading`, `.custom`, `.promise`, `.dismiss`, `<Toaster />`, `<ToastBar />`,
+  `iconTheme`, `removeDelay` — and its animated icons: the check draws itself.
 - **A queue, not a pile.** Three toasts per position by default; the rest wait
   and move up as space frees, so nothing expires unseen.
 - **Built for touch**: swipe to dismiss with fling velocity, press and hold to
@@ -140,6 +141,7 @@ toast.error('Upload failed', {
 | `position` | Toaster's `position` | `'top-left' \| 'top-center' \| 'top-right' \| 'bottom-…'` |
 | `id` | generated | Reuse an id to update a toast in place |
 | `icon` | per type | Any element; `null` hides it |
+| `iconTheme` | per type | `{ primary, secondary }`; `primary` colours the built-in glyph and spinner |
 | `action` | — | `{ label, onPress, color? }`; dismisses after `onPress` runs |
 | `closeButton` | `false` | Trailing close button; `closeButtonColor` tints it |
 | `dismissOnTap` | `true` on Android, `false` on iOS | Tap the toast to dismiss it |
@@ -150,6 +152,7 @@ toast.error('Upload failed', {
 | `style` / `textStyle` / `iconStyle` | — | Style overrides, applied last |
 | `accessibilityLabel` | the message text | What screen readers announce; set it when the message is an element |
 | `onDismiss` | — | Called with `(id, reason)` once the toast has left |
+| `removeDelay` | the exit duration | How long a dismissed toast stays mounted; shorter cuts the exit animation |
 | `toasterId` | `'default'` | Send the toast to a specific `<Toaster>` |
 
 Dismiss and remove:
@@ -226,18 +229,31 @@ Unistyles.
 
 ### Custom rendering
 
-Render each toast yourself and keep the queue, timers and gestures:
+Change what goes inside the bar and keep its surface, gestures and timers —
+`ToastBar` picks up everything else from the Toaster, as in react-hot-toast:
 
 ```tsx
-import { resolveValue } from 'expo-hot-toast';
+import { Toaster, ToastBar, toast } from 'expo-hot-toast';
 
 <Toaster>
-  {({ toast }) => <MyToast message={resolveValue(toast.message, toast)} type={toast.type} />}
+  {({ toast: t }) => (
+    <ToastBar toast={t}>
+      {({ icon, message }) => (
+        <>
+          {icon}
+          {message}
+          {t.type !== 'loading' && <Button title="×" onPress={() => toast.dismiss(t.id)} />}
+        </>
+      )}
+    </ToastBar>
+  )}
 </Toaster>
 ```
 
-Or go fully headless with `useToaster()`, which returns the visible and pending
-toasts for one Toaster plus `startPause` / `endPause`.
+Or render each toast entirely yourself (`resolveValue(t.message, t)` gives the
+message), or go fully headless with `useToaster()`, which returns the visible and
+pending toasts for one Toaster plus `startPause` / `endPause` (also as
+`handlers`, as in react-hot-toast).
 
 ## Coming from react-hot-toast
 
@@ -251,6 +267,10 @@ Most code ports by changing the import. The differences:
 - `useToaster` takes one options object (`{ toastOptions, toasterId }`) and
   returns `{ toasts, pending, startPause, endPause }`; position offsets come from
   layout, so there is no `calculateOffset` or `updateHeight`.
+- `useToaster` returns `handlers: { startPause, endPause }` like react-hot-toast;
+  there is no `calculateOffset` or `updateHeight` because layout places toasts.
+- `iconTheme.secondary` is accepted but unused: the built-in glyphs are stroked
+  marks rather than filled discs.
 - `onDismiss`, `action`, `closeButton`, `dedupeKey`, symbolic durations and
   swipe to dismiss are additions.
 

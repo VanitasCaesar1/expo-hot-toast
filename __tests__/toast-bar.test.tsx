@@ -94,7 +94,8 @@ describe('ToastBar — icons', () => {
 
     expect(getSvgNodes('Path')).toHaveLength(1);
     expect(getSvgNodes('Circle')).toHaveLength(0);
-    expect(getSvg('Path').props.d).toBe('M20 6L9 17l-5-5');
+    // Short leg first, so the draw-in runs in the order a tick is drawn.
+    expect(getSvg('Path').props.d).toBe('M4 12l5 5L20 6');
     expect(getSvg('Path').props.stroke).toBe(TOAST_ICON_ACCENTS.success);
   });
 
