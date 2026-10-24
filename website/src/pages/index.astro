@@ -5,6 +5,7 @@ import Phone from '../components/Phone.astro';
 import DemoWindow from '../components/DemoWindow.astro';
 import CopyInstall from '../components/CopyInstall.astro';
 import Icon from '../components/Icon.astro';
+import CodePanel from '../components/CodePanel.astro';
 import { url } from '../lib/url';
 
 const migrate = `- import toast, { Toaster } from 'react-hot-toast';
@@ -60,15 +61,16 @@ const faq = [
 >
   <section class="hero">
     <div class="hero-copy inset">
-      <p class="label eyebrow">Open source for Expo and React Native</p>
-      <h1 class="display">Toasts in real Liquid Glass.</h1>
-      <p class="lede">The react-hot-toast API, drawn with Apple's own material on iOS 26 and a designed surface on Android.</p>
-      <div class="ctas">
+      <p class="label eyebrow enter" style="--i: 0">Open source for Expo and React Native</p>
+      <h1 class="display enter" style="--i: 1">Toasts in real Liquid Glass.</h1>
+      <p class="lede enter" style="--i: 2">The react-hot-toast API, drawn with Apple's own material on iOS 26 and a designed surface on Android.</p>
+      <div class="ctas enter" style="--i: 3">
         <a class="button primary" href={url('docs/installation')}>Quick start <Icon name="arrow-right" /></a>
         <CopyInstall />
       </div>
     </div>
     <div class="hero-devices">
+      <div class="glow" aria-hidden="true"></div>
       <div class="field dots" aria-hidden="true"></div>
       <div class="pair">
         <div class="back"><Phone platform="android" media="android-demo" label="expo-hot-toast running on Android" /></div>
@@ -84,8 +86,15 @@ const faq = [
     <span title="Android"><Icon name="android" label="Android" /></span>
   </section>
 
+  <section class="proof grid" aria-label="How it is checked">
+    <div data-reveal style="--i: 0"><span class="display stat">350+</span><p>Tests across logic and components, on every change.</p></div>
+    <div data-reveal style="--i: 1"><span class="display stat">iOS 26</span><p>The example app runs on an iOS 26 simulator in CI.</p></div>
+    <div data-reveal style="--i: 2"><span class="display stat">Android</span><p>And on an Android emulator, every row driven by Maestro.</p></div>
+    <div data-reveal style="--i: 3"><span class="display stat">MIT</span><p>Open source, with a typed API and no runtime dependencies.</p></div>
+  </section>
+
   <section class="band" aria-labelledby="calls">
-    <header class="head inset">
+    <header class="head inset" data-reveal>
       <h2 id="calls" class="display">Every call, on a real device.</h2>
       <p>Pick a call to jump the recording to it. These are screen recordings from CI, not mockups.</p>
     </header>
@@ -93,14 +102,14 @@ const faq = [
   </section>
 
   <section class="band" aria-labelledby="surfaces">
-    <header class="head inset">
+    <header class="head inset" data-reveal>
       <h2 id="surfaces" class="display">Glass where the platform has it.</h2>
       <p>Liquid Glass on iOS 26. A designed opaque surface everywhere else, and for anyone with Reduce Transparency on.</p>
     </header>
     <ul class="stills grid">
       {
-        stills.map((s) => (
-          <li>
+        stills.map((s, i) => (
+          <li data-reveal style={`--i: ${i}`}>
             <img src={url(`media/${s.media}.jpg`)} alt={s.alt} loading="lazy" decoding="async" width="600" height="420" />
             <span class="label">{s.label}</span>
           </li>
@@ -110,33 +119,34 @@ const faq = [
   </section>
 
   <section class="band" aria-labelledby="built">
-    <header class="head inset">
+    <header class="head inset" data-reveal>
       <h2 id="built" class="display">Built for a phone, not ported to one.</h2>
     </header>
     <div class="features grid">
-      <article class="queue">
+      <article class="queue" data-reveal style="--i: 0">
         <h3>A queue, not a pile</h3>
         <p>Three toasts per edge. The rest wait, and each gets its full time once it shows.</p>
         <img src={url('media/android-queue-dark.jpg')} alt="Three toasts showing while two more wait" loading="lazy" decoding="async" width="600" height="420" />
       </article>
-      <article>
+      <article data-reveal style="--i: 1">
         <h3>Swipe it away, hold to read</h3>
         <p>Drag with fling velocity to dismiss. Press and hold to pause every timer in the stack.</p>
       </article>
-      <article>
+      <article data-reveal style="--i: 2">
         <h3>Twenty calls, one toast</h3>
         <Code code={`toast('Saving draft…', {\n  dedupeKey: 'draft',\n})`} lang="ts" theme="github-dark-dimmed" />
       </article>
-      <article>
+      <article data-reveal style="--i: 3">
         <h3>Accessible by default</h3>
         <p>VoiceOver and TalkBack, Reduce Motion, Reduce Transparency, capped font scaling and distinct haptics.</p>
       </article>
-      <article>
+      <article data-reveal style="--i: 4">
         <h3>The check draws itself</h3>
         <p>Icons pop in and draw on the motion tokens react-hot-toast is known for, and rest still under Reduce Motion.</p>
       </article>
-      <article>
+      <article class="tokens" data-reveal style="--i: 5">
         <h3>Tokens, not overrides</h3>
+        <p>Light and dark defaults follow the system, and every token exports as a CSS variable for NativeWind or Unistyles.</p>
         <Code code={`<Toaster theme={{\n  radius: 14,\n  actionColor: '#FF9500',\n}} />`} lang="tsx" theme="github-dark-dimmed" />
       </article>
     </div>
@@ -144,16 +154,16 @@ const faq = [
 
   <section class="band migrate" aria-labelledby="migrate">
     <div class="inset">
-      <h2 id="migrate" class="display">Already on react-hot-toast?</h2>
+      <h2 id="migrate" class="display">Already on <span class="nowrap">react-hot-toast</span>?</h2>
       <p>Change the import. The calls you know keep working, and <a href={url('docs/coming-from-react-hot-toast')}>the differences fit on one page</a>.</p>
     </div>
-    <div class="diff">
-      <Code code={migrate} lang="diff" theme="github-dark-dimmed" />
+    <div class="diff" data-reveal>
+      <CodePanel code={migrate} lang="diff" file="App.tsx" />
     </div>
   </section>
 
   <section class="band" aria-labelledby="faq">
-    <header class="head inset">
+    <header class="head inset" data-reveal>
       <h2 id="faq" class="display">Questions</h2>
     </header>
     <div class="faq">
@@ -173,10 +183,10 @@ const faq = [
 
   <section class="band start dots-wrap" aria-labelledby="start">
     <div class="start-inner inset">
-      <h2 id="start" class="display">Ship your first toast.</h2>
+      <h2 id="start" class="display huge" data-reveal>Ship your first toast.</h2>
       <CopyInstall showCommand />
       <div class="setup">
-        <Code code={setup} lang="tsx" theme="github-dark-dimmed" />
+        <CodePanel code={setup} lang="tsx" file="App.tsx" />
       </div>
       <a class="button primary" href={url('docs/installation')}>Quick start <Icon name="arrow-right" /></a>
     </div>
@@ -233,6 +243,19 @@ const faq = [
     gap: 12px;
     margin-top: 36px;
   }
+  /* Staged entrance: label, headline, text, buttons, then the phones. */
+  @media (prefers-reduced-motion: no-preference) {
+    .enter {
+      animation: settle 800ms var(--ease-out) both;
+      animation-delay: calc(var(--i) * 90ms);
+    }
+  }
+  @keyframes settle {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+  }
   .hero-devices {
     position: relative;
     display: grid;
@@ -244,19 +267,32 @@ const faq = [
     position: absolute;
     inset: 0;
   }
+  /* Warm light under the phones: the 'hot' in hot toast. Tinted, not neon. */
+  .glow {
+    position: absolute;
+    left: 50%;
+    top: 58%;
+    width: 520px;
+    height: 520px;
+    transform: translate(-50%, -50%);
+    width: 760px;
+    height: 760px;
+    background: radial-gradient(circle, rgb(255 173 59 / 0.2), rgb(255 173 59 / 0.07) 38%, transparent 68%);
+    pointer-events: none;
+  }
   .pair {
     position: relative;
     display: grid;
     grid-template-columns: 1fr 1fr;
     align-items: center;
     width: 100%;
-    max-width: 460px;
+    max-width: 500px;
   }
   .front {
     grid-area: 1 / 1 / 1 / 3;
-    width: 58%;
+    width: 60%;
     z-index: 1;
-    animation: rise 900ms var(--ease-out) both;
+    animation: rise 1000ms 250ms var(--ease-out) both;
   }
   .back {
     grid-area: 1 / 2;
@@ -292,8 +328,26 @@ const faq = [
     border-left: 1px solid var(--line);
   }
 
+  .proof {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .proof > div {
+    padding: 28px var(--pad) 30px;
+  }
+  .stat {
+    display: block;
+    font-size: clamp(30px, 3vw, 40px);
+    color: var(--text);
+  }
+  .proof p {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 30ch;
+  }
+
   .head {
-    padding-block: 72px 40px;
+    padding-block: 80px 44px;
   }
   h2 {
     margin: 0;
@@ -344,15 +398,48 @@ const faq = [
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .features article {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 10px;
     padding: 32px var(--pad) 36px;
     min-width: 0;
   }
+  /* A rule draws across the top of a cell under the pointer. */
+  .features article::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 450ms var(--ease-out);
+  }
+  .features article:hover::before {
+    transform: scaleX(1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .features article::before {
+      transition: none;
+    }
+  }
   .features .queue {
     grid-row: span 2;
     padding-bottom: 0;
+  }
+  /* Full width under the rest: text on the left, its code on the right. */
+  .features .tokens {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: var(--pad);
+  }
+  .features .tokens :global(.astro-code) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin-top: 0;
   }
   .features .queue img {
     margin-top: auto;
@@ -399,10 +486,7 @@ const faq = [
   .diff {
     padding: 0 var(--pad);
   }
-  .diff :global(.astro-code) {
-    border: 1px solid var(--line);
-    background: var(--surface) !important;
-  }
+
 
   .faq {
     border-top: 1px solid var(--line);
@@ -460,9 +544,13 @@ const faq = [
   }
   .setup {
     width: 100%;
-    max-width: 560px;
-    border: 1px solid var(--line);
-    background: var(--surface);
+    max-width: 600px;
+  }
+  .huge {
+    font-size: clamp(52px, 8.6vw, 124px);
+    max-width: 12ch;
+    line-height: 0.96;
+    margin-bottom: 12px;
   }
 
   @media (max-width: 960px) {
@@ -474,7 +562,8 @@ const faq = [
       border-right: 0;
       border-bottom: 1px solid var(--line);
     }
-    .stills {
+    .stills,
+    .proof {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .features {
@@ -483,6 +572,13 @@ const faq = [
     .features .queue {
       grid-row: auto;
       grid-column: span 2;
+    }
+    .features .tokens {
+      grid-template-columns: 1fr;
+    }
+    .features .tokens :global(.astro-code) {
+      grid-column: 1;
+      grid-row: auto;
     }
     .migrate {
       grid-template-columns: 1fr;

@@ -1,10 +1,10 @@
 ---
-import { Code } from 'astro:components';
 import Phone from './Phone.astro';
+import CodePanel from './CodePanel.astro';
 import { moments } from '../lib/moments';
 ---
 
-<div class="demo" data-platform="ios" data-scheme="dark">
+<div class="demo" data-scheme="dark">
   <div class="tabs" role="tablist" aria-label="API calls">
     {
       moments.map((m, i) => (
@@ -12,12 +12,10 @@ import { moments } from '../lib/moments';
           type="button"
           role="tab"
           class="tab label"
-          id={`tab-${m.id}`}
           aria-selected={i === 0 ? 'true' : 'false'}
           aria-controls="demo-panel"
           data-at-ios={m.at.ios}
           data-at-android={m.at.android}
-          data-index={i}
         >
           {m.tab}
         </button>
@@ -25,29 +23,25 @@ import { moments } from '../lib/moments';
     }
   </div>
 
-  <div class="window dots-bg" id="demo-panel" role="tabpanel">
-    <div class="device">
-      <div class="ios-only"><Phone platform="ios" media="ios-demo" label="The demo running on iOS 26 with Liquid Glass" id="demo-ios" /></div>
-      <div class="android-only"><Phone platform="android" media="android-demo" label="The demo running on Android" id="demo-android" /></div>
-    </div>
+  <div class="window" id="demo-panel" role="tabpanel">
+    <figure class="device">
+      <Phone platform="ios" media="ios-demo" label="The demo running on iOS 26 with Liquid Glass" id="demo-ios" />
+      <figcaption class="label">iOS 26, Liquid Glass</figcaption>
+    </figure>
+    <figure class="device">
+      <Phone platform="android" media="android-demo" label="The same demo running on Android" id="demo-android" />
+      <figcaption class="label">Android</figcaption>
+    </figure>
 
     <div class="side">
-      <div class="controls">
-        <div class="seg" role="group" aria-label="Platform">
-          <button type="button" class="label" data-platform-to="ios" aria-pressed="true">iOS 26</button>
-          <button type="button" class="label" data-platform-to="android" aria-pressed="false">Android</button>
-        </div>
-        <div class="seg" role="group" aria-label="Appearance">
-          <button type="button" class="label" data-scheme-to="dark" aria-pressed="true">Dark</button>
-          <button type="button" class="label" data-scheme-to="light" aria-pressed="false">Light</button>
-        </div>
+      <div class="seg" role="group" aria-label="Appearance">
+        <button type="button" class="label" data-scheme-to="dark" aria-pressed="true">Dark</button>
+        <button type="button" class="label" data-scheme-to="light" aria-pressed="false">Light</button>
       </div>
       {
         moments.map((m, i) => (
           <div class="call" data-call={i} hidden={i !== 0}>
-            <div class="code">
-              <Code code={m.code} lang="ts" theme="github-dark-dimmed" />
-            </div>
+            <CodePanel code={m.code} lang="ts" file="App.tsx" />
             <p>{m.note}</p>
           </div>
         ))
@@ -62,64 +56,63 @@ import { moments } from '../lib/moments';
     const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
     const calls = [...root.querySelectorAll<HTMLElement>('[data-call]')];
     const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-    const video = () => root.querySelector<HTMLVideoElement>(`#demo-${root.dataset.platform}`);
-    const at = (t: HTMLButtonElement) =>
-      Number(root.dataset.platform === 'ios' ? t.dataset.atIos : t.dataset.atAndroid);
+    const ios = root.querySelector<HTMLVideoElement>('#demo-ios');
+    const android = root.querySelector<HTMLVideoElement>('#demo-android');
+    const atIos = (t: HTMLButtonElement) => Number(t.dataset.atIos);
+    const atAndroid = (t: HTMLButtonElement) => Number(t.dataset.atAndroid);
 
     const select = (index: number) => {
       tabs.forEach((t, i) => t.setAttribute('aria-selected', String(i === index)));
       calls.forEach((c, i) => (c.hidden = i !== index));
     };
 
-    // A tab jumps the recording to the moment its call fires.
+    // A tab jumps both recordings to the moment its call fires.
     tabs.forEach((tab, i) =>
       tab.addEventListener('click', () => {
         select(i);
-        const v = video();
-        if (!v) return;
-        v.currentTime = Math.max(0, at(tab) - 0.3);
-        if (!reduce.matches) void v.play().catch(() => {});
+        for (const [v, at] of [
+          [ios, atIos(tab)],
+          [android, atAndroid(tab)],
+        ] as const) {
+          if (!v) continue;
+          v.currentTime = Math.max(0, at - 0.3);
+          if (!reduce.matches) void v.play().catch(() => {});
+        }
       }),
     );
 
-    // While it plays, the tab follows the recording.
-    const follow = () => {
-      const v = video();
-      if (!v || v.paused) return;
+    // The iOS clip leads: the tab follows it, and the tab's bar fills through
+    // that call's stretch of the clip.
+    ios?.addEventListener('timeupdate', () => {
+      if (ios.paused) return;
       let current = 0;
       tabs.forEach((t, i) => {
-        if (v.currentTime >= at(t) - 0.3) current = i;
+        if (ios.currentTime >= atIos(t) - 0.3) current = i;
       });
-      select(current);
-    };
-    root.querySelectorAll('video').forEach((v) => v.addEventListener('timeupdate', follow));
+      if (tabs[current]!.getAttribute('aria-selected') !== 'true') select(current);
+      const start = atIos(tabs[current]!) - 0.3;
+      const end = current + 1 < tabs.length ? atIos(tabs[current + 1]!) - 0.3 : ios.duration || start + 4;
+      const progress = Math.min(Math.max((ios.currentTime - start) / (end - start), 0), 1);
+      tabs.forEach((t, i) => t.style.setProperty('--progress', i === current ? String(progress) : '0'));
+    });
 
-    const swap = (v: HTMLVideoElement | null, scheme: string) => {
+    const swap = (v: HTMLVideoElement | null, scheme: 'dark' | 'light') => {
       if (!v) return;
       const t = v.currentTime;
       const playing = !v.paused;
       v.poster = v.dataset[scheme === 'dark' ? 'posterDark' : 'posterLight'] ?? '';
-      v.src = v.dataset[scheme as 'dark' | 'light'] ?? '';
+      v.src = v.dataset[scheme] ?? '';
       v.addEventListener('loadedmetadata', () => (v.currentTime = t), { once: true });
       if (playing) void v.play().catch(() => {});
     };
 
-    root.querySelectorAll<HTMLButtonElement>('[data-platform-to]').forEach((b) =>
-      b.addEventListener('click', () => {
-        video()?.pause();
-        root.dataset.platform = b.dataset.platformTo;
-        root.querySelectorAll('[data-platform-to]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
-        const v = video();
-        if (v && v.getAttribute('src') !== v.dataset[root.dataset.scheme as 'dark' | 'light']) swap(v, root.dataset.scheme ?? 'dark');
-        if (!reduce.matches) void v?.play().catch(() => {});
-      }),
-    );
-
     root.querySelectorAll<HTMLButtonElement>('[data-scheme-to]').forEach((b) =>
       b.addEventListener('click', () => {
-        root.dataset.scheme = b.dataset.schemeTo;
+        const scheme = b.dataset.schemeTo === 'light' ? 'light' : 'dark';
+        root.dataset.scheme = scheme;
         root.querySelectorAll('[data-scheme-to]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
-        swap(video(), root.dataset.scheme ?? 'dark');
+        swap(ios, scheme);
+        swap(android, scheme);
       }),
     );
   }
@@ -132,15 +125,17 @@ import { moments } from '../lib/moments';
     border-bottom: 1px solid var(--line);
   }
   .tab {
-    height: 52px;
+    position: relative;
+    height: 54px;
     padding: 0 10px;
     border: 0;
     border-right: 1px solid var(--line);
     background: transparent;
     color: var(--faint);
     cursor: pointer;
-    position: relative;
-    transition: color 160ms, background 160ms;
+    transition:
+      color 160ms,
+      background 160ms;
   }
   .tab:last-child {
     border-right: 0;
@@ -152,22 +147,34 @@ import { moments } from '../lib/moments';
     color: var(--text);
     background: var(--surface);
   }
-  /* The selected tab's accent rule. */
-  .tab[aria-selected='true']::after {
+  /* The selected tab's rule: a faint track, filled as far as the clip has played. */
+  .tab[aria-selected='true']::before,
+  .tab::after {
     content: '';
     position: absolute;
     inset: auto 0 -1px 0;
     height: 2px;
+  }
+  .tab[aria-selected='true']::before {
+    background: rgb(255 173 59 / 0.25);
+  }
+  .tab::after {
     background: var(--accent);
+    transform: scaleX(var(--progress, 0));
+    transform-origin: left;
+    transition: transform 250ms linear;
+  }
+  .tab[aria-selected='true']:not([style*='--progress'])::after {
+    transform: scaleX(1);
   }
 
   .window {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
-    gap: clamp(28px, 5vw, 72px);
+    grid-template-columns: minmax(0, 250px) minmax(0, 236px) minmax(0, 1fr);
+    gap: clamp(20px, 3vw, 44px);
     align-items: center;
-    padding: clamp(32px, 5vw, 64px) var(--pad);
+    padding: clamp(36px, 5vw, 64px) var(--pad);
     isolation: isolate;
   }
   .window::before {
@@ -177,26 +184,32 @@ import { moments } from '../lib/moments';
     z-index: -1;
     background-image: radial-gradient(rgb(243 241 236 / 0.13) 1px, transparent 1.4px);
     background-size: 14px 14px;
-    mask-image: radial-gradient(ellipse at 30% 50%, #000 20%, transparent 70%);
-    -webkit-mask-image: radial-gradient(ellipse at 30% 50%, #000 20%, transparent 70%);
+    mask-image: radial-gradient(ellipse at 28% 50%, #000 15%, transparent 65%);
+    -webkit-mask-image: radial-gradient(ellipse at 28% 50%, #000 15%, transparent 65%);
   }
-  .demo[data-platform='ios'] .android-only,
-  .demo[data-platform='android'] .ios-only {
-    display: none;
+  .device {
+    margin: 0;
+    display: grid;
+    gap: 14px;
+    justify-items: center;
+  }
+  /* A size container has no width of its own; give the phone the column's. */
+  .device :global(.phone) {
+    width: 100%;
+  }
+  .device figcaption {
+    color: var(--faint);
   }
 
   .side {
     display: grid;
-    gap: 22px;
+    gap: 20px;
     align-content: center;
-  }
-  .controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    padding-left: clamp(0px, 2vw, 24px);
   }
   .seg {
     display: inline-flex;
+    justify-self: start;
     border: 1px solid var(--line);
   }
   .seg button {
@@ -214,18 +227,24 @@ import { moments } from '../lib/moments';
     color: var(--accent-ink);
     background: var(--accent);
   }
-  .code {
-    border: 1px solid var(--line);
-    background: var(--bg);
-  }
   .call p {
-    margin: 14px 0 0;
+    margin: 16px 0 0;
     color: var(--muted);
-    font-size: 17px;
-    max-width: 44ch;
+    font-size: 18px;
+    line-height: 1.5;
+    max-width: 36ch;
   }
 
-  @media (max-width: 860px) {
+  @media (max-width: 1000px) {
+    .window {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .side {
+      grid-column: 1 / -1;
+      padding-left: 0;
+    }
+  }
+  @media (max-width: 760px) {
     .tabs {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
@@ -234,13 +253,6 @@ import { moments } from '../lib/moments';
     }
     .tab:nth-child(-n + 3) {
       border-bottom: 1px solid var(--line);
-    }
-    .window {
-      grid-template-columns: 1fr;
-    }
-    .device {
-      max-width: 260px;
-      margin-inline: auto;
     }
   }
 </style>

@@ -1,0 +1,71 @@
+---
+import { Code } from 'astro:components';
+import Icon from './Icon.astro';
+
+interface Props {
+  code: string;
+  lang: 'ts' | 'tsx' | 'diff' | 'sh';
+  /** Shown in the panel header, e.g. `App.tsx`. */
+  file?: string;
+}
+
+const { code, lang, file } = Astro.props;
+const copyable = lang === 'diff' ? code.split('\n').filter((l) => l.startsWith('+')).map((l) => l.slice(2)).join('\n') : code;
+---
+
+<div class="panel">
+  <div class="bar">
+    <span class="label">{file ?? lang}</span>
+    <button type="button" class="copy" data-copy={copyable} aria-label={`Copy ${file ?? 'code'}`}>
+      <span class="idle"><Icon name="copy" /></span>
+      <span class="done"><Icon name="check" /></span>
+    </button>
+  </div>
+  <Code code={code} lang={lang} theme="github-dark-dimmed" />
+</div>
+
+<style>
+  .panel {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    min-width: 0;
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+    padding: 0 6px 0 16px;
+    border-bottom: 1px solid var(--line);
+    color: var(--faint);
+  }
+  .copy {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    background: transparent;
+    color: var(--faint);
+    cursor: pointer;
+  }
+  .copy:hover {
+    color: var(--text);
+  }
+  .idle,
+  .done {
+    grid-area: 1 / 1;
+    display: inline-flex;
+    transition: opacity 160ms;
+  }
+  .done {
+    opacity: 0;
+    color: var(--accent);
+  }
+  .copy[data-copied] .idle {
+    opacity: 0;
+  }
+  .copy[data-copied] .done {
+    opacity: 1;
+  }
+</style>

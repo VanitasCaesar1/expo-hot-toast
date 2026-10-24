@@ -3,6 +3,7 @@ import { url, REPO_URL } from '../lib/url';
 ---
 
 <footer class="frame band">
+  <p class="wordmark display" aria-hidden="true">expo-hot-toast</p>
   <div class="inset row">
     <p>MIT licensed open source, for Expo and React Native.</p>
     <nav aria-label="Footer">
@@ -19,7 +20,21 @@ import { url, REPO_URL } from '../lib/url';
     border-bottom: 1px solid var(--line);
     margin-bottom: 48px;
   }
+  /* The sign-off: the name in outline, as wide as the frame. */
+  .wordmark {
+    margin: 0;
+    padding: 40px var(--pad) 0;
+    font-size: clamp(48px, 12.4vw, 160px);
+    line-height: 0.9;
+    letter-spacing: -0.045em;
+    white-space: nowrap;
+    color: transparent;
+    -webkit-text-stroke: 1px rgb(243 241 236 / 0.22);
+    user-select: none;
+    overflow: hidden;
+  }
   .row {
+    border-top: 1px solid var(--line);
     display: flex;
     flex-wrap: wrap;
     gap: 16px 32px;

@@ -28,21 +28,7 @@ const { showCommand = false } = Astro.props;
   )
 }
 
-<script>
-  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy]')) {
-    if (button.dataset.bound) continue;
-    button.dataset.bound = 'true';
-    button.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(button.dataset.copy ?? '');
-        button.dataset.copied = 'true';
-        setTimeout(() => delete button.dataset.copied, 1600);
-      } catch {
-        // Clipboard can be unavailable (insecure context); the command is selectable.
-      }
-    });
-  }
-</script>
+<!-- Copy behaviour is wired once for the whole page in layouts/Base.astro. -->
 
 <style>
   .cmd {

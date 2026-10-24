@@ -99,6 +99,7 @@ video {
 }
 
 .display {
+  text-wrap: balance;
   font-family: var(--display);
   font-weight: 500;
   letter-spacing: -0.03em;
@@ -185,6 +186,10 @@ video {
   -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
 }
 
+.nowrap {
+  white-space: nowrap;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -192,4 +197,23 @@ video {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/*
+ * Reveal on scroll. Hidden only under .js (set before paint), so content is
+ * never lost without JavaScript; still under Reduce Motion.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-reveal] {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 700ms var(--ease-out),
+      transform 700ms var(--ease-out);
+    transition-delay: calc(var(--i, 0) * 70ms);
+  }
+  .js [data-reveal].is-in {
+    opacity: 1;
+    transform: none;
+  }
 }
