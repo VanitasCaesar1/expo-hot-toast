@@ -368,3 +368,33 @@ function handler(handlers: Map<string, ChangeHandler>, event: string): ChangeHan
   }
   return captured;
 }
+
+/*
+ * React Native Web has no isReduceTransparencyEnabled. Calling it threw during
+ * the first render and took the whole app down on the web.
+ */
+describe('a platform without an accessibility query', () => {
+  it('treats the missing setting as off instead of throwing', async () => {
+    const info = AccessibilityInfo as unknown as Record<string, unknown>;
+    const original = info.isReduceTransparencyEnabled;
+    const originalListener = info.addEventListener;
+    info.isReduceTransparencyEnabled = undefined;
+    // And no subscription object back, as for an event the platform lacks.
+    info.addEventListener = () => undefined;
+    __resetAccessibilityCache();
+    const errors = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { result, unmount } = renderHook(() => useReduceTransparency());
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(result.current).toBe(false);
+      unmount();
+      expect(errors).not.toHaveBeenCalled();
+    } finally {
+      info.isReduceTransparencyEnabled = original;
+      info.addEventListener = originalListener;
+      errors.mockRestore();
+    }
+  });
+});

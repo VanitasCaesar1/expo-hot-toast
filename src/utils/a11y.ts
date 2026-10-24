@@ -26,7 +26,16 @@ function resolveFlag(
   const existing = cache.get(key);
   if (existing?.resolved) return Promise.resolve(existing.value);
 
-  const pending = query()
+  // A platform may not implement the query at all: React Native Web has no
+  // isReduceTransparencyEnabled, and calling it threw on mount, which took the
+  // whole app down. Missing counts as "off".
+  let started: Promise<boolean>;
+  try {
+    started = query();
+  } catch {
+    started = Promise.resolve(false);
+  }
+  const pending = started
     .then((value) => {
       cache.set(key, { value, resolved: true });
       return value;
@@ -69,11 +78,17 @@ function useAccessibilityFlag(
 
     resolveFlag(key, query).then(apply);
 
-    const subscription = AccessibilityInfo.addEventListener(event, apply);
+    // Optional for the same reason: not every platform emits every event.
+    let subscription: { remove?: () => void } | undefined;
+    try {
+      subscription = AccessibilityInfo.addEventListener(event, apply);
+    } catch {
+      subscription = undefined;
+    }
 
     return () => {
       cancelled = true;
-      subscription.remove();
+      subscription?.remove?.();
     };
   }, [key, query, event]);
 
