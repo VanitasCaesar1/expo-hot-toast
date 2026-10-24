@@ -157,40 +157,62 @@ export const ToastBar = React.memo(function ToastBar({
    * not sit through the full 400ms deceleration after the finger has already let
    * go.
    */
-  const pan = Gesture.Pan()
-    .enabled(panThreshold > 0)
-    .activeOffsetX([-12, 12])
-    .failOffsetY([-14, 14])
-    .onUpdate((event) => {
-      const raw = event.translationX;
-      const wrongWay = raw * dismissalSign < 0;
+  // The gesture must survive re-renders. Touching a toast pauses the queue and
+  // the pan activating cancels that press, and each of those re-renders the
+  // bar; a fresh `Gesture.Pan()` per render was re-attached mid-drag, which on
+  // Android cancelled the drag and snapped the toast back. So the gesture is
+  // memoized on stable inputs, and the dismissal goes through a ref because
+  // the Toaster passes a new `onDismiss` on every render.
+  const onDismissRef = React.useRef(onDismiss);
+  React.useLayoutEffect(() => {
+    onDismissRef.current = onDismiss;
+  });
+  const toastId = toast.id;
+  const swipeAway = React.useCallback(() => {
+    onDismissRef.current(toastId, 'swipe');
+  }, [toastId]);
 
-      dragX.value = wrongWay
-        ? raw * 0.35 * (1 / (1 + Math.abs(raw) * 0.02))
-        : raw;
-    })
-    .onEnd((event) => {
-      const farEnough = Math.abs(dragX.value) > panThreshold;
-      const fastEnough = Math.abs(event.velocityX) > 900;
+  const exitMs = motion.exit;
+  const { exitEasing, enterEasing } = motion;
 
-      fling.value = Math.abs(event.velocityX);
+  const pan = React.useMemo(
+    () =>
+      Gesture.Pan()
+        .enabled(panThreshold > 0)
+        .activeOffsetX([-12, 12])
+        .failOffsetY([-14, 14])
+        .onUpdate((event) => {
+          const raw = event.translationX;
+          const wrongWay = raw * dismissalSign < 0;
 
-      if (farEnough || fastEnough) {
-        // Carry the toast off screen from where the finger left it. Assigned
-        // directly, the 500px jump happened in a single frame, so a swiped
-        // toast teleported instead of leaving.
-        const speed = Math.min(Math.abs(event.velocityX) / 1800, 1);
-        dragX.value = withTiming(
-          event.translationX + Math.sign(event.translationX || 1) * 500,
-          { duration: motion.exit * (1 - 0.25 * speed), easing: motion.exitEasing },
-        );
-        // Gesture callbacks run on the UI thread; the dismissal lives in the JS
-        // store, so it has to hop threads explicitly.
-        runOnJS(onDismiss)(toast.id, 'swipe');
-      } else {
-        dragX.value = withTiming(0, { duration: 200, easing: motion.enterEasing });
-      }
-    });
+          dragX.value = wrongWay
+            ? raw * 0.35 * (1 / (1 + Math.abs(raw) * 0.02))
+            : raw;
+        })
+        .onEnd((event) => {
+          const farEnough = Math.abs(dragX.value) > panThreshold;
+          const fastEnough = Math.abs(event.velocityX) > 900;
+
+          fling.value = Math.abs(event.velocityX);
+
+          if (farEnough || fastEnough) {
+            // Carry the toast off screen from where the finger left it.
+            // Assigned directly, the 500px jump happened in a single frame, so
+            // a swiped toast teleported instead of leaving.
+            const speed = Math.min(Math.abs(event.velocityX) / 1800, 1);
+            dragX.value = withTiming(
+              event.translationX + Math.sign(event.translationX || 1) * 500,
+              { duration: exitMs * (1 - 0.25 * speed), easing: exitEasing },
+            );
+            // Gesture callbacks run on the UI thread; the dismissal lives in
+            // the JS store, so it has to hop threads explicitly.
+            runOnJS(swipeAway)();
+          } else {
+            dragX.value = withTiming(0, { duration: 200, easing: enterEasing });
+          }
+        }),
+    [panThreshold, dragX, fling, exitMs, exitEasing, enterEasing, swipeAway],
+  );
 
   // A per-toast `style.borderRadius` wins over the token, same as for the
   // wrapper it is applied to.

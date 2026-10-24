@@ -4,7 +4,7 @@ import * as React from 'react';
 import * as Reanimated from 'react-native-reanimated';
 import { ToastBar } from '../src/components/toast-bar';
 import type { ToastBarProps } from '../src/components/toast-bar';
-import { defaultTheme } from '../src/core/defaults';
+import { defaultTheme, mergeTheme } from '../src/core/defaults';
 import type { Toast } from '../src/core/types';
 
 /*
@@ -407,3 +407,39 @@ describe('ToastBar — elastic resistance', () => {
  * Anchoring on the prop rather than a child index keeps this stable if the bar
  * gains another animated wrapper.
  */
+
+describe('ToastBar — the gesture survives re-renders', () => {
+  it('keeps one pan gesture across re-renders and dismisses through the latest handler', () => {
+    // Regression: a new Gesture.Pan() per render was re-attached mid-drag (a
+    // press pauses the queue and re-renders the bar), and on Android that
+    // cancelled the drag and snapped the toast back. The Toaster passes a new
+    // onDismiss and a newly merged theme on every render, so both change here.
+    mockGestureConfig.length = 0;
+    const first = jest.fn();
+    const latest = jest.fn();
+    const bar = (onDismiss: ToastBarProps['onDismiss']) => (
+      <ToastBar
+        toast={makeToast()}
+        theme={mergeTheme(defaultTheme)}
+        atTop
+        reverseOrder={false}
+        onDismiss={onDismiss}
+        onPressIn={jest.fn()}
+        onPressOut={jest.fn()}
+        panThreshold={72}
+      />
+    );
+
+    const view = render(bar(first));
+    view.rerender(bar(latest));
+
+    expect(mockGestureConfig).toHaveLength(1);
+    (mockGestureConfig[0]!.onEnd as (e: Partial<PanEvent>) => void)({
+      translationX: 200,
+      velocityX: 2000,
+    });
+    expect(first).not.toHaveBeenCalled();
+    expect(latest).toHaveBeenCalledWith('swipe-me', 'swipe');
+  });
+});
+

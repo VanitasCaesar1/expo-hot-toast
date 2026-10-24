@@ -57,12 +57,16 @@ jest.mock('react-native-reanimated', () => {
   let sharedValueId = 0;
 
   const useSharedValue = (initial) => {
-    // A real SharedValue is a mutable box; tests read `.value` to assert on
-    // what a gesture or animation last set.
-    const box = { value: initial };
-    sharedValueId += 1;
-    box.__id = sharedValueId;
-    return box;
+    // A real SharedValue is a mutable box, stable for the component's
+    // lifetime; tests read `.value` to assert on what a gesture or animation
+    // last set. Stability matters: a box recreated per render would break any
+    // memo that depends on it, which the real hook never does.
+    const ref = require('react').useRef(null);
+    if (ref.current === null) {
+      sharedValueId += 1;
+      ref.current = { value: initial, __id: sharedValueId };
+    }
+    return ref.current;
   };
 
   const useAnimatedStyle = (factory) => {

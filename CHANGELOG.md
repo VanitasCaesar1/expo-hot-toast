@@ -163,6 +163,10 @@ Found by running the example on an Android emulator:
 - The "opaque" fallback surface was translucent (`rgba(…, 0.92)` / `0.94`), so
   text behind a toast showed through it. It is now fully opaque, and the dark
   fill is one step lighter than a black page so the toast stands apart.
+- Swipe to dismiss did not work on Android: the drag moved a few pixels and
+  snapped back. The bar built a new pan gesture on every render, and touching
+  a toast re-renders it (press pauses the queue, the pan cancels the press), so
+  the gesture was replaced mid-drag. It is now memoized.
 
 ### Documentation
 
