@@ -37,6 +37,23 @@ export interface ToastBarContextValue {
   onDismiss: (id: string, reason: DismissReason) => void;
   onPressIn: () => void;
   onPressOut: () => void;
+  /** Where a `stacked` Toaster places this toast. Absent otherwise. */
+  stack?: StackPlacement;
+  /** Reports the toast's measured height, which a `stacked` Toaster needs. */
+  onMeasure?: (id: string, height: number) => void;
+}
+
+/**
+ * A toast's place in a collapsed stack, computed by the Toaster.
+ */
+export interface StackPlacement {
+  /** Distance from the front of the stack, 0 for the newest toast. */
+  depth: number;
+  /** Vertical offset that tucks it behind the toasts in front, in px. */
+  shift: number;
+  scale: number;
+  /** True for toasts behind the front one while collapsed: only their edge shows. */
+  hidden: boolean;
 }
 
 /**
@@ -79,6 +96,10 @@ export interface ToastBarProps {
   onPressOut?: () => void;
   /** Drag-to-dismiss threshold in px. 0 disables the gesture. Default 72. */
   panThreshold?: number;
+  /** Set by a `stacked` Toaster. */
+  stack?: StackPlacement;
+  /** Set by a `stacked` Toaster. */
+  onMeasure?: (id: string, height: number) => void;
   children?: (props: {
     icon: React.ReactNode;
     message: React.ReactNode;
@@ -107,6 +128,8 @@ export const ToastBar = React.memo(function ToastBar({
   onPressIn: onPressInProp,
   onPressOut: onPressOutProp,
   panThreshold: panThresholdProp,
+  stack: stackProp,
+  onMeasure: onMeasureProp,
   children,
 }: ToastBarProps) {
   const slot = React.useContext(ToastBarContext);
@@ -144,6 +167,8 @@ export const ToastBar = React.memo(function ToastBar({
   const panThreshold = panThresholdProp ?? slot?.panThreshold ?? 72;
   const onPressIn = onPressInProp ?? slot?.onPressIn ?? noop;
   const onPressOut = onPressOutProp ?? slot?.onPressOut ?? noop;
+  const stack = stackProp ?? slot?.stack;
+  const onMeasure = onMeasureProp ?? slot?.onMeasure;
   const onDismiss =
     onDismissProp ??
     slot?.onDismiss ??
@@ -166,6 +191,12 @@ export const ToastBar = React.memo(function ToastBar({
   const dragY = useSharedValue(0);
   // Which axis the current drag locked to: 0 undecided, 1 sideways, 2 vertical.
   const dragAxis = useSharedValue(0);
+  // A collapsed stack tucks this toast behind the ones in front of it. Both
+  // values ease to each new placement on the queue-shift clock.
+  const stackShift = stack?.shift ?? 0;
+  const stackScale = stack?.scale ?? 1;
+  const stackY = useSharedValue(stackShift);
+  const stackS = useSharedValue(stackScale);
 
   // Which horizontal direction dismisses. Either works, but only one should
   // count as "let go of me" — the other is a push-back.
@@ -226,6 +257,12 @@ export const ToastBar = React.memo(function ToastBar({
     }
   }, [isVisible, motion, presence, fling]);
 
+  React.useEffect(() => {
+    const config = { duration: motion.queueShift, easing: motion.enterEasing };
+    stackY.value = withTiming(stackShift, config);
+    stackS.value = withTiming(stackScale, config);
+  }, [stackShift, stackScale, motion.queueShift, motion.enterEasing, stackY, stackS]);
+
   /**
    * TRANSFORM ONLY. No opacity here.
    *
@@ -250,8 +287,8 @@ export const ToastBar = React.memo(function ToastBar({
         // by the release handler, and zeroing the offset here snapped it back
         // to the centre for the length of the exit.
         { translateX: dragX.value },
-        { translateY: direction * height.value * travel * (1 - p) + dragY.value },
-        { scale: from + (1 - from) * p },
+        { translateY: direction * height.value * travel * (1 - p) + dragY.value + stackY.value },
+        { scale: (from + (1 - from) * p) * stackS.value },
         { rotateZ: `${(dragX.value / 40) * 4}deg` },
       ],
     };
@@ -570,9 +607,18 @@ export const ToastBar = React.memo(function ToastBar({
         layout={LinearTransition.duration(motion.queueShift).easing(
           motion.enterEasing,
         )}
-        style={[styles.wrapper, { alignItems: align }]}
+        // In a stack the front toast draws over the ones tucked behind it.
+        style={[styles.wrapper, { alignItems: align }, stack && { zIndex: 100 - stack.depth }]}
       >
-        <Animated.View style={[styles.wrapper, { alignItems: align }, transformStyle]}>
+        <Animated.View
+          style={[
+            styles.wrapper,
+            { alignItems: align },
+            // Scaled about the edge that peeks out, so it stays where the stack put it.
+            stack && { transformOrigin: atTop ? 'bottom' : 'top' },
+            transformStyle,
+          ]}
+        >
           <Pressable
             onPressIn={onPressIn}
             onPressOut={onPressOut}
@@ -595,6 +641,7 @@ export const ToastBar = React.memo(function ToastBar({
             style={[styles.pressable, { alignItems: align }]}
             onLayout={(event) => {
               height.value = event.nativeEvent.layout.height;
+              onMeasure?.(toast.id, event.nativeEvent.layout.height);
             }}
           >
             <View
@@ -640,7 +687,11 @@ export const ToastBar = React.memo(function ToastBar({
                 exitDuration={motion.exit}
                 style={StyleSheet.absoluteFill}
               />
-              <Animated.View style={[styles.content, contentSettled ? null : contentStyle]}>
+              <Animated.View
+                style={[styles.content, contentSettled ? null : contentStyle, stack?.hidden && styles.tucked]}
+                importantForAccessibility={stack?.hidden ? 'no-hide-descendants' : undefined}
+                accessibilityElementsHidden={stack?.hidden}
+              >
                 {content}
               </Animated.View>
             </View>
@@ -717,6 +768,11 @@ const styles = StyleSheet.create({
   icon: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Behind the front toast of a collapsed stack: the surface's edge shows, its
+  // content does not.
+  tucked: {
+    opacity: 0,
   },
   // Message and description, stacked. Shrinks like the message does.
   texts: {

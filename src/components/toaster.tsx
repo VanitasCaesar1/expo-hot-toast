@@ -16,7 +16,7 @@ import { useToaster, useToasterCleanup } from '../core/use-toaster';
 import { toast } from '../core/toast';
 import type { DropPolicy } from '../core/store';
 import { useToastTheme, mergeTheme } from '../theme/tokens';
-import { useReduceMotion, useReduceTransparency, announce } from '../utils/a11y';
+import { useReduceMotion, useReduceTransparency, useScreenReaderEnabled, announce } from '../utils/a11y';
 import { triggerToastHaptic } from '../utils/haptics';
 import { ToastBar, ToastBarContext } from './toast-bar';
 import type { ToastBarContextValue } from './toast-bar';
@@ -82,6 +82,15 @@ export interface ToasterProps {
    */
   haptics?: boolean;
   /**
+   * Collapse each stack: older toasts tuck behind the newest, showing only
+   * their edges, and the stack fans out while it is pressed. Default false.
+   *
+   * Ignored with `reverseOrder`, and while a screen reader is running, which
+   * needs every toast's content. Neighbouring glass toasts do not blend in a
+   * stacked Toaster, because tucked toasts overlap.
+   */
+  stacked?: boolean;
+  /**
    * Component to render the Toaster inside, instead of in place.
    *
    * Pass `FullWindowOverlay` from `react-native-screens` on iOS to show toasts
@@ -102,6 +111,40 @@ const POSITIONS: ToastPosition[] = [
   'bottom-center',
   'bottom-right',
 ];
+
+/** How far each toast behind the front one peeks out of a collapsed stack, in px. */
+export const STACK_PEEK = 10;
+/** How much smaller each toast behind the front one is drawn. */
+const STACK_SCALE_STEP = 0.06;
+/** How long a fanned-out stack stays open after the finger lifts, in ms. */
+const STACK_COLLAPSE_DELAY = 2500;
+/** Used for a toast that has not reported its height yet. */
+const ASSUMED_TOAST_HEIGHT = 56;
+
+/**
+ * Offsets that collapse a stack laid out normally.
+ *
+ * Toast 0 is at the anchored edge; toast i sits after the i toasts in front of
+ * it, each followed by `gap`. Collapsed, toast i's far edge lands `peek` px
+ * past the far edge of the one in front, so each shows only a sliver. The
+ * offset is the distance from where layout put that far edge to where it
+ * should be: up for a top stack, down for a bottom one.
+ */
+export function stackShifts(
+  heights: number[],
+  gap: number,
+  atTop: boolean,
+  peek: number = STACK_PEEK,
+): number[] {
+  const front = heights[0] ?? 0;
+  let before = 0;
+  return heights.map((height, i) => {
+    const laidOut = before + height;
+    before += height + gap;
+    const target = front + i * peek;
+    return atTop ? target - laidOut : laidOut - target;
+  });
+}
 
 const isTop = (position: ToastPosition) => position.startsWith('top');
 const isCenter = (position: ToastPosition) => position.includes('center');
@@ -126,6 +169,7 @@ export function Toaster({
   containerStyle,
   paused,
   haptics = true,
+  stacked = false,
   ContainerComponent,
   children,
 }: ToasterProps) {
@@ -134,6 +178,7 @@ export function Toaster({
   const insets = useSafeAreaInsets();
   const theme = useToastTheme(themeOverride, colorScheme);
   const reduceMotion = useReduceMotion();
+  const screenReader = useScreenReaderEnabled();
   const reduceTransparency = useReduceTransparency();
 
   const { toasts, startPause, endPause } = useToaster({
@@ -228,6 +273,47 @@ export function Toaster({
     });
   }, [toasts]);
 
+  /**
+   * The collapsed stack. Pressing any toast in it fans the stack out (and
+   * pauses the timers, as a press always does); it folds back a moment after
+   * the finger lifts, so there is time to reach a toast that has fanned out.
+   */
+  const collapsible = stacked && !reverseOrder && !screenReader;
+  const [expanded, setExpanded] = React.useState(false);
+  const collapseTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  React.useEffect(() => () => clearTimeout(collapseTimer.current), []);
+  const collapsed = collapsible && !expanded;
+
+  const handlePressIn = React.useCallback(() => {
+    startPause();
+    if (!collapsible) return;
+    clearTimeout(collapseTimer.current);
+    setExpanded(true);
+  }, [startPause, collapsible]);
+  const handlePressOut = React.useCallback(() => {
+    endPause();
+    if (!collapsible) return;
+    clearTimeout(collapseTimer.current);
+    collapseTimer.current = setTimeout(() => setExpanded(false), STACK_COLLAPSE_DELAY);
+  }, [endPause, collapsible]);
+
+  // Measured toast heights, for tucking each toast exactly behind the ones in
+  // front of it. A ref plus a counter: the numbers are bookkeeping, but a new
+  // measurement has to re-place the stack.
+  const heights = React.useRef(new Map<string, number>());
+  const [, setMeasured] = React.useState(0);
+  const handleMeasure = React.useCallback((id: string, height: number) => {
+    if (heights.current.get(id) === height) return;
+    heights.current.set(id, height);
+    setMeasured((n) => n + 1);
+  }, []);
+  React.useEffect(() => {
+    const live = new Set(toasts.map((t) => t.id));
+    heights.current.forEach((_height, id) => {
+      if (!live.has(id)) heights.current.delete(id);
+    });
+  }, [toasts]);
+
   const grouped = React.useMemo(() => {
     const map = new Map<ToastPosition, Toast[]>();
     for (const candidate of POSITIONS) map.set(candidate, []);
@@ -244,7 +330,9 @@ export function Toaster({
   const keyboard = useKeyboard();
 
   const glassConfig = typeof glass === 'object' && glass !== null ? glass : {};
-  const containerized = glass !== false && glassConfig.containerize !== false;
+  // Tucked toasts overlap, and overlapping glass in one container merges into
+  // a single blob, so a stacked Toaster keeps each toast's glass separate.
+  const containerized = glass !== false && glassConfig.containerize !== false && !stacked;
   const containerSpacing = glassConfig.containerSpacing ?? resolvedGap;
 
   const content = (
@@ -275,6 +363,13 @@ export function Toaster({
         // glass views that share a container, so a container holding a single
         // toast merged nothing: the stack drew as separate chips.
         const Stack = containerized ? GlassContainer : View;
+        const shifts = collapsed
+          ? stackShifts(
+              bucket.map((t) => heights.current.get(t.id) ?? ASSUMED_TOAST_HEIGHT),
+              resolvedGap,
+              anchoredTop,
+            )
+          : undefined;
 
         return (
           <Stack
@@ -306,7 +401,7 @@ export function Toaster({
               !anchoredTop && { paddingBottom: 0 },
             ]}
           >
-            {bucket.map((t) => (
+            {bucket.map((t, depth) => (
               <ToastSlot
                 key={t.id}
                 toast={t}
@@ -324,8 +419,19 @@ export function Toaster({
                 onDismiss={(id, reason) =>
                   dismiss(t.id, t.toasterId ?? toasterId, reason)
                 }
-                onPressIn={startPause}
-                onPressOut={endPause}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                stack={
+                  stacked
+                    ? {
+                        depth,
+                        shift: shifts?.[depth] ?? 0,
+                        scale: collapsed ? 1 - Math.min(depth, 3) * STACK_SCALE_STEP : 1,
+                        hidden: collapsed && depth > 0,
+                      }
+                    : undefined
+                }
+                onMeasure={stacked ? handleMeasure : undefined}
               >
                 {children}
               </ToastSlot>

@@ -10,6 +10,7 @@ export const useColorScheme = (): 'light' | 'dark' | null => 'light';
 export const AccessibilityInfo = {
   isReduceMotionEnabled: async () => false,
   isReduceTransparencyEnabled: async () => false,
+  isScreenReaderEnabled: async () => false,
   addEventListener: () => ({ remove: () => {} }),
   announceForAccessibility: () => {},
 };

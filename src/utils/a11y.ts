@@ -47,11 +47,13 @@ const TRANSPARENCY_KEY = 'reduceTransparency';
 const queryReduceMotion = () => AccessibilityInfo.isReduceMotionEnabled();
 const queryReduceTransparency = () =>
   AccessibilityInfo.isReduceTransparencyEnabled();
+const SCREEN_READER_KEY = 'screenReader';
+const queryScreenReader = () => AccessibilityInfo.isScreenReaderEnabled();
 
 function useAccessibilityFlag(
   key: string,
   query: () => Promise<boolean>,
-  event: 'reduceMotionChanged' | 'reduceTransparencyChanged',
+  event: 'reduceMotionChanged' | 'reduceTransparencyChanged' | 'screenReaderChanged',
 ): boolean {
   // Seeded synchronously from the cache, so an app that has already resolved
   // this setting renders correctly on the very first frame.
@@ -139,4 +141,12 @@ export function announce(message: string, assertive: boolean): void {
   if (Platform.OS === 'ios') {
     AccessibilityInfo.announceForAccessibility(message);
   }
+}
+/**
+ * True while VoiceOver or TalkBack is running. A `stacked` Toaster stays
+ * expanded then: a collapsed stack hides the content of every toast but the
+ * front one, which a screen reader user would never get to.
+ */
+export function useScreenReaderEnabled(): boolean {
+  return useAccessibilityFlag(SCREEN_READER_KEY, queryScreenReader, 'screenReaderChanged');
 }
