@@ -61,7 +61,8 @@ Initial release. Not yet published to npm; `main` previously pointed at
   toast is limited to three lines.
 - **`icon: null`** hides a toast's icon, glyph included, as in react-hot-toast.
 - **Android CI**: the example is built and driven on an Android emulator with
-  Maestro for every change, with screenshots uploaded.
+  Maestro for changes to the library, example or package files, with
+  screenshots uploaded.
 
 ### Changed
 
@@ -75,12 +76,14 @@ Initial release. Not yet published to npm; `main` previously pointed at
   install had no compiled output or type declarations.
 - `useToaster` accepts `motion` (`enter`, `stagger`, `staggerMax`), and the
   Toaster passes its theme's, so retuned motion moves the timers with it.
-- Removed the `'replaced'` dismiss reason, which nothing ever emitted.
+- Removed the `'replaced'` dismiss reason, which nothing ever emitted, and the
+  per-toast `reverseOrder` option, which nothing read (`<Toaster reverseOrder>`
+  is unchanged).
 
 ### Fixed
 
 Upstream `react-hot-toast` v2.6.1 defects, each with a regression test in
-`__tests__/store.test.ts`:
+`__tests__/`:
 
 - Over-limit toasts were **deleted** rather than dismissed, via
   `.slice(0, toastLimit)` — no exit animation, so the toast a user was reading

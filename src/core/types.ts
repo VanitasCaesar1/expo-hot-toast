@@ -44,8 +44,6 @@ export interface ToastOptions {
   position?: ToastPosition;
   /** Route to a specific mounted Toaster. Defaults to `'default'`. */
   toasterId?: string;
-  /** Per-toast position within the stack. Newest renders first unless reversed. */
-  reverseOrder?: boolean;
 
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;

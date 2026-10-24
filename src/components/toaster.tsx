@@ -199,7 +199,7 @@ export function Toaster({
       seen.current.set(t.id, { createdAt: t.createdAt, type: t.type, message: t.message });
 
       const label = t.accessibilityLabel ?? extractLabel(t.message);
-      if (label) announce(label, t.type === 'error');
+      if (label) announce(label, t.important ?? t.type === 'error');
 
       // A loading toast is a placeholder, not an outcome. Buzzing for it would
       // be both premature and, for a long request, unbearable.

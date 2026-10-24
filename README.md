@@ -45,9 +45,9 @@ await toast.promise(upload(photo), {
   pause, an optional close button and action button (Undo, Retry).
 - **Deduplication** with `dedupeKey`, so a handler firing twenty times shows one
   toast.
-- **Accessible by default**: screen-reader announcements (assertive for
-  errors), Reduce Motion and Reduce Transparency, capped font scaling, and
-  distinct haptics for success and error.
+- **Accessible by default**: screen-reader announcements, Reduce Motion and
+  Reduce Transparency, capped font scaling, and distinct haptics for success
+  and error.
 - **Safe areas and the keyboard** are handled; toasts never sit under the
   Dynamic Island or behind the keyboard.
 - **Themable** through design tokens, with light and dark defaults and a CSS
@@ -66,16 +66,18 @@ Then add the peer dependencies:
 
 ```sh
 npx expo install expo-glass-effect expo-haptics react-native-reanimated \
-  react-native-gesture-handler react-native-safe-area-context react-native-svg
+  react-native-worklets react-native-gesture-handler \
+  react-native-safe-area-context react-native-svg
 ```
 
-Your app needs the Reanimated Babel plugin and must be wrapped in
+Your app needs the Worklets Babel plugin (`react-native-worklets/plugin`, last
+in the list) and must be wrapped in
 `GestureHandlerRootView` and `SafeAreaProvider`, as for any app using those
 libraries. Liquid Glass needs an app built with the iOS 26 SDK (Xcode 26 or
 newer) running on iOS 26.
 
 Tested with Expo SDK 57, React Native 0.86, Reanimated 4.7 and Gesture Handler
-3.3. The peer ranges allow Expo SDK 55+, React 19 and React Native 0.80+.
+3.3 (the example app) and 2.33 (the test suite). The peer ranges allow Expo SDK 55+, React 19 and React Native 0.80+.
 `react-native-safe-area-context` must be 5.10 or newer for React Native 0.86.
 
 ## Platform support
@@ -141,11 +143,11 @@ toast.error('Upload failed', {
 | `closeButton` | `false` | Trailing close button; `closeButtonColor` tints it |
 | `dismissOnTap` | `true` on Android, `false` on iOS | Tap the toast to dismiss it |
 | `dedupeKey` / `dedupeWindowMs` | — / 1000 | Ignore a repeat while the first is on screen |
-| `important` | `true` for errors | Assertive screen-reader announcement |
+| `important` | `true` for errors | Assertive live region on Android; iOS cannot interrupt an announcement |
 | `glass` | `true` | `false` forces the opaque surface; or a `GlassConfig` |
 | `theme` | — | Per-toast token overrides |
 | `style` / `textStyle` / `iconStyle` | — | Style overrides, applied last |
-| `accessibilityLabel` | the message | What screen readers announce |
+| `accessibilityLabel` | the message text | What screen readers announce; set it when the message is an element |
 | `onDismiss` | — | Called with `(id, reason)` once the toast has left |
 | `toasterId` | `'default'` | Send the toast to a specific `<Toaster>` |
 
@@ -181,7 +183,7 @@ toast.success('Saved', { closeButton: false });   // …and this one toast wins
 | `reverseOrder` | `false` | Newest toast at the far end of the stack |
 | `theme` / `colorScheme` | system | Token overrides; force `'light'` or `'dark'` |
 | `glass` | `true` | `false` forces the opaque surface; or a `GlassConfig` |
-| `panThreshold` | 72 | Swipe distance that dismisses; 0 disables swiping |
+| `panThreshold` | 72 | How far a rightward swipe must travel to dismiss; a fast fling either way also dismisses; 0 disables swiping |
 | `paused` | — | Freeze every timer, e.g. while a modal is open |
 | `toasterId` | `'default'` | Run several independent Toasters |
 | `ContainerComponent` | — | Render inside another component; see below |
@@ -191,7 +193,8 @@ toast.success('Saved', { closeButton: false });   // …and this one toast wins
 ### Above modals and sheets
 
 Native modals cover the rest of the app, toasts included. On iOS, render the
-Toaster in `react-native-screens`' `FullWindowOverlay` to keep toasts on top:
+Toaster in `react-native-screens`' `FullWindowOverlay` to keep toasts on top
+(`react-native-screens` is not a dependency; install it if you use this):
 
 ```tsx
 import { Platform } from 'react-native';
@@ -225,8 +228,10 @@ Unistyles.
 Render each toast yourself and keep the queue, timers and gestures:
 
 ```tsx
+import { resolveValue } from 'expo-hot-toast';
+
 <Toaster>
-  {({ toast }) => <MyToast message={toast.message} type={toast.type} />}
+  {({ toast }) => <MyToast message={resolveValue(toast.message, toast)} type={toast.type} />}
 </Toaster>
 ```
 

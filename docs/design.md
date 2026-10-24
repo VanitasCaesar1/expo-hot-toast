@@ -101,9 +101,10 @@ update it in place. The registry is bounded to 500 keys per Toaster.
 
 ## Accessibility
 
-- `important` selects an assertive announcement; errors are assertive by
-  default. Android uses `accessibilityLiveRegion`. iOS announces imperatively,
-  and cannot preempt an announcement already in flight.
+- Android announces through `accessibilityLiveRegion`, assertive for errors or
+  when `important` is set and polite otherwise. iOS announces imperatively with
+  `announceForAccessibility`, which has no priority: it cannot interrupt an
+  announcement already in flight.
 - Reduce Motion gets its own motion config (no travel or scale) rather than a
   skip-animation flag, so the dismissal is still visible.
 - Reduce Transparency forces the opaque surface.

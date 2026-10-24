@@ -6,7 +6,8 @@ than a fix, open an issue first so we can agree on the shape.
 
 ## Setup
 
-Node 22.12 or newer.
+Node 22.12 or newer (Vitest 5 requires it; the published package itself only
+needs a bundler).
 
 ```sh
 npm ci      # .npmrc sets legacy-peer-deps; see "Dependency resolution" below
@@ -15,7 +16,8 @@ npm test    # vitest (pure logic) + jest (components on the RN renderer)
 
 ## Before opening a pull request
 
-These are the gates CI runs:
+These are the gates CI runs (CI typechecks the example with `tsc` inside
+`example/`, which is what `typecheck:example` does from the root):
 
 ```sh
 npm run typecheck
@@ -43,8 +45,9 @@ A behaviour fix should come with a test that fails without it. Add a line to
   get `lib/`, so this is the only check that the `exports` map and emitted
   `.d.ts` files actually work.
 - **The Android workflow** builds the example, runs it on an emulator and drives
-  every demo row with Maestro (`example/.maestro/`). Push to a `ci/*` branch to
-  run it before opening a pull request; screenshots are uploaded as artifacts.
+  every demo row with Maestro (`example/.maestro/`). It runs for changes to
+  `src/`, `example/` or the package files; push to a `ci/*` branch to run it
+  before opening a pull request. Screenshots are uploaded as artifacts.
 
 ## Running the example
 
