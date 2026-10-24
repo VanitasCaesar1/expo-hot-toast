@@ -280,6 +280,23 @@ describe('Toaster — toastOptions', () => {
     expect(screen.getAllByText('per-type icon')).toHaveLength(1);
   });
 
+  it('applies an iconTheme from a per-type bucket to the built-in glyph', () => {
+    const iconTheme = { primary: '#123456', secondary: '#abcdef' };
+    render(<Toaster toastOptions={{ error: { iconTheme } }} />);
+    act(() => {
+      toast.error('broke');
+    });
+
+    const strokes = (
+      screen as unknown as {
+        UNSAFE_queryAllByType: (type: string) => Array<{ props: Record<string, any> }>;
+      }
+    )
+      .UNSAFE_queryAllByType('Circle')
+      .map((node) => node.props.stroke);
+    expect(strokes).toEqual(['#123456']);
+  });
+
   it('lets a toast override a Toaster default', () => {
     render(<Toaster toastOptions={{ icon: <Text>default icon</Text> }} />);
     act(() => {

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import type { ToastTheme } from '../core/types';
+import type { IconTheme, ToastTheme } from '../core/types';
 
 /**
  * react-native-svg ships in every Expo template and is a required peer, same as
@@ -20,6 +20,8 @@ export interface ToastIconProps {
   kind: ToastIconKind;
   size: number;
   theme: ToastTheme;
+  /** Overrides the glyph's stroke (and the spinner's colour) with `primary`. */
+  iconTheme?: IconTheme;
 }
 
 /**
@@ -35,7 +37,7 @@ const ACCENTS: Record<ToastIconKind, string> = {
   blank: '#8E8E93',
 };
 
-export function ToastIcon({ kind, size, theme }: ToastIconProps) {
+export function ToastIcon({ kind, size, theme, iconTheme }: ToastIconProps) {
   // Anything without a glyph of its own draws nothing. The bar casts
   // `toast.type` straight to this union, so a `custom` toast routed through a
   // bar previously fell through to the error branch and drew a red-less error
@@ -45,12 +47,12 @@ export function ToastIcon({ kind, size, theme }: ToastIconProps) {
   if (kind === 'loading') {
     return (
       <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="small" color={theme.color} />
+        <ActivityIndicator size="small" color={iconTheme?.primary ?? theme.color} />
       </View>
     );
   }
 
-  const accent = ACCENTS[kind];
+  const accent = iconTheme?.primary ?? ACCENTS[kind];
 
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

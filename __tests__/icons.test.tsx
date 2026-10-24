@@ -83,6 +83,61 @@ describe('ToastIcon', () => {
     expect(getSvg('Path').props.stroke).toBe(TOAST_ICON_ACCENTS.error);
   });
 
+  it('strokes the success glyph with iconTheme.primary', () => {
+    render(
+      <ToastIcon
+        kind="success"
+        size={22}
+        theme={defaultTheme}
+        iconTheme={{ primary: '#123456', secondary: '#abcdef' }}
+      />,
+    );
+
+    expect(getSvg('Path').props.stroke).toBe('#123456');
+  });
+
+  it('strokes both error shapes with iconTheme.primary', () => {
+    render(
+      <ToastIcon
+        kind="error"
+        size={22}
+        theme={defaultTheme}
+        iconTheme={{ primary: '#123456', secondary: '#abcdef' }}
+      />,
+    );
+
+    expect(getSvg('Circle').props.stroke).toBe('#123456');
+    expect(getSvg('Path').props.stroke).toBe('#123456');
+  });
+
+  it('colours the loading spinner with iconTheme.primary', () => {
+    render(
+      <ToastIcon
+        kind="loading"
+        size={22}
+        theme={defaultTheme}
+        iconTheme={{ primary: '#123456', secondary: '#abcdef' }}
+      />,
+    );
+
+    expect(getActivityIndicators()[0]!.props.color).toBe('#123456');
+  });
+
+  it('never paints with iconTheme.secondary: the glyphs are strokes with no second colour', () => {
+    render(
+      <ToastIcon
+        kind="error"
+        size={22}
+        theme={defaultTheme}
+        iconTheme={{ primary: '#123456', secondary: '#abcdef' }}
+      />,
+    );
+
+    for (const node of [...getSvgNodes('Circle'), ...getSvgNodes('Path')]) {
+      expect(Object.values(node.props)).not.toContain('#abcdef');
+    }
+  });
+
   it('paints success and error in different colours', () => {
     render(<ToastIcon kind="success" size={22} theme={defaultTheme} />);
     const successStroke = getSvg('Path').props.stroke;

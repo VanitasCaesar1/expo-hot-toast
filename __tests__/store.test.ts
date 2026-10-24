@@ -245,6 +245,19 @@ describe('resolveToast — the toast always beats a Toaster default', () => {
     expect(resolveToast(baseToast()).removeDelay).toBeUndefined();
   });
 
+  it('resolves iconTheme like every other option: toast, then per-type bucket, then Toaster', () => {
+    const own = { primary: '#111111', secondary: '#222222' };
+    const bucket = { primary: '#333333', secondary: '#444444' };
+    const global = { primary: '#555555', secondary: '#666666' };
+    const options = { iconTheme: global, error: { iconTheme: bucket } };
+
+    expect(resolveToast(baseToast({ type: 'error' }), options).iconTheme).toBe(bucket);
+    expect(resolveToast(baseToast({ type: 'success' }), options).iconTheme).toBe(global);
+    expect(resolveToast(baseToast({ type: 'error', iconTheme: own }), options).iconTheme)
+      .toBe(own);
+    expect(resolveToast(baseToast()).iconTheme).toBeUndefined();
+  });
+
   it('keeps icon: null instead of falling back to a default icon', () => {
     const resolved = resolveToast(baseToast({ icon: null }), { icon: 'theirs' });
     expect(resolved.icon).toBeNull();

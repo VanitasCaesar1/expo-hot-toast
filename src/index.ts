@@ -84,6 +84,7 @@ export type {
   DismissReason,
   DurationPreset,
   GlassConfig,
+  IconTheme,
   MotionConfig,
   Renderable,
   ResolvedTheme,

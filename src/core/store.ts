@@ -367,6 +367,7 @@ export function resolveToast(
         ? typeOptions.icon
         : (toastOptions.icon as Toast['icon']),
   );
+  pick('iconTheme');
   pick('theme');
   pick('onDismiss');
 

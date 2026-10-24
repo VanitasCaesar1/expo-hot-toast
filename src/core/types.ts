@@ -55,6 +55,8 @@ export interface ToastOptions {
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   iconStyle?: StyleProp<ViewStyle>;
+  /** Colours for the built-in icon. See `IconTheme`. */
+  iconTheme?: IconTheme;
 
   /** Per-toast design token overrides. Merged over the Toaster theme. */
   theme?: ToastThemeOverride;
@@ -103,6 +105,28 @@ export interface ToastOptions {
   action?: ToastAction;
 }
 
+/**
+ * Colours for a toast's icon, as in react-hot-toast.
+ *
+ * react-hot-toast draws a filled disc (`primary`) with a mark cut out of it
+ * (`secondary`). The built-in glyphs here are stroked marks instead, so the two
+ * roles do not map one-to-one; see each field.
+ */
+export interface IconTheme {
+  /**
+   * Stroke colour of the built-in glyph, and the colour of the loading
+   * spinner. Falls back to the per-type accent (TOAST_ICON_ACCENTS), and the
+   * spinner to the theme text colour.
+   */
+  primary: string;
+  /**
+   * Accepted for react-hot-toast parity only: the built-in glyphs are strokes
+   * with no second colour, so they ignore it. It is still carried on
+   * `toast.iconTheme`, so a custom `icon` renderer can read it.
+   */
+  secondary: string;
+}
+
 export interface ToastAction {
   label: string;
   onPress: () => void;
@@ -149,6 +173,7 @@ export interface Toast {
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   iconStyle?: StyleProp<ViewStyle>;
+  iconTheme?: IconTheme;
   theme?: ToastThemeOverride;
   glass?: boolean | GlassConfig;
   accessibilityLabel?: string;

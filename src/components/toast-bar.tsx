@@ -236,7 +236,12 @@ export const ToastBar = React.memo(function ToastBar({
   const defaultIcon = toast.icon === null || (resolvedIcon == null && !hasGlyph) ? null : (
     <View style={[styles.icon, toast.iconStyle]}>
       {resolvedIcon ?? (
-        <ToastIcon kind={iconKind} size={theme.iconSize} theme={theme} />
+        <ToastIcon
+          kind={iconKind}
+          size={theme.iconSize}
+          theme={theme}
+          iconTheme={toast.iconTheme}
+        />
       )}
     </View>
   );

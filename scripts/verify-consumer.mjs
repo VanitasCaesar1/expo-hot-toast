@@ -47,7 +47,7 @@ import type {
   UseToasterResult, UseToasterCleanupOptions, ToasterState, ToasterSettings,
   Action, ActionType, ToastBarProps, ToastIconKind, ToastIconProps,
   GlassSurfaceMode, GlassSurfaceProps, ResolveThemeOptions, DurationPreset,
-  DropPolicy, ToastAction,
+  DropPolicy, ToastAction, IconTheme,
 } from 'expo-hot-toast';
 
 const id: string = toast('hi');
@@ -67,6 +67,7 @@ void toast.promise(Promise.resolve(1), {
 const preset: DurationPreset = 'short';
 const policy: DropPolicy = 'oldest';
 const act: ToastAction = { label: 'Retry', onPress: () => {} };
+const iconTheme: IconTheme = { primary: '#fff', secondary: '#000' };
 
 const opts: ToastOptions = {
   duration: preset,
@@ -74,6 +75,8 @@ const opts: ToastOptions = {
   style: { opacity: 1 },
   glass: { style: 'regular', interactive: true } satisfies GlassConfig,
   action: act,
+  iconTheme,
+  removeDelay: 0,
   onDismiss: (_i: string, r: DismissReason) => void r,
 };
 toast('typed', opts);

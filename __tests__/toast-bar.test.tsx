@@ -109,6 +109,23 @@ describe('ToastBar — icons', () => {
     expect(getSvg('Path').props.stroke).toBe(TOAST_ICON_ACCENTS.error);
   });
 
+  it('paints the glyph with the toast\'s iconTheme.primary', () => {
+    renderBar({ type: 'success', iconTheme: { primary: '#123456', secondary: '#abcdef' } });
+
+    expect(getSvg('Path').props.stroke).toBe('#123456');
+  });
+
+  it('keeps iconTheme on the toast a custom renderer receives, where secondary is usable', () => {
+    const iconTheme = { primary: '#123456', secondary: '#abcdef' };
+    renderBar({
+      type: 'success',
+      iconTheme,
+      message: (t: Toast) => <Text>{t.iconTheme?.secondary}</Text>,
+    });
+
+    expect(screen.getByText('#abcdef')).toBeTruthy();
+  });
+
   it('hides the glyph when icon is null', () => {
     renderBar({ type: 'success', icon: null, message: 'no icon' });
 
