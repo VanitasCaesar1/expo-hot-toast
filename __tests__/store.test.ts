@@ -14,6 +14,7 @@ import {
 } from '../src/core/store';
 import type { ToasterState } from '../src/core/store';
 import { mergeTheme, defaultTheme } from '../src/core/defaults';
+import { darkTheme } from '../src/theme/tokens';
 import { genId, __resetIdCounter } from '../src/core/ids';
 import { toastCssVars } from '../src/theme/css-vars';
 import type { Toast } from '../src/core/types';
@@ -551,6 +552,17 @@ describe('toastCssVars — null tokens', () => {
     const vars = toastCssVars(mergeTheme(defaultTheme, { maxFontSizeMultiplier: null }));
     expect('--eh-toast-max-font-size-multiplier' in vars).toBe(false);
     expect(toastCssVars()['--eh-toast-max-font-size-multiplier']).toBe(2);
+  });
+});
+
+describe('fallback surface', () => {
+  // Regression: a translucent fallback let the screen behind show through the
+  // toast on Android. The opaque rung has to be opaque in both schemes.
+  it.each([
+    ['light', defaultTheme.fallbackBackground],
+    ['dark', darkTheme.fallbackBackground],
+  ])('is opaque in %s mode', (_scheme, color) => {
+    expect(color).toMatch(/^#[0-9A-Fa-f]{6}$/);
   });
 });
 

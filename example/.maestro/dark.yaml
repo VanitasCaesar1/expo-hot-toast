@@ -5,8 +5,15 @@ appId: dev.expohottoast.example
 - extendedWaitUntil:
     visible: "Success"
     timeout: 60000
-- tapOn: "Success"
-- tapOn: "Error"
-- tapOn: "With an action"
+- tapOn:
+    text: "Success"
+    waitToSettleTimeoutMs: 300
+- tapOn:
+    text: "Error"
+    waitToSettleTimeoutMs: 300
+- tapOn:
+    text: "With an action"
+    waitToSettleTimeoutMs: 300
+- assertVisible: "Changes saved"
 - assertVisible: "Undo"
 - takeScreenshot: 11-dark-stack

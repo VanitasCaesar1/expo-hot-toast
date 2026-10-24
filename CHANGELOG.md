@@ -158,6 +158,12 @@ Found in a source audit (2026-10-24):
   `paused`) expired every visible toast.
 - A toast's own `closeable: false` lost to a Toaster-level `closeButton: true`.
 
+Found by running the example on an Android emulator:
+
+- The "opaque" fallback surface was translucent (`rgba(…, 0.92)` / `0.94`), so
+  text behind a toast showed through it. It is now fully opaque, and the dark
+  fill is one step lighter than a black page so the toast stands apart.
+
 ### Documentation
 
 - The README is now a user guide; the design rationale moved to

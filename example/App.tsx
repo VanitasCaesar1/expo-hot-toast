@@ -40,6 +40,13 @@ const palette = {
 
 type Palette = (typeof palette)['light'];
 
+/**
+ * Set at bundle time by the Android CI job. An emulator without a GPU is slow
+ * enough that a 2-second toast can expire before the test runner reads the
+ * screen, so automated runs give every toast longer.
+ */
+const E2E = process.env.EXPO_PUBLIC_E2E === '1';
+
 /** Resolves after `ms`, or rejects with `message` when one is given. */
 function settleAfter(ms: number, message?: string): Promise<void> {
   return new Promise((resolve, reject) =>
@@ -200,7 +207,9 @@ function Screen() {
             colors={colors}
             title="Deduplicated"
             detail="dedupeKey"
-            onPress={() => toast('Saving draft…', { dedupeKey: 'draft' })}
+            onPress={() =>
+              toast('Saving draft…', { dedupeKey: 'draft', dedupeWindowMs: 5000 })
+            }
           />
           <Row
             colors={colors}
@@ -255,7 +264,7 @@ function Screen() {
         </Section>
       </ScrollView>
 
-      <Toaster />
+      <Toaster toastOptions={E2E ? { duration: 6000 } : undefined} />
     </View>
   );
 }

@@ -1,5 +1,8 @@
 # Drives every row of the example and screenshots the result. Run by
-# scripts/android-smoke.sh in CI; works against an iOS simulator too.
+# scripts/android-smoke.sh in CI, against a build with EXPO_PUBLIC_E2E=1 so
+# toasts last 6 seconds. Taps skip Maestro's settle-wait (a spinner never
+# settles, and a toast could expire meanwhile), and the flow waits for toasts
+# to clear between groups so none sits on top of the next row to tap.
 appId: dev.expohottoast.example
 ---
 - launchApp:
@@ -9,75 +12,117 @@ appId: dev.expohottoast.example
     timeout: 120000
 - takeScreenshot: 01-home
 
-- tapOn: "Success"
+# Success and error stack at the top.
+- tapOn:
+    text: "Success"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Changes saved"
-- tapOn: "Error"
+- tapOn:
+    text: "Error"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Could not reach the server"
 - takeScreenshot: 02-success-and-error
 
-# Swipe a toast away horizontally.
+# Swipe one away.
 - swipe:
     from:
       text: "Could not reach the server"
     direction: RIGHT
 - extendedWaitUntil:
     notVisible: "Could not reach the server"
-    timeout: 3000
+    timeout: 4000
+- extendedWaitUntil:
+    notVisible: "Changes saved"
+    timeout: 10000
 
-- tapOn: "With an action"
+# Action button.
+- tapOn:
+    text: "With an action"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Undo"
 - takeScreenshot: 03-action
 - tapOn: "Undo"
 - assertVisible: "Message restored"
+- extendedWaitUntil:
+    notVisible: "Message restored"
+    timeout: 10000
 
-- tapOn: "Promise"
+# Promise: loading, then the outcome in place.
+- tapOn:
+    text: "Promise"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Uploading photo…"
 - takeScreenshot: 04-promise-loading
 - extendedWaitUntil:
     visible: "Photo uploaded"
-    timeout: 6000
+    timeout: 8000
 - takeScreenshot: 05-promise-success
-
-- tapOn: "Promise that fails"
+- tapOn:
+    text: "Promise that fails"
+    waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
     visible: "Sync failed: offline"
-    timeout: 6000
-
-- scrollUntilVisible:
-    element:
-      text: "Dismiss all"
-    direction: DOWN
-- tapOn: "Dismiss all"
+    timeout: 8000
 - extendedWaitUntil:
     notVisible: "Sync failed: offline"
-    timeout: 3000
+    timeout: 12000
 
-# Five at once: three show, two wait.
-- tapOn: "Burst of five"
+# Five at once: three show, two wait their turn.
+- tapOn:
+    text: "Burst of five"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Item 5 added to cart"
 - assertNotVisible: "Item 1 added to cart"
 - takeScreenshot: 06-burst-queue
-- tapOn: "Dismiss all"
+# The waiting two are promoted as the first three leave.
+- extendedWaitUntil:
+    visible: "Item 1 added to cart"
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: "Item 1 added to cart"
+    timeout: 15000
 
 # Three taps, one toast.
-- tapOn: "Deduplicated"
-- tapOn: "Deduplicated"
-- tapOn: "Deduplicated"
+- tapOn:
+    text: "Deduplicated"
+    waitToSettleTimeoutMs: 300
+- tapOn:
+    text: "Deduplicated"
+    waitToSettleTimeoutMs: 300
+- tapOn:
+    text: "Deduplicated"
+    waitToSettleTimeoutMs: 300
 - takeScreenshot: 07-dedupe
 
-- tapOn: "From the bottom"
+- tapOn:
+    text: "From the bottom"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Message sent"
 - takeScreenshot: 08-bottom
+- extendedWaitUntil:
+    notVisible: "Message sent"
+    timeout: 10000
 
-- tapOn: "Close button"
+- scrollUntilVisible:
+    element:
+      text: "Custom element"
+    direction: DOWN
+
+- tapOn:
+    text: "Close button"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Export started. This can take a minute."
 - takeScreenshot: 09-close-button
 - tapOn: "Dismiss"
 - extendedWaitUntil:
     notVisible: "Export started. This can take a minute."
-    timeout: 3000
+    timeout: 4000
 
-- tapOn: "Opaque surface"
-- tapOn: "Custom element"
+- tapOn:
+    text: "Opaque surface"
+    waitToSettleTimeoutMs: 300
+- tapOn:
+    text: "Custom element"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Fully custom content"
 - takeScreenshot: 10-opaque-and-custom

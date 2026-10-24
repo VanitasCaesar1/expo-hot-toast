@@ -18,7 +18,9 @@ export {
 export const darkTheme: ToastTheme = {
   ...defaultTheme,
   background: 'rgba(28,28,30,0.72)',
-  fallbackBackground: 'rgba(28,28,30,0.94)',
+  // Opaque, and one step lighter than a black page (iOS's elevated grouped
+  // background), so the toast separates from it without relying on the border.
+  fallbackBackground: '#2C2C2E',
   border: 'rgba(255,255,255,0.14)',
   color: '#f2f2f7',
   closeButtonBackground: 'rgba(255,255,255,0.18)',

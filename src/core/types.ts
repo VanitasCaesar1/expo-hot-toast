@@ -232,9 +232,13 @@ export interface GlassConfig {
 }
 
 export interface ToastTheme {
-  /** rgba background for the opaque fallback surfaces. */
+  /**
+   * A translucent fill, for custom renderers and the CSS variable export. The
+   * built-in surface does not draw it: glass has its own material, and the
+   * fallback uses `fallbackBackground`.
+   */
   background: string;
-  /** Opaque fallback for when Liquid Glass is unavailable. */
+  /** Fill of the opaque surface used when Liquid Glass is unavailable. Keep it opaque. */
   fallbackBackground: string;
   border: string;
   color: string;

@@ -73,7 +73,9 @@ export const defaultTheme: ToastTheme = {
   // Real glass ignores these on iOS 26+, but they define the fallback ladder
   // and the web/Android surface, so they have to be good on their own.
   background: 'rgba(255,255,255,0.72)',
-  fallbackBackground: 'rgba(255,255,255,0.92)',
+  // Fully opaque. A translucent fill let text behind the toast ghost through
+  // it on Android, and drew the elevation shadow through the surface.
+  fallbackBackground: '#FFFFFF',
   border: 'rgba(255,255,255,0.6)',
   color: '#1c1c1e',
   radius: 22,
