@@ -68,8 +68,10 @@ Initial release. Not yet published to npm; `main` previously pointed at
 
 - `gutter` → `gap`, `toastLimit` → `visibleToasts`, `closeable` → `closeButton`.
   Old names remain as deprecated aliases.
-- Peer requirement raised to `react-native-safe-area-context >=5.10.0`;
-  5.0.0 does not compile against React Native 0.86's Yoga.
+- The example app uses exactly Expo SDK 57's expected versions. It previously
+  pinned a pre-SDK 57 `expo-haptics` that crashed on launch on Android
+  (`NoClassDefFoundError: AnyTypeProvider`), and newer Reanimated / Worklets
+  than the SDK ships, which forced `legacy-peer-deps`.
 - `expo-modules-core` is no longer a runtime dependency. Nothing imported it, and
   pinning it could install a second copy next to the app's own.
 - A `prepare` script builds `lib/` on install from GitHub; before it, a git

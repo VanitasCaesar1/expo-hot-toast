@@ -24,5 +24,7 @@ adb shell pkill -INT screenrecord || true
 sleep 3
 adb pull /sdcard/smoke.mp4 "$OUT/smoke.mp4" || true
 adb logcat -d > "$OUT/logcat.txt" || true
+# Maestro keeps its own logs, and a screenshot at the failing step.
+cp -R "$HOME/.maestro/tests" "$OUT/maestro-debug" 2>/dev/null || true
 
 exit "$status"

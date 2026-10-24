@@ -76,9 +76,10 @@ in the list) and must be wrapped in
 libraries. Liquid Glass needs an app built with the iOS 26 SDK (Xcode 26 or
 newer) running on iOS 26.
 
-Tested with Expo SDK 57, React Native 0.86, Reanimated 4.7 and Gesture Handler
-3.3 (the example app) and 2.33 (the test suite). The peer ranges allow Expo SDK 55+, React 19 and React Native 0.80+.
-`react-native-safe-area-context` must be 5.10 or newer for React Native 0.86.
+Tested with the versions Expo SDK 57 installs (React Native 0.86, Reanimated
+4.5, Worklets 0.10, Gesture Handler 2.32, safe-area-context 5.7); use
+`npx expo install` so you get the same set. The peer ranges allow Expo SDK 55+,
+React 19 and React Native 0.80+.
 
 ## Platform support
 
