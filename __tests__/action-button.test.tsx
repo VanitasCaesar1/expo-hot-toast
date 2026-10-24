@@ -98,7 +98,14 @@ describe('ToastBar — action button', () => {
     // Asserted off the props rather than through `getByRole`: role queries do not
     // index host Pressables under this preset, the same reason the close-button
     // suite reads `accessibilityRole` off the node.
-    // The message keeps its own alert, so the two do not collide.
+    // A toast with a button is not grouped into one element: on iOS a grouped
+    // element hides its children, and VoiceOver could not reach the button.
+    expect(screen.getByText('hello')).toBeTruthy();
+    expect(screen.UNSAFE_getAllByProps({ accessible: false }).length).toBeGreaterThan(0);
+  });
+
+  it('reads a toast without buttons as one alert', () => {
+    renderBar({});
     expect(screen.getByLabelText('hello').props.accessibilityRole).toBe('alert');
   });
 

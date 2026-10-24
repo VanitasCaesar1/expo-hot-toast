@@ -443,3 +443,18 @@ describe('ToastBar — the gesture survives re-renders', () => {
   });
 });
 
+describe('ToastBar — release judged on the release event', () => {
+  it('dismisses a quick swipe whose last update lagged behind the release', () => {
+    // Regression, from an Android emulator log: three updates reached 18px,
+    // the release reported 135px, and judging by the last update snapped the
+    // toast back.
+    const onDismiss = jest.fn();
+    const { drag, release } = mountBar(72, onDismiss);
+
+    drag({ translationX: 18 });
+    release({ translationX: 135, velocityX: 0 });
+
+    expect(onDismiss).toHaveBeenCalledWith('swipe-me', 'swipe');
+  });
+});
+

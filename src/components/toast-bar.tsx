@@ -280,15 +280,16 @@ export const ToastBar = React.memo(function ToastBar({
         .activeOffsetX([-12, 12])
         .failOffsetY([-14, 14])
         .onUpdate((event) => {
-          const raw = event.translationX;
-          const wrongWay = raw * dismissalSign < 0;
-
-          dragX.value = wrongWay
-            ? raw * 0.35 * (1 / (1 + Math.abs(raw) * 0.02))
-            : raw;
+          dragX.value = resistWrongWay(event.translationX, dismissalSign);
         })
         .onEnd((event) => {
-          const farEnough = Math.abs(dragX.value) > panThreshold;
+          // Judged on the release event's own translation, not the last
+          // update's. A quick swipe can deliver only a few updates before the
+          // finger lifts (on Android, three updates reached 18px of a 135px
+          // swipe), and reading `dragX` dismissed nothing and snapped it back.
+          const travel = resistWrongWay(event.translationX, dismissalSign);
+          dragX.value = travel;
+          const farEnough = Math.abs(travel) > panThreshold;
           const fastEnough = Math.abs(event.velocityX) > 900;
 
           fling.value = Math.abs(event.velocityX);
@@ -347,6 +348,7 @@ export const ToastBar = React.memo(function ToastBar({
 
   const tapToDismiss = toast.dismissOnTap ?? Platform.OS === 'android';
   const closeable = toast.closeButton ?? toast.closeable ?? false;
+  const hasButtons = closeable || toast.action !== undefined;
   // Errors interrupt; everything else queues politely. This is the one place
   // the flag actually reaches Android, which has real live regions.
   const assertive = toast.important ?? toast.type === 'error';
@@ -368,6 +370,9 @@ export const ToastBar = React.memo(function ToastBar({
           toast.textStyle,
         ]}
         numberOfLines={3}
+        // Ungrouped toasts read the message on its own, so a custom label
+        // belongs here instead of on the container.
+        accessibilityLabel={hasButtons ? toast.accessibilityLabel : undefined}
         maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
       >
         {message}
@@ -452,9 +457,16 @@ export const ToastBar = React.memo(function ToastBar({
                 : undefined
             }
             accessibilityLiveRegion={assertive ? 'assertive' : 'polite'}
-            accessibilityRole="alert"
-            accessibilityLabel={toast.accessibilityLabel ?? extractText(message)}
-            accessibilityHint={tapToDismiss ? 'Double tap to dismiss' : undefined}
+            // One accessibility element reads the toast as a single alert, but
+            // on iOS it also hides everything inside it: VoiceOver could not
+            // reach an Undo or close button. Toasts with buttons stay
+            // ungrouped, so the message and each button are reachable.
+            accessible={!hasButtons}
+            accessibilityRole={hasButtons ? undefined : 'alert'}
+            accessibilityLabel={
+              hasButtons ? undefined : (toast.accessibilityLabel ?? extractText(message))
+            }
+            accessibilityHint={tapToDismiss && !hasButtons ? 'Double tap to dismiss' : undefined}
             style={[styles.pressable, { alignItems: align }]}
             onLayout={(event) => {
               height.value = event.nativeEvent.layout.height;
@@ -511,6 +523,16 @@ export const ToastBar = React.memo(function ToastBar({
     </GestureDetector>
   );
 });
+
+/**
+ * Drag offset for a raw horizontal translation. Dragging against the dismissal
+ * direction resists elastically, so a push back never travels far enough to
+ * dismiss.
+ */
+function resistWrongWay(raw: number, dismissalSign: number): number {
+  'worklet';
+  return raw * dismissalSign < 0 ? raw * 0.35 * (1 / (1 + Math.abs(raw) * 0.02)) : raw;
+}
 
 /**
  * Exit duration, shortened in proportion to the fling that caused it so the

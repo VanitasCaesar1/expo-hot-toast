@@ -175,6 +175,15 @@ Found by running the example on an Android emulator:
   snapped back. The bar built a new pan gesture on every render, and touching
   a toast re-renders it (press pauses the queue, the pan cancels the press), so
   the gesture was replaced mid-drag. It is now memoized.
+- A quick swipe still snapped back: the release was judged on the last drag
+  update, and a fast swipe can deliver only a few (18px of a 135px swipe in the
+  emulator log). It is now judged on the release event itself.
+
+Found by running the example on an iOS 26 simulator:
+
+- VoiceOver could not reach a toast's Undo or close button: the whole toast was
+  one accessibility element, and on iOS that hides everything inside it. Toasts
+  with buttons are no longer grouped.
 
 ### Documentation
 
