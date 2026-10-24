@@ -110,7 +110,7 @@ const faq = [
       {
         stills.map((s, i) => (
           <li data-reveal style={`--i: ${i}`}>
-            <img src={url(`media/${s.media}.jpg`)} alt={s.alt} loading="lazy" decoding="async" width="600" height="420" />
+            <img src={url(`media/${s.media}.jpg`)} alt={s.alt} loading="lazy" decoding="async" width="600" height="480" />
             <span class="label">{s.label}</span>
           </li>
         ))
@@ -218,9 +218,10 @@ const faq = [
 </script>
 
 <style>
+  /* Halves, so the divider lands on the centre line of the four-column grids below. */
   .hero {
     display: grid;
-    grid-template-columns: 1.1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     min-height: min(calc(100dvh - 64px), 760px);
   }
   .hero-copy {
@@ -228,7 +229,6 @@ const faq = [
     flex-direction: column;
     justify-content: center;
     padding-block: 72px;
-    border-right: 1px solid var(--line);
   }
   .eyebrow {
     margin: 0 0 22px;
@@ -266,6 +266,7 @@ const faq = [
   }
   .hero-devices {
     position: relative;
+    border-left: 1px solid var(--line);
     display: grid;
     place-items: center;
     padding: 48px var(--pad);
@@ -358,15 +359,22 @@ const faq = [
     max-width: 58ch;
   }
 
-  /* Bordered cells: the grid's gap shows the line colour behind the cells. */
+  /*
+   * Bordered cells. Each cell draws a 1px line just past its right and bottom
+   * edges, so every vertical line sits exactly on a column boundary, the same
+   * pixels as the platform row's border-left. A 1px grid gap made the cells
+   * (width - 3) / 4 wide instead, putting the lines a pixel off the rows
+   * above, and at fractional positions a gap line could vanish.
+   */
   .grid {
     display: grid;
-    gap: 1px;
-    background: var(--line);
     border-top: 1px solid var(--line);
   }
+  /* No background on the cells: the next cell's would paint over this line. */
   .grid > * {
-    background: var(--bg);
+    box-shadow:
+      1px 0 0 var(--line),
+      0 1px 0 var(--line);
   }
 
   .stills {
@@ -384,7 +392,8 @@ const faq = [
   }
   .stills img {
     width: 100%;
-    aspect-ratio: 10 / 7;
+    height: auto;
+    aspect-ratio: 5 / 4;
     object-fit: cover;
     object-position: top;
     background: var(--surface);
@@ -472,9 +481,10 @@ const faq = [
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center;
   }
+  /* The line sits just past the column edge, on the grid's centre line. */
   .migrate > .inset {
     padding-block: 72px;
-    border-right: 1px solid var(--line);
+    box-shadow: 1px 0 0 var(--line);
   }
   .migrate p {
     margin: 14px 0 0;
@@ -561,8 +571,10 @@ const faq = [
       min-height: 0;
     }
     .hero-copy {
-      border-right: 0;
       border-bottom: 1px solid var(--line);
+    }
+    .hero-devices {
+      border-left: 0;
     }
     .stills,
     .proof {
@@ -586,7 +598,7 @@ const faq = [
       grid-template-columns: minmax(0, 1fr);
     }
     .migrate > .inset {
-      border-right: 0;
+      box-shadow: none;
     }
     .diff {
       padding-bottom: 56px;
