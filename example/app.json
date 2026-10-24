@@ -17,6 +17,13 @@
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#F2F2F7"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "experiments": {
+      "baseUrl": "/expo-hot-toast/playground"
     }
   }
 }

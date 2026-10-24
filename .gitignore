@@ -78,3 +78,6 @@ artifacts/
 # Website build output
 website/dist/
 website/.astro/
+
+# Expo web export (the website playground)
+example/web-dist/

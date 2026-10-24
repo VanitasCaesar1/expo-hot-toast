@@ -1,0 +1,53 @@
+name: Web
+
+# Builds the example for the web with Expo, which is what the website's
+# playground embeds. Runs the real library on react-native-web, so a failure
+# here means web support broke.
+
+on:
+  push:
+    branches: [main, 'ci/**']
+    paths:
+      - 'src/**'
+      - 'example/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/web.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'example/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  export:
+    name: Export the example for the web
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            example/package-lock.json
+
+      - run: npm ci
+      - run: npm ci
+        working-directory: example
+
+      - name: Export
+        run: npx expo export --platform web --output-dir web-dist
+        working-directory: example
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: playground
+          path: example/web-dist
+          retention-days: 14
