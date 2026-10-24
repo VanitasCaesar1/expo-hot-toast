@@ -1,7 +1,8 @@
 # Drives every row of the example and screenshots the result. Run by
-# scripts/android-smoke.sh in CI against a build with EXPO_PUBLIC_E2E=1, where
-# toasts last 20 seconds and requests take 5: on a GPU-less emulator each tap
-# takes about three. Toasts are cleared by tapping them (tap-to-dismiss is on by
+# scripts/android-smoke.sh and scripts/ios-smoke.sh in CI against a build with
+# EXPO_PUBLIC_E2E=1, where toasts last 60 seconds and requests take 15: on a
+# GPU-less emulator each tap takes about three seconds, and on the CI simulator
+# a step can take forty. Toasts are cleared by tapping them (tap-to-dismiss is on by
 # default on Android) rather than by waiting, which tests that too.
 appId: dev.expohottoast.example
 ---
@@ -38,7 +39,13 @@ appId: dev.expohottoast.example
 - extendedWaitUntil:
     notVisible: "Could not reach the server"
     timeout: 5000
-- tapOn: "Changes saved"
+# The swipe can outlast the success toast on a slow simulator, so only tap it if
+# it is still there.
+- runFlow:
+    when:
+      visible: "Changes saved"
+    commands:
+      - tapOn: "Changes saved"
 - extendedWaitUntil:
     notVisible: "Changes saved"
     timeout: 5000
@@ -65,7 +72,7 @@ appId: dev.expohottoast.example
 - takeScreenshot: 04-promise-loading
 - extendedWaitUntil:
     visible: "Photo uploaded"
-    timeout: 15000
+    timeout: 30000
 - assertNotVisible: "Uploading photo…"
 - takeScreenshot: 05-promise-success
 - tapOn: "Photo uploaded"
@@ -74,7 +81,7 @@ appId: dev.expohottoast.example
     waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
     visible: "Sync failed: offline"
-    timeout: 15000
+    timeout: 30000
 - tapOn: "Sync failed: offline"
 - extendedWaitUntil:
     notVisible: "Sync failed: offline"

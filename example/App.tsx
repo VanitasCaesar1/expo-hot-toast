@@ -41,14 +41,15 @@ const palette = {
 type Palette = (typeof palette)['light'];
 
 /**
- * Set at bundle time by the Android CI job. On an emulator without a GPU each
- * tap takes about three seconds, so a 2-second toast (or a 1.6-second request)
- * is gone before the test runner can read it. Automated runs stretch both, and
+ * Set at bundle time by the Android and iOS CI jobs. On an emulator without a
+ * GPU each tap takes about three seconds, and on the CI simulator a single step
+ * can take forty, so a 2-second toast (or a 1.6-second request) is gone before
+ * the test runner can read it. Automated runs stretch both, and
  * turn on tap to dismiss (off by default on iOS) so the flow can clear toasts
  * by tapping them instead of waiting.
  */
 const E2E = process.env.EXPO_PUBLIC_E2E === '1';
-const REQUEST_MS = E2E ? 5000 : 1600;
+const REQUEST_MS = E2E ? 15000 : 1600;
 
 /** Resolves after `ms`, or rejects with `message` when one is given. */
 function settleAfter(ms: number, message?: string): Promise<void> {
@@ -255,7 +256,7 @@ function Screen() {
             title="Deduplicated"
             detail="dedupeKey"
             onPress={() =>
-              toast('Saving draft…', { dedupeKey: 'draft', dedupeWindowMs: E2E ? 20000 : 3000 })
+              toast('Saving draft…', { dedupeKey: 'draft', dedupeWindowMs: E2E ? 60000 : 3000 })
             }
           />
           <Row
@@ -311,7 +312,7 @@ function Screen() {
         </Section>
       </ScrollView>
 
-      <Toaster toastOptions={E2E ? { duration: 20000, dismissOnTap: true } : undefined} />
+      <Toaster toastOptions={E2E ? { duration: 60000, dismissOnTap: true } : undefined} />
     </View>
   );
 }

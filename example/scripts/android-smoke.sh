@@ -35,12 +35,23 @@ adb pull /sdcard/smoke.mp4 "$OUT/smoke.mp4" || true
 # The scripted demo, started by a long-press on the title (see playDemo in
 # App.tsx). Recording runs around the whole flow; the clips are trimmed later.
 APP_ID=dev.expohottoast.example
+# The emulator sometimes drops offline for a moment after a long Maestro run,
+# and the next launch then fails with "device offline". Wait for it to come
+# back, and give the demo flow one retry.
+wait_for_emulator() {
+  adb wait-for-device
+  until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do sleep 2; done
+}
 record_demo() {
   local name=$1
+  wait_for_emulator
   adb shell am force-stop "$APP_ID"
   adb shell screenrecord "/sdcard/$name.mp4" &
   sleep 1
-  (cd "$OUT" && maestro test ../../example/.maestro/demo.yaml) || true
+  (cd "$OUT" && maestro test ../../example/.maestro/demo.yaml) || {
+    wait_for_emulator
+    (cd "$OUT" && maestro test ../../example/.maestro/demo.yaml) || true
+  }
   sleep 26
   adb shell pkill -INT screenrecord || true
   sleep 3
