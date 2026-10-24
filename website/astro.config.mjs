@@ -7,8 +7,8 @@ export default defineConfig({
   site: 'https://vanitascaesar1.github.io',
   base: '/expo-hot-toast',
   markdown: {
-    // The docs page renders the repository README, whose relative links point
-    // at files in the repo rather than pages on this site.
+    // Markdown on this site comes from the repository (docs/guide), so links to
+    // other repository files go to GitHub.
     processor: unified({ remarkPlugins: [relativeLinksToGitHub] }),
     shikiConfig: {
       themes: { light: 'github-light', dark: 'github-dark-dimmed' },
@@ -16,7 +16,7 @@ export default defineConfig({
     },
   },
   vite: {
-    // The README lives one directory up.
+    // The docs live one directory up, in docs/guide.
     server: { fs: { allow: ['..'] } },
   },
 });

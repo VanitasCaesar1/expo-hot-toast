@@ -1,7 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Icon from '../../components/Icon.astro';
-import { loadDocs, renderDocs } from '../../lib/docs';
+import { GROUPS, loadDocs, renderDocs } from '../../lib/docs';
 import { url, REPO_URL } from '../../lib/url';
 
 export async function getStaticPaths() {
@@ -14,13 +14,12 @@ export async function getStaticPaths() {
 }
 
 const { page, pages, index } = Astro.props;
-const groups = ['Getting started', 'Guides', 'More'] as const;
+const groups = GROUPS;
 const prev = pages[index - 1];
 const next = pages[index + 1];
-const source = page.slug === 'design-notes' ? 'docs/design.md' : 'README.md';
 ---
 
-<Base title={`${page.title}: expo-hot-toast docs`} description={`expo-hot-toast documentation: ${page.title}.`}>
+<Base title={`${page.title}: expo-hot-toast docs`} description={page.description}>
   <div class="docs">
     <aside class="sidebar">
       <nav aria-label="Docs">
@@ -48,6 +47,7 @@ const source = page.slug === 'design-notes' ? 'docs/design.md' : 'README.md';
     <article class="prose" data-pagefind-body>
       <p class="label crumb">{page.group}</p>
       <h1 class="display">{page.title}</h1>
+      {page.description && <p class="lede">{page.description}</p>}
       <Fragment set:html={page.html} />
       <footer class="pager">
         {prev ? (
@@ -63,7 +63,7 @@ const source = page.slug === 'design-notes' ? 'docs/design.md' : 'README.md';
           </a>
         )}
       </footer>
-      <a class="edit" href={`${REPO_URL}/blob/main/${source}`}>Edit this page on GitHub <Icon name="arrow-up-right" /></a>
+      <a class="edit" href={`${REPO_URL}/blob/main/${page.source}`}>Edit this page on GitHub <Icon name="arrow-up-right" /></a>
     </article>
 
     <aside class="toc">
@@ -156,8 +156,18 @@ const source = page.slug === 'design-notes' ? 'docs/design.md' : 'README.md';
     color: var(--accent);
   }
   .prose h1 {
-    margin: 0 0 28px;
+    margin: 0 0 14px;
     font-size: clamp(36px, 4vw, 52px);
+  }
+  /* The page's one-line summary, from its frontmatter. */
+  .lede {
+    margin: 0 0 36px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 19px;
+    line-height: 1.5;
+    max-width: 58ch;
   }
   .prose :global(h2) {
     margin: 52px 0 14px;
@@ -176,6 +186,12 @@ const source = page.slug === 'design-notes' ? 'docs/design.md' : 'README.md';
   .prose :global(p),
   .prose :global(li) {
     color: color-mix(in srgb, var(--text) 82%, transparent);
+    font-size: 16.5px;
+    line-height: 1.7;
+    max-width: 68ch;
+  }
+  .prose :global(li + li) {
+    margin-top: 6px;
   }
   .prose :global(a) {
     color: var(--accent);
@@ -189,9 +205,12 @@ const source = page.slug === 'design-notes' ? 'docs/design.md' : 'README.md';
   }
   .prose :global(pre) {
     margin: 22px 0;
+    padding: 18px 20px;
+    overflow-x: auto;
     border: 1px solid var(--line);
     background: var(--surface) !important;
     font-size: 14px;
+    line-height: 1.6;
   }
   .prose :global(table) {
     width: 100%;
@@ -208,6 +227,23 @@ const source = page.slug === 'design-notes' ? 'docs/design.md' : 'README.md';
     text-align: left;
     vertical-align: top;
     border-bottom: 1px solid var(--line);
+  }
+  /*
+   * Name, type and default stay on one line; the description column wraps.
+   * Code in tables is plain monospace, not boxed: a box in every cell is noise.
+   */
+  .prose :global(td:nth-child(-n + 3)) {
+    white-space: nowrap;
+  }
+  .prose :global(td code) {
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 0.86em;
+    color: var(--muted);
+  }
+  .prose :global(td:first-child code) {
+    color: var(--text);
   }
   .prose :global(th) {
     background: var(--surface);
