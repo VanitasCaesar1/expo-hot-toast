@@ -1,0 +1,393 @@
+---
+import { Code } from 'astro:components';
+import Base from '../layouts/Base.astro';
+import Phone from '../components/Phone.astro';
+import Playground from '../components/Playground.astro';
+import InstallCommand from '../components/InstallCommand.astro';
+import Icon from '../components/Icon.astro';
+import { url } from '../lib/url';
+
+const themes = { light: 'github-light', dark: 'github-dark-dimmed' } as const;
+
+const migrate = `- import toast, { Toaster } from 'react-hot-toast';
++ import toast, { Toaster } from 'expo-hot-toast';`;
+
+const setup = `import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Toaster, toast } from 'expo-hot-toast';
+
+export default function App() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <Home />
+        <Toaster />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+toast.success('Changes saved');`;
+
+const dedupe = `toast('Saving draft…', { dedupeKey: 'draft' });`;
+const theming = `<Toaster theme={{ radius: 14, actionColor: '#FF9500' }} />`;
+const stills = [
+  { media: 'ios-stack-light', label: 'iOS 26, light', alt: 'Two toasts on Liquid Glass in light mode on iOS 26' },
+  { media: 'ios-stack-dark', label: 'iOS 26, dark', alt: 'Toasts on Liquid Glass in dark mode on iOS 26' },
+  { media: 'android-stack-light', label: 'Android, light', alt: 'Two toasts on the opaque surface in light mode on Android' },
+  { media: 'android-stack-dark', label: 'Android, dark', alt: 'Toasts on the opaque surface in dark mode on Android' },
+];
+---
+
+<Base
+  title="expo-hot-toast: toasts for Expo, in real Liquid Glass"
+  description="The react-hot-toast API for Expo and React Native, drawn with Apple's own Liquid Glass on iOS 26 and a designed surface on Android."
+>
+  <section class="hero page">
+    <div class="copy">
+      <h1>Toasts for Expo, in real Liquid Glass.</h1>
+      <p class="lede">
+        The react-hot-toast API, drawn with Apple's own material on iOS 26 and a designed surface on Android.
+      </p>
+      <div class="ctas">
+        <a class="button" href={url('docs')}>Read the docs <Icon name="arrow-right" /></a>
+        <InstallCommand />
+      </div>
+    </div>
+    <div class="devices">
+      <div class="back"><Phone platform="android" media="android-demo" label="expo-hot-toast running on Android" /></div>
+      <div class="front"><Phone platform="ios" media="ios-demo" label="expo-hot-toast running on iOS 26 with Liquid Glass" /></div>
+    </div>
+  </section>
+
+  <section class="page section" aria-labelledby="try">
+    <h2 id="try">Every call, on a real device.</h2>
+    <p class="intro">Pick a call to jump the recording to it. Nothing here is a mockup.</p>
+    <Playground />
+  </section>
+
+  <section class="page section" aria-labelledby="surfaces">
+    <h2 id="surfaces">Glass where the platform has it.</h2>
+    <p class="intro">
+      Liquid Glass on iOS 26. An opaque surface with real colour and shadow on Android, older iOS, and for
+      anyone with Reduce Transparency on.
+    </p>
+    <ul class="stills">
+      {
+        stills.map((s) => (
+          <li>
+            <img
+              src={url(`media/${s.media}.jpg`)}
+              alt={s.alt}
+              loading="lazy"
+              decoding="async"
+              width="600"
+              height="360"
+            />
+            <span>{s.label}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="page section migrate" aria-labelledby="migrate">
+    <h2 id="migrate">Already on react-hot-toast?</h2>
+    <div class="diff">
+      <Code code={migrate} lang="diff" themes={themes} defaultColor={false} />
+    </div>
+    <p class="intro">
+      <code>toast</code>, <code>toast.promise</code>, <code>&lt;Toaster&gt;</code>, <code>&lt;ToastBar&gt;</code>,
+      <code>iconTheme</code> and <code>useToaster</code> work as you know them. <a href={url('docs#coming-from-react-hot-toast')}>What differs</a>
+    </p>
+  </section>
+
+  <section class="page section" aria-labelledby="built">
+    <h2 id="built">Built for a phone, not ported to one.</h2>
+    <div class="bento">
+      <article class="cell queue">
+        <h3>A queue, not a pile.</h3>
+        <p>Three toasts per edge. The rest wait, and each gets its full time on screen once it shows.</p>
+        <img src={url('media/android-queue-light.jpg')} alt="Three toasts showing while two more wait" loading="lazy" decoding="async" width="600" height="420" />
+      </article>
+      <article class="cell">
+        <h3>Swipe it away. Hold to read.</h3>
+        <p>Drag with fling velocity to dismiss. Press and hold to pause every timer in the stack.</p>
+      </article>
+      <article class="cell tint">
+        <h3>Twenty calls, one toast.</h3>
+        <Code code={dedupe} lang="ts" themes={themes} defaultColor={false} />
+      </article>
+      <article class="cell">
+        <h3>Accessible by default.</h3>
+        <p>VoiceOver and TalkBack announcements, Reduce Motion, Reduce Transparency, capped font scaling, and distinct haptics.</p>
+      </article>
+      <article class="cell tint">
+        <h3>Tokens for every surface.</h3>
+        <Code code={theming} lang="tsx" themes={themes} defaultColor={false} />
+        <p>Light and dark defaults follow the system. Tokens export as CSS variables for NativeWind or Unistyles.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="page section start" aria-labelledby="start">
+    <h2 id="start">Two lines to the first toast.</h2>
+    <InstallCommand />
+    <div class="setup">
+      <Code code={setup} lang="tsx" themes={themes} defaultColor={false} />
+    </div>
+    <a class="button" href={url('docs')}>Read the docs <Icon name="arrow-right" /></a>
+  </section>
+</Base>
+
+<script>
+  // Recordings follow the colour scheme, and play only while on screen.
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const dark = matchMedia('(prefers-color-scheme: dark)');
+  const videos = [...document.querySelectorAll<HTMLVideoElement>('video[data-light]')];
+
+  const pick = () => {
+    const scheme = dark.matches ? 'dark' : 'light';
+    for (const v of videos) {
+      const src = v.dataset[scheme] ?? '';
+      if (v.getAttribute('src') === src) continue;
+      const t = v.currentTime;
+      v.poster = v.dataset[scheme === 'dark' ? 'posterDark' : 'posterLight'] ?? '';
+      v.src = src;
+      if (t) v.currentTime = t;
+    }
+  };
+  pick();
+  dark.addEventListener('change', pick);
+
+  const seen = new IntersectionObserver(
+    (entries) => {
+      for (const { target, isIntersecting } of entries) {
+        const v = target as HTMLVideoElement;
+        if (isIntersecting && !reduce.matches && v.offsetParent !== null) void v.play().catch(() => {});
+        else v.pause();
+      }
+    },
+    { threshold: 0.35 },
+  );
+  videos.forEach((v) => seen.observe(v));
+</script>
+
+<style>
+  .hero {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 48px;
+    align-items: center;
+    min-height: calc(100dvh - 60px);
+    padding-top: 56px;
+    padding-bottom: 56px;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(40px, 5.4vw, 64px);
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+    font-weight: 680;
+    max-width: 13ch;
+  }
+  .lede {
+    margin: 22px 0 0;
+    font-size: clamp(18px, 1.6vw, 21px);
+    color: var(--muted);
+    max-width: 34ch;
+  }
+  .ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 34px;
+  }
+  .devices {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+    max-width: 520px;
+    justify-self: end;
+    width: 100%;
+  }
+  .back {
+    grid-area: 1 / 2;
+    width: 88%;
+    justify-self: end;
+    transform: translateY(-9%);
+    opacity: 0.96;
+  }
+  .front {
+    grid-area: 1 / 1 / 1 / 3;
+    width: 56%;
+    z-index: 1;
+    animation: rise 900ms var(--ease-out) both;
+  }
+  @keyframes rise {
+    from {
+      transform: translateY(24px);
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .front {
+      animation: none;
+    }
+  }
+
+  .section {
+    padding-top: 120px;
+  }
+  h2 {
+    margin: 0;
+    font-size: clamp(30px, 3.4vw, 42px);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    font-weight: 660;
+    max-width: 22ch;
+  }
+  .intro {
+    margin: 14px 0 44px;
+    color: var(--muted);
+    max-width: 58ch;
+  }
+  .intro code {
+    color: var(--text);
+  }
+
+  .stills {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .stills li {
+    min-width: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .stills img {
+    width: 100%;
+    aspect-ratio: 5 / 3;
+    object-fit: cover;
+    object-position: top;
+    border-radius: var(--radius);
+    background: var(--surface-sunk);
+  }
+  .stills span {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .migrate .diff {
+    margin-top: 32px;
+    max-width: 640px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+  }
+  .migrate .intro {
+    margin-top: 20px;
+  }
+
+  .bento {
+    margin-top: 44px;
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 16px;
+  }
+  .cell {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 28px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    overflow: hidden;
+  }
+  .cell h3 {
+    margin: 0;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+    font-weight: 620;
+  }
+  .cell p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 16px;
+  }
+  .cell :global(.astro-code) {
+    padding: 14px 0 0;
+    font-size: 14px;
+    white-space: pre-wrap;
+  }
+  .tint {
+    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  }
+  .queue {
+    grid-row: span 2;
+  }
+  .queue img {
+    margin-top: auto;
+    width: calc(100% + 56px);
+    max-width: none;
+    margin-inline: -28px;
+    margin-bottom: -28px;
+    aspect-ratio: 10 / 7;
+    object-fit: cover;
+    object-position: top;
+    background: var(--surface-sunk);
+  }
+
+  .start {
+    display: grid;
+    gap: 24px;
+    justify-items: start;
+  }
+  .setup {
+    width: 100%;
+    max-width: 720px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+  }
+
+  @media (max-width: 960px) {
+    .stills {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .bento {
+      grid-template-columns: 1fr 1fr;
+    }
+    .queue {
+      grid-row: auto;
+      grid-column: span 2;
+    }
+  }
+  @media (max-width: 767px) {
+    .hero {
+      grid-template-columns: 1fr;
+      min-height: 0;
+      padding-top: 40px;
+    }
+    .devices {
+      justify-self: center;
+      max-width: 360px;
+    }
+    .section {
+      padding-top: 88px;
+    }
+    .bento {
+      grid-template-columns: 1fr;
+    }
+    .queue {
+      grid-column: auto;
+    }
+  }
+</style>

@@ -1,0 +1,86 @@
+---
+import Icon from './Icon.astro';
+import { INSTALL } from '../lib/url';
+---
+
+<div class="install">
+  <code>{INSTALL}</code>
+  <button type="button" data-copy={INSTALL} aria-label="Copy install command">
+    <span class="idle"><Icon name="copy" /></span>
+    <span class="done"><Icon name="check" /></span>
+  </button>
+</div>
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy]')) {
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy ?? '');
+        button.dataset.copied = 'true';
+        button.setAttribute('aria-label', 'Copied');
+        setTimeout(() => {
+          delete button.dataset.copied;
+          button.setAttribute('aria-label', 'Copy install command');
+        }, 1600);
+      } catch {
+        // Clipboard can be unavailable (insecure context); the text is selectable.
+      }
+    });
+  }
+</script>
+
+<style>
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    height: 46px;
+    padding: 0 6px 0 18px;
+    border-radius: var(--pill);
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+  }
+  code {
+    font-size: 14px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+  button {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: var(--pill);
+    background: transparent;
+    color: var(--muted);
+    font-size: 17px;
+    cursor: pointer;
+  }
+  button:hover {
+    background: var(--surface-sunk);
+    color: var(--text);
+  }
+  .idle,
+  .done {
+    grid-area: 1 / 1;
+    display: inline-flex;
+    transition: opacity 160ms, transform 160ms var(--ease-out);
+  }
+  .done {
+    opacity: 0;
+    transform: scale(0.6);
+    color: var(--accent);
+  }
+  button[data-copied] .idle {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  button[data-copied] .done {
+    opacity: 1;
+    transform: none;
+  }
+</style>

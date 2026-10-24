@@ -1,0 +1,41 @@
+---
+// Phosphor (UI glyphs) and Simple Icons (brand marks), inlined so they take
+// the current text colour.
+import copy from '@phosphor-icons/core/assets/regular/copy.svg?raw';
+import check from '@phosphor-icons/core/assets/regular/check.svg?raw';
+import arrowRight from '@phosphor-icons/core/assets/regular/arrow-right.svg?raw';
+import arrowUpRight from '@phosphor-icons/core/assets/regular/arrow-up-right.svg?raw';
+import { siGithub } from 'simple-icons';
+
+const glyphs = {
+  copy,
+  check,
+  'arrow-right': arrowRight,
+  'arrow-up-right': arrowUpRight,
+  github: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="${siGithub.path}"/></svg>`,
+} as const;
+
+interface Props {
+  name: keyof typeof glyphs;
+  label?: string;
+}
+
+const { name, label } = Astro.props;
+const svg = glyphs[name].replace('<svg', `<svg aria-hidden="true" focusable="false"`);
+---
+
+<span class="icon" set:html={svg} />
+{label && <span class="visually-hidden">{label}</span>}
+
+<style>
+  .icon {
+    display: inline-flex;
+    width: 1.1em;
+    height: 1.1em;
+  }
+  .icon :global(svg) {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
+  }
+</style>

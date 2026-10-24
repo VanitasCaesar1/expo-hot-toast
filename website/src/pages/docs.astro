@@ -1,0 +1,127 @@
+---
+import Base from '../layouts/Base.astro';
+// The README is the documentation; this page only gives it a reading layout.
+import { Content, getHeadings } from '../../../README.md';
+
+const sections = getHeadings().filter((h) => h.depth === 2);
+---
+
+<Base
+  title="Docs: expo-hot-toast"
+  description="Install, API and theming for expo-hot-toast, the react-hot-toast API for Expo with Liquid Glass on iOS 26."
+>
+  <div class="page layout">
+    <aside>
+      <nav aria-label="On this page">
+        <ol>
+          {sections.map((h) => <li><a href={`#${h.slug}`}>{h.text}</a></li>)}
+        </ol>
+      </nav>
+    </aside>
+    <article class="prose">
+      <Content />
+    </article>
+  </div>
+</Base>
+
+<style>
+  .layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 64px;
+    padding-top: 48px;
+  }
+  aside nav {
+    position: sticky;
+    top: 92px;
+  }
+  aside ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+    font-size: 14px;
+  }
+  aside a {
+    color: var(--muted);
+  }
+  aside a:hover {
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .prose {
+    max-width: 760px;
+    min-width: 0;
+  }
+  /* The README's title and badge row are GitHub furniture; the nav covers both. */
+  .prose > :global(h1:first-child),
+  .prose > :global(h1:first-child + p) {
+    display: none;
+  }
+  .prose :global(h2) {
+    margin: 64px 0 16px;
+    padding-top: 8px;
+    font-size: 30px;
+    letter-spacing: -0.025em;
+    font-weight: 650;
+    scroll-margin-top: 80px;
+  }
+  .prose :global(h3) {
+    margin: 40px 0 12px;
+    font-size: 21px;
+    letter-spacing: -0.015em;
+    font-weight: 620;
+    scroll-margin-top: 80px;
+  }
+  .prose :global(p),
+  .prose :global(li) {
+    color: color-mix(in srgb, var(--text) 86%, var(--muted));
+  }
+  .prose :global(:not(pre) > code) {
+    padding: 0.12em 0.38em;
+    border-radius: 6px;
+    background: var(--surface-sunk);
+    font-size: 0.86em;
+  }
+  .prose :global(pre) {
+    margin: 20px 0;
+    border-radius: var(--radius);
+    background: var(--surface) !important;
+    border: 1px solid var(--hairline);
+    font-size: 14px;
+  }
+  .prose :global(table) {
+    width: 100%;
+    margin: 20px 0;
+    border-collapse: collapse;
+    font-size: 15px;
+    display: block;
+    overflow-x: auto;
+  }
+  .prose :global(th),
+  .prose :global(td) {
+    padding: 10px 14px 10px 0;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .prose :global(th) {
+    font-weight: 600;
+    color: var(--text);
+  }
+  .prose :global(img) {
+    border-radius: var(--radius);
+  }
+
+  @media (max-width: 860px) {
+    .layout {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    aside {
+      display: none;
+    }
+  }
+</style>

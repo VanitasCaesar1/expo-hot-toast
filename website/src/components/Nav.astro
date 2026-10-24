@@ -1,0 +1,75 @@
+---
+import Icon from './Icon.astro';
+import { url, REPO_URL } from '../lib/url';
+const here = Astro.url.pathname.replace(/\/$/, '');
+const docs = url('docs').replace(/\/$/, '');
+---
+
+<header class="nav">
+  <div class="page bar">
+    <a class="wordmark" href={url()}>expo-hot-toast</a>
+    <nav aria-label="Primary">
+      <a href={url('docs')} aria-current={here === docs ? 'page' : undefined}>Docs</a>
+      <a href={REPO_URL} class="github">
+        <Icon name="github" label="GitHub" />
+      </a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  /*
+   * A web frosted-glass approximation (backdrop blur over a translucent fill),
+   * not Apple's Liquid Glass, which only exists on Apple platforms. Solid under
+   * Reduce Transparency.
+   */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    backdrop-filter: saturate(180%) blur(18px);
+    -webkit-backdrop-filter: saturate(180%) blur(18px);
+    border-bottom: 1px solid var(--hairline);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .nav {
+      background: var(--bg);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+  .bar {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .wordmark {
+    color: var(--text);
+    font-weight: 640;
+    letter-spacing: -0.02em;
+    font-size: 17px;
+  }
+  .wordmark:hover {
+    text-decoration: none;
+  }
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+  nav a {
+    color: var(--muted);
+    font-size: 15px;
+  }
+  nav a:hover,
+  nav a[aria-current='page'] {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .github {
+    font-size: 20px;
+    display: inline-flex;
+  }
+</style>
