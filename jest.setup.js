@@ -74,6 +74,10 @@ jest.mock('react-native-reanimated', () => {
     return typeof result === 'function' ? result() : result;
   };
 
+  // Evaluated once at render, like useAnimatedStyle: a test reads the first
+  // frame's props off the host node.
+  const useAnimatedProps = (factory) => factory();
+
   const withTiming = (toValue) => toValue;
 
   const Easing = {
@@ -116,6 +120,7 @@ jest.mock('react-native-reanimated', () => {
     layout: noopBuilder(),
     useSharedValue,
     useAnimatedStyle,
+    useAnimatedProps,
     useDerivedValue: (factory) => ({ value: factory() }),
     useAnimatedRef: () => ({ current: null }),
     useAnimatedRefHandler: () => undefined,

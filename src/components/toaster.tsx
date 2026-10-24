@@ -304,6 +304,7 @@ export function Toaster({
                 colorScheme={colorScheme}
                 glass={mergeGlass(glass, t.glass)}
                 reduceTransparency={reduceTransparency}
+                reduceMotion={reduceMotion}
                 // Per-toast tokens win over the Toaster's. `useToastTheme` has
                 // already folded in the light/dark base, so this only has to
                 // layer the two override bags.
@@ -342,6 +343,7 @@ interface ToastSlotProps {
   colorScheme?: 'light' | 'dark';
   glass: boolean | GlassConfig;
   reduceTransparency: boolean;
+  reduceMotion: boolean;
   theme: ReturnType<typeof useToastTheme>;
   panThreshold: number;
   onDismiss: (id: string, reason: DismissReason) => void;
@@ -358,6 +360,7 @@ function ToastSlot({
   colorScheme,
   glass,
   reduceTransparency,
+  reduceMotion,
   theme,
   panThreshold,
   onDismiss,
@@ -385,6 +388,7 @@ function ToastSlot({
       toast={resolved}
       theme={theme}
       reduceTransparency={reduceTransparency}
+      reduceMotion={reduceMotion}
       colorScheme={colorScheme}
       atTop={atTop}
       reverseOrder={reverseOrder}

@@ -6,6 +6,7 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withTiming,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -22,6 +23,11 @@ export interface ToastBarProps {
   reduceTransparency?: boolean;
   /** Forces the glass appearance to match tokens forced by the Toaster. */
   colorScheme?: 'light' | 'dark';
+  /**
+   * True when the user has Reduce Motion on. The built-in icon then renders in
+   * its final state: no pop, no draw-in.
+   */
+  reduceMotion?: boolean;
   /** True when the stack is anchored to the top; flips the travel direction. */
   atTop: boolean;
   reverseOrder: boolean;
@@ -40,11 +46,15 @@ export interface ToastBarProps {
 /** Used as the travel reference before onLayout has reported a real height. */
 const ASSUMED_HEIGHT = 56;
 
+/** rht pops its icon in from 0.6. */
+const ICON_POP_FROM_SCALE = 0.6;
+
 export const ToastBar = React.memo(function ToastBar({
   toast,
   theme,
   reduceTransparency = false,
   colorScheme,
+  reduceMotion = false,
   atTop,
   reverseOrder,
   onDismiss,
@@ -140,6 +150,34 @@ export const ToastBar = React.memo(function ToastBar({
     };
   });
 
+  // The icon's own entrance, on its own clock: it pops after the toast has
+  // started to settle, and again whenever the type changes in place.
+  const iconPop = useSharedValue(reduceMotion ? 1 : 0);
+  const { iconPop: iconPopMs, iconPopDelay, iconEasing } = motion;
+  const toastType = toast.type;
+  // Primitives rather than `motion`: the Toaster builds a new theme object every
+  // render, which would restart the pop on every unrelated state change.
+  React.useEffect(() => {
+    if (reduceMotion) {
+      iconPop.value = 1;
+      return;
+    }
+    // The exit fades the whole content; replaying the pop under it would be noise.
+    if (!isVisible) return;
+    iconPop.value = 0;
+    iconPop.value = withDelay(
+      iconPopDelay,
+      withTiming(1, { duration: iconPopMs, easing: iconEasing }),
+    );
+  }, [isVisible, toastType, reduceMotion, iconPopMs, iconPopDelay, iconEasing, iconPop]);
+
+  // Opacity is safe here, unlike on `transformStyle`: this wrapper sits inside
+  // the content, not above the glass. Clamped because the easing overshoots.
+  const iconPopStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(Math.max(iconPop.value, 0), 1),
+    transform: [{ scale: ICON_POP_FROM_SCALE + (1 - ICON_POP_FROM_SCALE) * iconPop.value }],
+  }));
+
   // Clamped because the enter curve overshoots: content may not exceed full
   // opacity while the material settles.
   const contentStyle = useAnimatedStyle(() => ({
@@ -234,16 +272,17 @@ export const ToastBar = React.memo(function ToastBar({
     iconKind === 'success' || iconKind === 'error' || iconKind === 'loading';
   // `icon: null` hides the icon, glyph included, as in react-hot-toast.
   const defaultIcon = toast.icon === null || (resolvedIcon == null && !hasGlyph) ? null : (
-    <View style={[styles.icon, toast.iconStyle]}>
+    <Animated.View style={[styles.icon, toast.iconStyle, iconPopStyle]}>
       {resolvedIcon ?? (
         <ToastIcon
           kind={iconKind}
           size={theme.iconSize}
           theme={theme}
           iconTheme={toast.iconTheme}
+          reduceMotion={reduceMotion}
         />
       )}
-    </View>
+    </Animated.View>
   );
 
   const tapToDismiss = toast.dismissOnTap ?? Platform.OS === 'android';
