@@ -1,0 +1,110 @@
+---
+import Icon from './Icon.astro';
+import { INSTALL } from '../lib/url';
+
+interface Props {
+  /** Show the command itself, not just the button. */
+  showCommand?: boolean;
+}
+const { showCommand = false } = Astro.props;
+---
+
+{
+  showCommand ? (
+    <div class="cmd">
+      <code>
+        <span class="prompt" aria-hidden="true">$</span> {INSTALL}
+      </code>
+      <button type="button" class="copy" data-copy={INSTALL} aria-label="Copy install command">
+        <span class="idle"><Icon name="copy" /></span>
+        <span class="done"><Icon name="check" /></span>
+      </button>
+    </div>
+  ) : (
+    <button type="button" class="button copy-button" data-copy={INSTALL} title={INSTALL}>
+      <span class="idle-label">Copy install</span>
+      <span class="done-label">Copied</span>
+    </button>
+  )
+}
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy]')) {
+    if (button.dataset.bound) continue;
+    button.dataset.bound = 'true';
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy ?? '');
+        button.dataset.copied = 'true';
+        setTimeout(() => delete button.dataset.copied, 1600);
+      } catch {
+        // Clipboard can be unavailable (insecure context); the command is selectable.
+      }
+    });
+  }
+</script>
+
+<style>
+  .cmd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    max-width: 560px;
+    height: 52px;
+    padding: 0 8px 0 18px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  code {
+    font-size: 14px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+  .prompt {
+    color: var(--accent);
+    margin-right: 4px;
+  }
+  .copy {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 17px;
+    cursor: pointer;
+  }
+  .copy:hover {
+    color: var(--text);
+  }
+  .idle,
+  .done,
+  .idle-label,
+  .done-label {
+    grid-area: 1 / 1;
+    transition: opacity 160ms;
+  }
+  .copy-button {
+    display: inline-grid;
+  }
+  .done,
+  .done-label {
+    opacity: 0;
+  }
+  .done {
+    color: var(--accent);
+  }
+  [data-copied] .idle,
+  [data-copied] .idle-label {
+    opacity: 0;
+  }
+  [data-copied] .done,
+  [data-copied] .done-label {
+    opacity: 1;
+  }
+</style>

@@ -1,75 +1,117 @@
 ---
 import Icon from './Icon.astro';
 import { url, REPO_URL } from '../lib/url';
-const here = Astro.url.pathname.replace(/\/$/, '');
-const docs = url('docs').replace(/\/$/, '');
+const path = Astro.url.pathname;
+const inDocs = path.includes('/docs');
 ---
 
-<header class="nav">
-  <div class="page bar">
-    <a class="wordmark" href={url()}>expo-hot-toast</a>
+<header class="frame bar-wrap">
+  <div class="bar inset">
+    <a class="wordmark" href={url()}>
+      <span class="mark" aria-hidden="true"></span>
+      expo-hot-toast
+    </a>
     <nav aria-label="Primary">
-      <a href={url('docs')} aria-current={here === docs ? 'page' : undefined}>Docs</a>
-      <a href={REPO_URL} class="github">
-        <Icon name="github" label="GitHub" />
-      </a>
+      <a class="link" href={url('docs')} aria-current={inDocs ? 'page' : undefined}>Docs</a>
+      <a class="link" href={`${REPO_URL}/blob/main/CHANGELOG.md`}>Changelog</a>
+      <button type="button" class="search" data-open-search aria-label="Search the docs">
+        <Icon name="search" />
+        <span>Search</span>
+        <kbd>⌘K</kbd>
+      </button>
+      <a class="button gh" href={REPO_URL}><Icon name="github" /> GitHub</a>
     </nav>
   </div>
 </header>
 
 <style>
-  /*
-   * A web frosted-glass approximation (backdrop blur over a translucent fill),
-   * not Apple's Liquid Glass, which only exists on Apple platforms. Solid under
-   * Reduce Transparency.
-   */
-  .nav {
+  .bar-wrap {
     position: sticky;
     top: 0;
-    z-index: 10;
-    background: color-mix(in srgb, var(--bg) 78%, transparent);
-    backdrop-filter: saturate(180%) blur(18px);
-    -webkit-backdrop-filter: saturate(180%) blur(18px);
-    border-bottom: 1px solid var(--hairline);
+    z-index: 20;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
   }
   @media (prefers-reduced-transparency: reduce) {
-    .nav {
+    .bar-wrap {
       background: var(--bg);
       backdrop-filter: none;
-      -webkit-backdrop-filter: none;
     }
   }
   .bar {
-    height: 60px;
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 24px;
   }
   .wordmark {
-    color: var(--text);
-    font-weight: 640;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 19px;
     letter-spacing: -0.02em;
-    font-size: 17px;
-  }
-  .wordmark:hover {
     text-decoration: none;
+  }
+  /* The mark is a toast: a pill. */
+  .mark {
+    width: 22px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--accent);
   }
   nav {
     display: flex;
     align-items: center;
-    gap: 22px;
+    gap: 26px;
   }
-  nav a {
+  .link {
     color: var(--muted);
     font-size: 15px;
-  }
-  nav a:hover,
-  nav a[aria-current='page'] {
-    color: var(--text);
     text-decoration: none;
   }
-  .github {
-    font-size: 20px;
+  .link:hover,
+  .link[aria-current='page'] {
+    color: var(--text);
+  }
+  .search {
     display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 8px 0 12px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .search:hover {
+    color: var(--text);
+  }
+  kbd {
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--faint);
+  }
+  .gh {
+    height: 36px;
+    padding: 0 14px;
+  }
+  @media (max-width: 760px) {
+    .link,
+    .search span,
+    .search kbd {
+      display: none;
+    }
+    nav {
+      gap: 10px;
+    }
   }
 </style>

@@ -1,0 +1,80 @@
+---
+// Static search over the built site (Pagefind indexes dist/ after the build).
+// The dialog loads Pagefind's UI on first open, so pages pay nothing until then.
+import { url } from '../lib/url';
+const base = url('pagefind/');
+---
+
+<dialog class="search-dialog" aria-label="Search the docs" data-pagefind-base={base}>
+  <div id="search"></div>
+  <p class="hint">Search runs on the deployed site. Press Esc to close.</p>
+</dialog>
+
+<script>
+  const dialog = document.querySelector<HTMLDialogElement>('.search-dialog');
+  let loaded = false;
+
+  async function open() {
+    if (!dialog) return;
+    dialog.showModal();
+    if (loaded) return;
+    loaded = true;
+    const base = dialog.dataset.pagefindBase ?? '/pagefind/';
+    try {
+      const css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = `${base}pagefind-ui.css`;
+      document.head.append(css);
+      await new Promise<void>((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = `${base}pagefind-ui.js`;
+        s.onload = () => resolve();
+        s.onerror = () => reject();
+        document.head.append(s);
+      });
+      // @ts-expect-error: global from pagefind-ui.js
+      new PagefindUI({ element: '#search', showSubResults: true, showImages: false, autofocus: true });
+    } catch {
+      document.querySelector('#search')!.textContent = 'Search is available on the built site.';
+    }
+  }
+
+  document.querySelectorAll('[data-open-search]').forEach((b) => b.addEventListener('click', open));
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      void open();
+    }
+  });
+  dialog?.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+</script>
+
+<style>
+  .search-dialog {
+    width: min(640px, calc(100vw - 32px));
+    max-height: min(70vh, 640px);
+    margin-top: 12vh;
+    padding: 20px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--text);
+    --pagefind-ui-scale: 0.85;
+    --pagefind-ui-primary: var(--accent);
+    --pagefind-ui-text: var(--text);
+    --pagefind-ui-background: var(--surface);
+    --pagefind-ui-border: var(--line);
+    --pagefind-ui-tag: var(--surface-raised);
+    --pagefind-ui-border-radius: 0;
+    --pagefind-ui-font: var(--font);
+  }
+  .search-dialog::backdrop {
+    background: rgb(0 0 0 / 0.6);
+  }
+  .hint {
+    margin: 14px 0 0;
+    color: var(--faint);
+    font-size: 13px;
+  }
+</style>

@@ -1,0 +1,246 @@
+---
+import { Code } from 'astro:components';
+import Phone from './Phone.astro';
+import { moments } from '../lib/moments';
+---
+
+<div class="demo" data-platform="ios" data-scheme="dark">
+  <div class="tabs" role="tablist" aria-label="API calls">
+    {
+      moments.map((m, i) => (
+        <button
+          type="button"
+          role="tab"
+          class="tab label"
+          id={`tab-${m.id}`}
+          aria-selected={i === 0 ? 'true' : 'false'}
+          aria-controls="demo-panel"
+          data-at-ios={m.at.ios}
+          data-at-android={m.at.android}
+          data-index={i}
+        >
+          {m.tab}
+        </button>
+      ))
+    }
+  </div>
+
+  <div class="window dots-bg" id="demo-panel" role="tabpanel">
+    <div class="device">
+      <div class="ios-only"><Phone platform="ios" media="ios-demo" label="The demo running on iOS 26 with Liquid Glass" id="demo-ios" /></div>
+      <div class="android-only"><Phone platform="android" media="android-demo" label="The demo running on Android" id="demo-android" /></div>
+    </div>
+
+    <div class="side">
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Platform">
+          <button type="button" class="label" data-platform-to="ios" aria-pressed="true">iOS 26</button>
+          <button type="button" class="label" data-platform-to="android" aria-pressed="false">Android</button>
+        </div>
+        <div class="seg" role="group" aria-label="Appearance">
+          <button type="button" class="label" data-scheme-to="dark" aria-pressed="true">Dark</button>
+          <button type="button" class="label" data-scheme-to="light" aria-pressed="false">Light</button>
+        </div>
+      </div>
+      {
+        moments.map((m, i) => (
+          <div class="call" data-call={i} hidden={i !== 0}>
+            <div class="code">
+              <Code code={m.code} lang="ts" theme="github-dark-dimmed" />
+            </div>
+            <p>{m.note}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>('.demo');
+  if (root) {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const calls = [...root.querySelectorAll<HTMLElement>('[data-call]')];
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+    const video = () => root.querySelector<HTMLVideoElement>(`#demo-${root.dataset.platform}`);
+    const at = (t: HTMLButtonElement) =>
+      Number(root.dataset.platform === 'ios' ? t.dataset.atIos : t.dataset.atAndroid);
+
+    const select = (index: number) => {
+      tabs.forEach((t, i) => t.setAttribute('aria-selected', String(i === index)));
+      calls.forEach((c, i) => (c.hidden = i !== index));
+    };
+
+    // A tab jumps the recording to the moment its call fires.
+    tabs.forEach((tab, i) =>
+      tab.addEventListener('click', () => {
+        select(i);
+        const v = video();
+        if (!v) return;
+        v.currentTime = Math.max(0, at(tab) - 0.3);
+        if (!reduce.matches) void v.play().catch(() => {});
+      }),
+    );
+
+    // While it plays, the tab follows the recording.
+    const follow = () => {
+      const v = video();
+      if (!v || v.paused) return;
+      let current = 0;
+      tabs.forEach((t, i) => {
+        if (v.currentTime >= at(t) - 0.3) current = i;
+      });
+      select(current);
+    };
+    root.querySelectorAll('video').forEach((v) => v.addEventListener('timeupdate', follow));
+
+    const swap = (v: HTMLVideoElement | null, scheme: string) => {
+      if (!v) return;
+      const t = v.currentTime;
+      const playing = !v.paused;
+      v.poster = v.dataset[scheme === 'dark' ? 'posterDark' : 'posterLight'] ?? '';
+      v.src = v.dataset[scheme as 'dark' | 'light'] ?? '';
+      v.addEventListener('loadedmetadata', () => (v.currentTime = t), { once: true });
+      if (playing) void v.play().catch(() => {});
+    };
+
+    root.querySelectorAll<HTMLButtonElement>('[data-platform-to]').forEach((b) =>
+      b.addEventListener('click', () => {
+        video()?.pause();
+        root.dataset.platform = b.dataset.platformTo;
+        root.querySelectorAll('[data-platform-to]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+        const v = video();
+        if (v && v.getAttribute('src') !== v.dataset[root.dataset.scheme as 'dark' | 'light']) swap(v, root.dataset.scheme ?? 'dark');
+        if (!reduce.matches) void v?.play().catch(() => {});
+      }),
+    );
+
+    root.querySelectorAll<HTMLButtonElement>('[data-scheme-to]').forEach((b) =>
+      b.addEventListener('click', () => {
+        root.dataset.scheme = b.dataset.schemeTo;
+        root.querySelectorAll('[data-scheme-to]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+        swap(video(), root.dataset.scheme ?? 'dark');
+      }),
+    );
+  }
+</script>
+
+<style>
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    border-bottom: 1px solid var(--line);
+  }
+  .tab {
+    height: 52px;
+    padding: 0 10px;
+    border: 0;
+    border-right: 1px solid var(--line);
+    background: transparent;
+    color: var(--faint);
+    cursor: pointer;
+    position: relative;
+    transition: color 160ms, background 160ms;
+  }
+  .tab:last-child {
+    border-right: 0;
+  }
+  .tab:hover {
+    color: var(--text);
+  }
+  .tab[aria-selected='true'] {
+    color: var(--text);
+    background: var(--surface);
+  }
+  /* The selected tab's accent rule. */
+  .tab[aria-selected='true']::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 -1px 0;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  .window {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+    gap: clamp(28px, 5vw, 72px);
+    align-items: center;
+    padding: clamp(32px, 5vw, 64px) var(--pad);
+    isolation: isolate;
+  }
+  .window::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: radial-gradient(rgb(243 241 236 / 0.13) 1px, transparent 1.4px);
+    background-size: 14px 14px;
+    mask-image: radial-gradient(ellipse at 30% 50%, #000 20%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse at 30% 50%, #000 20%, transparent 70%);
+  }
+  .demo[data-platform='ios'] .android-only,
+  .demo[data-platform='android'] .ios-only {
+    display: none;
+  }
+
+  .side {
+    display: grid;
+    gap: 22px;
+    align-content: center;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .seg {
+    display: inline-flex;
+    border: 1px solid var(--line);
+  }
+  .seg button {
+    height: 34px;
+    padding: 0 14px;
+    border: 0;
+    background: transparent;
+    color: var(--faint);
+    cursor: pointer;
+  }
+  .seg button + button {
+    border-left: 1px solid var(--line);
+  }
+  .seg button[aria-pressed='true'] {
+    color: var(--accent-ink);
+    background: var(--accent);
+  }
+  .code {
+    border: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .call p {
+    margin: 14px 0 0;
+    color: var(--muted);
+    font-size: 17px;
+    max-width: 44ch;
+  }
+
+  @media (max-width: 860px) {
+    .tabs {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .tab:nth-child(3) {
+      border-right: 0;
+    }
+    .tab:nth-child(-n + 3) {
+      border-bottom: 1px solid var(--line);
+    }
+    .window {
+      grid-template-columns: 1fr;
+    }
+    .device {
+      max-width: 260px;
+      margin-inline: auto;
+    }
+  }
+</style>

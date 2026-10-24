@@ -5,18 +5,32 @@ import copy from '@phosphor-icons/core/assets/regular/copy.svg?raw';
 import check from '@phosphor-icons/core/assets/regular/check.svg?raw';
 import arrowRight from '@phosphor-icons/core/assets/regular/arrow-right.svg?raw';
 import arrowUpRight from '@phosphor-icons/core/assets/regular/arrow-up-right.svg?raw';
-import { siGithub } from 'simple-icons';
+import search from '@phosphor-icons/core/assets/regular/magnifying-glass.svg?raw';
+import plus from '@phosphor-icons/core/assets/regular/plus.svg?raw';
+import list from '@phosphor-icons/core/assets/regular/list.svg?raw';
+import { siGithub, siExpo, siReact, siApple, siAndroid } from 'simple-icons';
+
+const brand = (path: string) => `<svg viewBox="0 0 24 24" fill="currentColor"><path d="${path}"/></svg>`;
 
 const glyphs = {
   copy,
   check,
+  search,
+  plus,
+  list,
   'arrow-right': arrowRight,
   'arrow-up-right': arrowUpRight,
-  github: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="${siGithub.path}"/></svg>`,
+  github: brand(siGithub.path),
+  expo: brand(siExpo.path),
+  react: brand(siReact.path),
+  apple: brand(siApple.path),
+  android: brand(siAndroid.path),
 } as const;
 
+export type IconName = keyof typeof glyphs;
+
 interface Props {
-  name: keyof typeof glyphs;
+  name: IconName;
   label?: string;
 }
 
@@ -32,6 +46,7 @@ const svg = glyphs[name].replace('<svg', `<svg aria-hidden="true" focusable="fal
     display: inline-flex;
     width: 1.1em;
     height: 1.1em;
+    flex: none;
   }
   .icon :global(svg) {
     width: 100%;

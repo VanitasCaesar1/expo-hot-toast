@@ -2,6 +2,8 @@
 import '../styles/global.css';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import Search from '../components/Search.astro';
+import { url } from '../lib/url';
 
 interface Props {
   title: string;
@@ -10,7 +12,7 @@ interface Props {
 
 const { title, description } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
-const ogImage = new URL(`${import.meta.env.BASE_URL}/media/og.png`.replace('//', '/'), Astro.site);
+const ogImage = new URL(url('media/og.png'), Astro.site);
 ---
 
 <!doctype html>
@@ -21,9 +23,8 @@ const ogImage = new URL(`${import.meta.env.BASE_URL}/media/og.png`.replace('//',
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <link rel="icon" href={`${import.meta.env.BASE_URL}/favicon.svg`.replace('//', '/')} type="image/svg+xml" />
-    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href={url('favicon.svg')} type="image/svg+xml" />
+    <meta name="theme-color" content="#121211" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -33,9 +34,10 @@ const ogImage = new URL(`${import.meta.env.BASE_URL}/media/og.png`.replace('//',
   </head>
   <body>
     <Nav />
-    <main>
+    <main class="frame">
       <slot />
     </main>
     <Footer />
+    <Search />
   </body>
 </html>

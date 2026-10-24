@@ -2,40 +2,55 @@
 import { Code } from 'astro:components';
 import Base from '../layouts/Base.astro';
 import Phone from '../components/Phone.astro';
-import Playground from '../components/Playground.astro';
-import InstallCommand from '../components/InstallCommand.astro';
+import DemoWindow from '../components/DemoWindow.astro';
+import CopyInstall from '../components/CopyInstall.astro';
 import Icon from '../components/Icon.astro';
 import { url } from '../lib/url';
-
-const themes = { light: 'github-light', dark: 'github-dark-dimmed' } as const;
 
 const migrate = `- import toast, { Toaster } from 'react-hot-toast';
 + import toast, { Toaster } from 'expo-hot-toast';`;
 
-const setup = `import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Toaster, toast } from 'expo-hot-toast';
+const setup = `import { Toaster, toast } from 'expo-hot-toast';
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <Home />
-        <Toaster />
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <>
+      <Home />
+      <Toaster />
+    </>
   );
 }
 
 toast.success('Changes saved');`;
 
-const dedupe = `toast('Saving draft…', { dedupeKey: 'draft' });`;
-const theming = `<Toaster theme={{ radius: 14, actionColor: '#FF9500' }} />`;
 const stills = [
-  { media: 'ios-stack-light', label: 'iOS 26, light', alt: 'Two toasts on Liquid Glass in light mode on iOS 26' },
   { media: 'ios-stack-dark', label: 'iOS 26, dark', alt: 'Toasts on Liquid Glass in dark mode on iOS 26' },
-  { media: 'android-stack-light', label: 'Android, light', alt: 'Two toasts on the opaque surface in light mode on Android' },
+  { media: 'ios-stack-light', label: 'iOS 26, light', alt: 'Toasts on Liquid Glass in light mode on iOS 26' },
   { media: 'android-stack-dark', label: 'Android, dark', alt: 'Toasts on the opaque surface in dark mode on Android' },
+  { media: 'android-stack-light', label: 'Android, light', alt: 'Toasts on the opaque surface in light mode on Android' },
+];
+
+const faq = [
+  {
+    q: 'Is it a drop-in for react-hot-toast?',
+    a: 'Mostly. toast, toast.promise, <Toaster>, <ToastBar>, iconTheme and useToaster work as you know them. className and ariaProps have React Native equivalents instead, and a stack shows three toasts at a time rather than twenty.',
+  },
+  {
+    q: 'What do Android and older iOS get?',
+    a: 'An opaque surface with real colour, border and shadow, in light and dark. The same surface is used on iOS 26 when Reduce Transparency is on. Nothing imitates glass where the platform does not draw it.',
+  },
+  {
+    q: 'What does Liquid Glass need?',
+    a: 'An app built with the iOS 26 SDK (Xcode 26 or newer), running on iOS 26. Glass comes from expo-glass-effect, which wraps the native UIGlassEffect.',
+  },
+  {
+    q: 'Can toasts show above a modal?',
+    a: 'Native modals cover the rest of the app. On iOS, pass FullWindowOverlay from react-native-screens as the Toaster’s ContainerComponent and toasts stay on top.',
+  },
+  {
+    q: 'Is it on npm?',
+    a: 'Not yet. Install it from GitHub for now; npm builds the package after cloning.',
+  },
 ];
 ---
 
@@ -43,123 +58,134 @@ const stills = [
   title="expo-hot-toast: toasts for Expo, in real Liquid Glass"
   description="The react-hot-toast API for Expo and React Native, drawn with Apple's own Liquid Glass on iOS 26 and a designed surface on Android."
 >
-  <section class="hero page">
-    <div class="copy">
-      <h1>Toasts for Expo, in real Liquid Glass.</h1>
-      <p class="lede">
-        The react-hot-toast API, drawn with Apple's own material on iOS 26 and a designed surface on Android.
-      </p>
+  <section class="hero">
+    <div class="hero-copy inset">
+      <p class="label eyebrow">Open source for Expo and React Native</p>
+      <h1 class="display">Toasts in real Liquid Glass.</h1>
+      <p class="lede">The react-hot-toast API, drawn with Apple's own material on iOS 26 and a designed surface on Android.</p>
       <div class="ctas">
-        <a class="button" href={url('docs')}>Read the docs <Icon name="arrow-right" /></a>
-        <InstallCommand />
+        <a class="button primary" href={url('docs/installation')}>Quick start <Icon name="arrow-right" /></a>
+        <CopyInstall />
       </div>
     </div>
-    <div class="devices">
-      <div class="back"><Phone platform="android" media="android-demo" label="expo-hot-toast running on Android" /></div>
-      <div class="front"><Phone platform="ios" media="ios-demo" label="expo-hot-toast running on iOS 26 with Liquid Glass" /></div>
+    <div class="hero-devices">
+      <div class="field dots" aria-hidden="true"></div>
+      <div class="pair">
+        <div class="back"><Phone platform="android" media="android-demo" label="expo-hot-toast running on Android" /></div>
+        <div class="front"><Phone platform="ios" media="ios-demo" label="expo-hot-toast running on iOS 26 with Liquid Glass" /></div>
+      </div>
     </div>
   </section>
 
-  <section class="page section" aria-labelledby="try">
-    <h2 id="try">Every call, on a real device.</h2>
-    <p class="intro">Pick a call to jump the recording to it. Nothing here is a mockup.</p>
-    <Playground />
+  <section class="band platforms" aria-label="Built for">
+    <span title="Expo"><Icon name="expo" label="Expo" /></span>
+    <span title="React Native"><Icon name="react" label="React Native" /></span>
+    <span title="iOS"><Icon name="apple" label="iOS" /></span>
+    <span title="Android"><Icon name="android" label="Android" /></span>
   </section>
 
-  <section class="page section" aria-labelledby="surfaces">
-    <h2 id="surfaces">Glass where the platform has it.</h2>
-    <p class="intro">
-      Liquid Glass on iOS 26. An opaque surface with real colour and shadow on Android, older iOS, and for
-      anyone with Reduce Transparency on.
-    </p>
-    <ul class="stills">
+  <section class="band" aria-labelledby="calls">
+    <header class="head inset">
+      <h2 id="calls" class="display">Every call, on a real device.</h2>
+      <p>Pick a call to jump the recording to it. These are screen recordings from CI, not mockups.</p>
+    </header>
+    <DemoWindow />
+  </section>
+
+  <section class="band" aria-labelledby="surfaces">
+    <header class="head inset">
+      <h2 id="surfaces" class="display">Glass where the platform has it.</h2>
+      <p>Liquid Glass on iOS 26. A designed opaque surface everywhere else, and for anyone with Reduce Transparency on.</p>
+    </header>
+    <ul class="stills grid">
       {
         stills.map((s) => (
           <li>
-            <img
-              src={url(`media/${s.media}.jpg`)}
-              alt={s.alt}
-              loading="lazy"
-              decoding="async"
-              width="600"
-              height="360"
-            />
-            <span>{s.label}</span>
+            <img src={url(`media/${s.media}.jpg`)} alt={s.alt} loading="lazy" decoding="async" width="600" height="420" />
+            <span class="label">{s.label}</span>
           </li>
         ))
       }
     </ul>
   </section>
 
-  <section class="page section migrate" aria-labelledby="migrate">
-    <h2 id="migrate">Already on react-hot-toast?</h2>
-    <div class="diff">
-      <Code code={migrate} lang="diff" themes={themes} defaultColor={false} />
-    </div>
-    <p class="intro">
-      <code>toast</code>, <code>toast.promise</code>, <code>&lt;Toaster&gt;</code>, <code>&lt;ToastBar&gt;</code>,
-      <code>iconTheme</code> and <code>useToaster</code> work as you know them. <a href={url('docs#coming-from-react-hot-toast')}>What differs</a>
-    </p>
-  </section>
-
-  <section class="page section" aria-labelledby="built">
-    <h2 id="built">Built for a phone, not ported to one.</h2>
-    <div class="bento">
-      <article class="cell queue">
-        <h3>A queue, not a pile.</h3>
-        <p>Three toasts per edge. The rest wait, and each gets its full time on screen once it shows.</p>
-        <img src={url('media/android-queue-light.jpg')} alt="Three toasts showing while two more wait" loading="lazy" decoding="async" width="600" height="420" />
+  <section class="band" aria-labelledby="built">
+    <header class="head inset">
+      <h2 id="built" class="display">Built for a phone, not ported to one.</h2>
+    </header>
+    <div class="features grid">
+      <article class="queue">
+        <h3>A queue, not a pile</h3>
+        <p>Three toasts per edge. The rest wait, and each gets its full time once it shows.</p>
+        <img src={url('media/android-queue-dark.jpg')} alt="Three toasts showing while two more wait" loading="lazy" decoding="async" width="600" height="420" />
       </article>
-      <article class="cell">
-        <h3>Swipe it away. Hold to read.</h3>
+      <article>
+        <h3>Swipe it away, hold to read</h3>
         <p>Drag with fling velocity to dismiss. Press and hold to pause every timer in the stack.</p>
       </article>
-      <article class="cell tint">
-        <h3>Twenty calls, one toast.</h3>
-        <Code code={dedupe} lang="ts" themes={themes} defaultColor={false} />
+      <article>
+        <h3>Twenty calls, one toast</h3>
+        <Code code={`toast('Saving draft…', {\n  dedupeKey: 'draft',\n})`} lang="ts" theme="github-dark-dimmed" />
       </article>
-      <article class="cell">
-        <h3>Accessible by default.</h3>
-        <p>VoiceOver and TalkBack announcements, Reduce Motion, Reduce Transparency, capped font scaling, and distinct haptics.</p>
+      <article>
+        <h3>Accessible by default</h3>
+        <p>VoiceOver and TalkBack, Reduce Motion, Reduce Transparency, capped font scaling and distinct haptics.</p>
       </article>
-      <article class="cell tint">
-        <h3>Tokens for every surface.</h3>
-        <Code code={theming} lang="tsx" themes={themes} defaultColor={false} />
-        <p>Light and dark defaults follow the system. Tokens export as CSS variables for NativeWind or Unistyles.</p>
+      <article>
+        <h3>The check draws itself</h3>
+        <p>Icons pop in and draw on the motion tokens react-hot-toast is known for, and rest still under Reduce Motion.</p>
+      </article>
+      <article>
+        <h3>Tokens, not overrides</h3>
+        <Code code={`<Toaster theme={{\n  radius: 14,\n  actionColor: '#FF9500',\n}} />`} lang="tsx" theme="github-dark-dimmed" />
       </article>
     </div>
   </section>
 
-  <section class="page section start" aria-labelledby="start">
-    <h2 id="start">Two lines to the first toast.</h2>
-    <InstallCommand />
-    <div class="setup">
-      <Code code={setup} lang="tsx" themes={themes} defaultColor={false} />
+  <section class="band migrate" aria-labelledby="migrate">
+    <div class="inset">
+      <h2 id="migrate" class="display">Already on react-hot-toast?</h2>
+      <p>Change the import. The calls you know keep working, and <a href={url('docs/coming-from-react-hot-toast')}>the differences fit on one page</a>.</p>
     </div>
-    <a class="button" href={url('docs')}>Read the docs <Icon name="arrow-right" /></a>
+    <div class="diff">
+      <Code code={migrate} lang="diff" theme="github-dark-dimmed" />
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="faq">
+    <header class="head inset">
+      <h2 id="faq" class="display">Questions</h2>
+    </header>
+    <div class="faq">
+      {
+        faq.map((f) => (
+          <details>
+            <summary class="inset">
+              {f.q}
+              <Icon name="plus" />
+            </summary>
+            <p class="inset">{f.a}</p>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="band start dots-wrap" aria-labelledby="start">
+    <div class="start-inner inset">
+      <h2 id="start" class="display">Ship your first toast.</h2>
+      <CopyInstall showCommand />
+      <div class="setup">
+        <Code code={setup} lang="tsx" theme="github-dark-dimmed" />
+      </div>
+      <a class="button primary" href={url('docs/installation')}>Quick start <Icon name="arrow-right" /></a>
+    </div>
   </section>
 </Base>
 
 <script>
-  // Recordings follow the colour scheme, and play only while on screen.
+  // Recordings play only while on screen, and never under Reduce Motion.
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-  const dark = matchMedia('(prefers-color-scheme: dark)');
-  const videos = [...document.querySelectorAll<HTMLVideoElement>('video[data-light]')];
-
-  const pick = () => {
-    const scheme = dark.matches ? 'dark' : 'light';
-    for (const v of videos) {
-      const src = v.dataset[scheme] ?? '';
-      if (v.getAttribute('src') === src) continue;
-      const t = v.currentTime;
-      v.poster = v.dataset[scheme === 'dark' ? 'posterDark' : 'posterLight'] ?? '';
-      v.src = src;
-      if (t) v.currentTime = t;
-    }
-  };
-  pick();
-  dark.addEventListener('change', pick);
-
   const seen = new IntersectionObserver(
     (entries) => {
       for (const { target, isIntersecting } of entries) {
@@ -170,64 +196,78 @@ const stills = [
     },
     { threshold: 0.35 },
   );
-  videos.forEach((v) => seen.observe(v));
+  document.querySelectorAll('video').forEach((v) => seen.observe(v));
 </script>
 
 <style>
   .hero {
     display: grid;
-    grid-template-columns: 1.05fr 1fr;
-    gap: 48px;
-    align-items: center;
-    min-height: calc(100dvh - 60px);
-    padding-top: 56px;
-    padding-bottom: 56px;
+    grid-template-columns: 1.1fr 1fr;
+    min-height: min(calc(100dvh - 64px), 760px);
+  }
+  .hero-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-block: 72px;
+    border-right: 1px solid var(--line);
+  }
+  .eyebrow {
+    margin: 0 0 22px;
+    color: var(--accent);
   }
   h1 {
     margin: 0;
-    font-size: clamp(40px, 5.4vw, 64px);
-    line-height: 1.04;
-    letter-spacing: -0.035em;
-    font-weight: 680;
-    max-width: 13ch;
+    font-size: clamp(44px, 6vw, 80px);
+    max-width: 11ch;
   }
   .lede {
-    margin: 22px 0 0;
-    font-size: clamp(18px, 1.6vw, 21px);
+    margin: 24px 0 0;
+    font-size: clamp(17px, 1.5vw, 20px);
     color: var(--muted);
-    max-width: 34ch;
+    max-width: 36ch;
   }
   .ctas {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-    margin-top: 34px;
+    margin-top: 36px;
   }
-  .devices {
+  .hero-devices {
+    position: relative;
+    display: grid;
+    place-items: center;
+    padding: 48px var(--pad);
+    overflow: hidden;
+  }
+  .field {
+    position: absolute;
+    inset: 0;
+  }
+  .pair {
     position: relative;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    align-items: end;
-    max-width: 520px;
-    justify-self: end;
+    align-items: center;
     width: 100%;
-  }
-  .back {
-    grid-area: 1 / 2;
-    width: 88%;
-    justify-self: end;
-    transform: translateY(-9%);
-    opacity: 0.96;
+    max-width: 460px;
   }
   .front {
     grid-area: 1 / 1 / 1 / 3;
-    width: 56%;
+    width: 58%;
     z-index: 1;
     animation: rise 900ms var(--ease-out) both;
   }
+  .back {
+    grid-area: 1 / 2;
+    width: 86%;
+    justify-self: end;
+    transform: translateY(10%);
+    opacity: 0.9;
+  }
   @keyframes rise {
     from {
-      transform: translateY(24px);
+      transform: translateY(28px);
       opacity: 0;
     }
   }
@@ -237,156 +277,237 @@ const stills = [
     }
   }
 
-  .section {
-    padding-top: 120px;
+  .platforms {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .platforms span {
+    display: grid;
+    place-items: center;
+    height: 88px;
+    color: var(--faint);
+    font-size: 26px;
+  }
+  .platforms span + span {
+    border-left: 1px solid var(--line);
+  }
+
+  .head {
+    padding-block: 72px 40px;
   }
   h2 {
     margin: 0;
-    font-size: clamp(30px, 3.4vw, 42px);
-    line-height: 1.1;
-    letter-spacing: -0.03em;
-    font-weight: 660;
-    max-width: 22ch;
+    font-size: clamp(32px, 3.6vw, 48px);
+    max-width: 20ch;
   }
-  .intro {
-    margin: 14px 0 44px;
+  .head p {
+    margin: 14px 0 0;
     color: var(--muted);
     max-width: 58ch;
   }
-  .intro code {
-    color: var(--text);
+
+  /* Bordered cells: the grid's gap shows the line colour behind the cells. */
+  .grid {
+    display: grid;
+    gap: 1px;
+    background: var(--line);
+    border-top: 1px solid var(--line);
+  }
+  .grid > * {
+    background: var(--bg);
   }
 
   .stills {
     list-style: none;
     margin: 0;
     padding: 0;
-    display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
   }
   .stills li {
-    min-width: 0;
     display: grid;
-    gap: 10px;
+    gap: 14px;
+    padding: 20px;
+    min-width: 0;
   }
   .stills img {
     width: 100%;
-    aspect-ratio: 5 / 3;
-    object-fit: cover;
-    object-position: top;
-    border-radius: var(--radius);
-    background: var(--surface-sunk);
-  }
-  .stills span {
-    color: var(--muted);
-    font-size: 14px;
-  }
-
-  .migrate .diff {
-    margin-top: 32px;
-    max-width: 640px;
-    border-radius: var(--radius);
-    background: var(--surface);
-    border: 1px solid var(--hairline);
-  }
-  .migrate .intro {
-    margin-top: 20px;
-  }
-
-  .bento {
-    margin-top: 44px;
-    display: grid;
-    grid-template-columns: 1.3fr 1fr 1fr;
-    grid-template-rows: auto auto;
-    gap: 16px;
-  }
-  .cell {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 28px;
-    border-radius: var(--radius);
-    background: var(--surface);
-    border: 1px solid var(--hairline);
-    overflow: hidden;
-  }
-  .cell h3 {
-    margin: 0;
-    font-size: 20px;
-    letter-spacing: -0.02em;
-    font-weight: 620;
-  }
-  .cell p {
-    margin: 0;
-    color: var(--muted);
-    font-size: 16px;
-  }
-  .cell :global(.astro-code) {
-    padding: 14px 0 0;
-    font-size: 14px;
-    white-space: pre-wrap;
-  }
-  .tint {
-    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
-  }
-  .queue {
-    grid-row: span 2;
-  }
-  .queue img {
-    margin-top: auto;
-    width: calc(100% + 56px);
-    max-width: none;
-    margin-inline: -28px;
-    margin-bottom: -28px;
     aspect-ratio: 10 / 7;
     object-fit: cover;
     object-position: top;
-    background: var(--surface-sunk);
+    background: var(--surface);
+  }
+  .stills .label {
+    color: var(--faint);
+  }
+
+  .features {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .features article {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 32px var(--pad) 36px;
+    min-width: 0;
+  }
+  .features .queue {
+    grid-row: span 2;
+    padding-bottom: 0;
+  }
+  .features .queue img {
+    margin-top: auto;
+    width: 100%;
+    aspect-ratio: 6 / 5;
+    object-fit: cover;
+    object-position: top;
+    background: var(--surface);
+  }
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .features p {
+    margin: 0;
+    color: var(--muted);
+  }
+  .features :global(.astro-code) {
+    margin-top: 8px;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    background: var(--surface) !important;
+  }
+
+  .migrate {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+  }
+  .migrate > .inset {
+    padding-block: 72px;
+    border-right: 1px solid var(--line);
+  }
+  .migrate p {
+    margin: 14px 0 0;
+    color: var(--muted);
+    max-width: 44ch;
+  }
+  .migrate a {
+    color: var(--accent);
+  }
+  .diff {
+    padding: 0 var(--pad);
+  }
+  .diff :global(.astro-code) {
+    border: 1px solid var(--line);
+    background: var(--surface) !important;
+  }
+
+  .faq {
+    border-top: 1px solid var(--line);
+  }
+  details + details {
+    border-top: 1px solid var(--line);
+  }
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding-block: 22px;
+    font-size: 18px;
+    cursor: pointer;
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary :global(.icon) {
+    color: var(--accent);
+    transition: transform 200ms var(--ease-out);
+  }
+  details[open] summary :global(.icon) {
+    transform: rotate(45deg);
+  }
+  details p {
+    margin: 0;
+    padding-bottom: 26px;
+    color: var(--muted);
+    max-width: 70ch;
   }
 
   .start {
+    position: relative;
+    overflow: hidden;
+  }
+  .start::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgb(243 241 236 / 0.12) 1px, transparent 1.4px);
+    background-size: 14px 14px;
+    mask-image: radial-gradient(ellipse at 80% 40%, #000 10%, transparent 60%);
+    -webkit-mask-image: radial-gradient(ellipse at 80% 40%, #000 10%, transparent 60%);
+    pointer-events: none;
+  }
+  .start-inner {
+    position: relative;
     display: grid;
-    gap: 24px;
+    gap: 22px;
     justify-items: start;
+    padding-block: 88px;
   }
   .setup {
     width: 100%;
-    max-width: 720px;
-    border-radius: var(--radius);
+    max-width: 560px;
+    border: 1px solid var(--line);
     background: var(--surface);
-    border: 1px solid var(--hairline);
   }
 
   @media (max-width: 960px) {
-    .stills {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .bento {
-      grid-template-columns: 1fr 1fr;
-    }
-    .queue {
-      grid-row: auto;
-      grid-column: span 2;
-    }
-  }
-  @media (max-width: 767px) {
     .hero {
       grid-template-columns: 1fr;
       min-height: 0;
-      padding-top: 40px;
     }
-    .devices {
-      justify-self: center;
-      max-width: 360px;
+    .hero-copy {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
     }
-    .section {
-      padding-top: 88px;
+    .stills {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .bento {
+    .features {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .features .queue {
+      grid-row: auto;
+      grid-column: span 2;
+    }
+    .migrate {
       grid-template-columns: 1fr;
     }
-    .queue {
+    .migrate > .inset {
+      border-right: 0;
+    }
+    .diff {
+      padding-bottom: 56px;
+    }
+  }
+  @media (max-width: 640px) {
+    .platforms {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .platforms span:nth-child(3) {
+      border-left: 0;
+    }
+    .platforms span:nth-child(n + 3) {
+      border-top: 1px solid var(--line);
+    }
+    .features {
+      grid-template-columns: 1fr;
+    }
+    .features .queue {
       grid-column: auto;
     }
   }

@@ -1,45 +1,32 @@
+@import '@fontsource-variable/bricolage-grotesque';
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/geist-mono';
 
 /*
- * One palette, both schemes. Near-monochrome with a single accent, so the
- * colour on the page comes from the product footage, not the chrome around it.
+ * One dark theme for the whole site, locked: the product footage is the colour,
+ * the page is a frame for it. Square corners everywhere except the phones, and
+ * a visible hairline grid that holds every section.
  */
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 
-  --bg: #f5f5f7;
-  --surface: #ffffff;
-  --surface-sunk: #ececf0;
-  --text: #1d1d1f;
-  --muted: #6e6e73;
-  --hairline: rgb(29 29 31 / 0.1);
-  --accent: #0066cc;
-  --accent-text: #ffffff;
-  --shadow: 0 1px 2px rgb(29 29 31 / 0.06), 0 12px 32px rgb(29 29 31 / 0.08);
+  --bg: #121211;
+  --surface: #191918;
+  --surface-raised: #20201f;
+  --line: #2d2c2a;
+  --text: #f3f1ec;
+  --muted: rgb(243 241 236 / 0.62);
+  --faint: rgb(243 241 236 / 0.4);
+  --accent: #ffad3b;
+  --accent-ink: #1a1206;
 
-  --radius: 20px;
-  --pill: 999px;
-  --page: 1160px;
-  --gutter: clamp(20px, 4vw, 40px);
+  --page: 1240px;
+  --pad: clamp(20px, 4vw, 56px);
 
+  --display: 'Bricolage Grotesque Variable', system-ui, sans-serif;
   --font: 'Geist Variable', system-ui, sans-serif;
   --mono: 'Geist Mono Variable', ui-monospace, monospace;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0c0c0d;
-    --surface: #161618;
-    --surface-sunk: #1d1d20;
-    --text: #f5f5f7;
-    --muted: #a1a1a6;
-    --hairline: rgb(245 245 247 / 0.12);
-    --accent: #2997ff;
-    --accent-text: #0c0c0d;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.35);
-  }
 }
 
 *,
@@ -51,6 +38,7 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  background: var(--bg);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -61,34 +49,31 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-size: 17px;
-  line-height: 1.55;
+  font-size: 16px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
 a {
-  color: var(--accent);
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  color: inherit;
 }
 
 :focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 3px;
-  border-radius: 6px;
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 code,
-pre {
+pre,
+kbd {
   font-family: var(--mono);
-  font-size: 0.88em;
 }
 
 img,
@@ -97,61 +82,107 @@ video {
   max-width: 100%;
 }
 
-.page {
+/* The framed column every section sits in: hairlines down both sides. */
+.frame {
   width: 100%;
   max-width: var(--page);
   margin-inline: auto;
-  padding-inline: var(--gutter);
+  border-inline: 1px solid var(--line);
 }
 
-/* Shiki dual themes: tokens carry both colours, the scheme picks one. */
+.band {
+  border-top: 1px solid var(--line);
+}
+
+.inset {
+  padding-inline: var(--pad);
+}
+
+.display {
+  font-family: var(--display);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+}
+
+.label {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Buttons: square, mono, uppercase. One filled (primary), one outlined. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 22px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 160ms,
+    border-color 160ms,
+    transform 160ms var(--ease-out);
+}
+
+.button:hover {
+  border-color: var(--faint);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.button.primary:hover {
+  background: #ffbd61;
+  border-color: #ffbd61;
+}
+
+.button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Shiki: the dark tokens only; the site has one theme. */
 .astro-code,
 .astro-code span {
-  color: var(--shiki-light);
+  color: var(--shiki-dark);
   background-color: transparent !important;
-}
-
-@media (prefers-color-scheme: dark) {
-  .astro-code,
-  .astro-code span {
-    color: var(--shiki-dark);
-  }
 }
 
 .astro-code {
   margin: 0;
   padding: 20px 22px;
   overflow-x: auto;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.65;
 }
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 46px;
-  padding: 0 22px;
-  border-radius: var(--pill);
-  background: var(--accent);
-  color: var(--accent-text);
-  font-weight: 560;
-  font-size: 16px;
-  white-space: nowrap;
-  transition: transform 160ms var(--ease-out), opacity 160ms;
-}
-
-.button:hover {
-  text-decoration: none;
-  opacity: 0.92;
-}
-
-.button:active {
-  transform: scale(0.98);
-}
-
-.button svg {
-  width: 18px;
-  height: 18px;
+/* A dotted field, the page's one texture. Fades out at its edges. */
+.dots {
+  background-image: radial-gradient(rgb(243 241 236 / 0.16) 1px, transparent 1.4px);
+  background-size: 14px 14px;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
 }
 
 .visually-hidden {

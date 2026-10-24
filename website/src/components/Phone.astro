@@ -1,14 +1,13 @@
 ---
 /**
- * A real recording in a plain device bezel. The video source follows the
- * colour scheme (see the script in pages/index.astro), so dark-mode visitors
- * see the dark-mode recording.
+ * A real recording in a plain device bezel. The site is dark, so the dark-mode
+ * recording plays by default; the demo window can switch it to light.
  */
 import { url } from '../lib/url';
 
 interface Props {
   platform: 'ios' | 'android';
-  /** Base name of the media files: `<name>-light.mp4`, `<name>-dark.jpg`, ... */
+  /** Base name of the media files: `<name>-dark.mp4`, `<name>-light.jpg`, ... */
   media: string;
   label: string;
   id?: string;
@@ -19,49 +18,47 @@ const file = (scheme: 'light' | 'dark', ext: string) => url(`media/${media}-${sc
 ---
 
 <figure class:list={['phone', platform]}>
-  <div class="frame">
-  <div class="screen">
-    <video
-      id={id}
-      data-light={file('light', 'mp4')}
-      data-dark={file('dark', 'mp4')}
-      data-poster-light={file('light', 'jpg')}
-      data-poster-dark={file('dark', 'jpg')}
-      poster={file('light', 'jpg')}
-      muted
-      loop
-      playsinline
-      preload="none"
-      aria-label={label}
-    ></video>
+  <div class="frame-bezel">
+    <div class="screen">
+      <video
+        id={id}
+        src={file('dark', 'mp4')}
+        poster={file('dark', 'jpg')}
+        data-light={file('light', 'mp4')}
+        data-dark={file('dark', 'mp4')}
+        data-poster-light={file('light', 'jpg')}
+        data-poster-dark={file('dark', 'jpg')}
+        muted
+        loop
+        playsinline
+        preload="none"
+        aria-label={label}
+      ></video>
+    </div>
   </div>
-  </div>
-  <figcaption class="visually-hidden">{label}</figcaption>
 </figure>
 
 <style>
-  /* The figure is the size container; the frame inside sizes its bezel and
-     corners from it, so they scale with the phone, not the viewport. */
+  /* The figure is the size container; the bezel and corners scale with it. */
   .phone {
     margin: 0;
     container-type: inline-size;
   }
-  .frame {
-    padding: 3.4cqw;
-    background: #1c1c1e;
+  .frame-bezel {
+    padding: 3.2cqw;
+    background: #0b0b0a;
     border-radius: 17cqw;
     box-shadow:
-      inset 0 0 0 1px rgb(255 255 255 / 0.08),
-      0 2px 4px rgb(0 0 0 / 0.12),
-      0 30px 60px -20px rgb(0 0 0 / 0.35);
+      inset 0 0 0 1px rgb(255 255 255 / 0.1),
+      0 40px 80px -30px rgb(0 0 0 / 0.8);
   }
-  .android .frame {
+  .android .frame-bezel {
     border-radius: 11cqw;
   }
   .screen {
     overflow: hidden;
-    border-radius: 13.8cqw;
-    background: var(--surface-sunk);
+    border-radius: 14cqw;
+    background: #000;
     aspect-ratio: 1206 / 2622;
   }
   .android .screen {
