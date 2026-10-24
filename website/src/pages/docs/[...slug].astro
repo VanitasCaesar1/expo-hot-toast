@@ -217,7 +217,7 @@ const source = page.slug === 'design-notes' ? 'docs/design.md' : 'README.md';
 
   .pager {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1px;
     margin-top: 64px;
     background: var(--line);
@@ -262,7 +262,7 @@ const source = page.slug === 'design-notes' ? 'docs/design.md' : 'README.md';
   }
   @media (max-width: 760px) {
     .docs {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
     .sidebar {
       border-right: 0;
