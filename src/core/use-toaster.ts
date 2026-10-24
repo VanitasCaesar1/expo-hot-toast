@@ -14,6 +14,7 @@ import { toast } from './toast';
 import { defaultMotion } from './defaults';
 import type {
   DefaultToastOptions,
+  MotionConfig,
   Toast,
   ToastPosition,
   ToastType,
@@ -46,6 +47,12 @@ export interface UseToasterOptions {
    * `removeDelay`; it is the same mechanism under a different name.
    */
   exitDuration?: number;
+  /**
+   * The motion values the timers depend on. The Toaster passes its theme's, so
+   * a retuned `enter` or `stagger` moves the deadlines with the animation.
+   * Defaults to `defaultMotion`.
+   */
+  motion?: Partial<Pick<MotionConfig, 'enter' | 'stagger' | 'staggerMax'>>;
 }
 
 export interface UseToasterResult {
@@ -67,6 +74,7 @@ export function useToaster({
   defaultPosition = 'top-center',
   paused,
   exitDuration = 400,
+  motion: motionOverride,
 }: UseToasterOptions = {}): UseToasterResult {
   const state = useToasterStore(toastOptions, toasterId);
 
@@ -83,7 +91,7 @@ export function useToaster({
 
   // Timing facts the store needs, kept out of the theme object so the core does
   // not depend on the theme layer just to read three numbers.
-  const motion = useToasterMotion();
+  const motion = useToasterMotion(motionOverride);
 
   // Resolve each toast's position once, here, because the visible/pending split
   // is computed per position and `depth` is meaningless without it.
@@ -197,38 +205,6 @@ export function useToaster({
   );
 
   /**
-   * Background recovery. On iOS and Android a suspended app freezes timers but
-   * not wall-clock time, so a toast that should have expired 10s ago is still
-   * sitting in the array on resume. Re-run the expiry check on foreground.
-   *
-   * rht handles this implicitly because `durationLeft < 0` is recomputed on
-   * any re-render; React Native gives us no such render after a resume.
-   */
-  const wasActive = useRef<AppStateStatus>(AppState.currentState ?? 'active');
-  useEffect(() => {
-    const isBackgrounded = (state: AppStateStatus | undefined | null): boolean =>
-      state === 'inactive' || state === 'background';
-
-    const subscription = AppState.addEventListener(
-      'change',
-      (next: AppStateStatus) => {
-        if (isBackgrounded(wasActive.current) && next === 'active') {
-          const now = Date.now();
-          state.toasts.forEach((t) => {
-            if (!t.visible || t.duration === Infinity) return;
-            const since = shownAt(visibleSince, t);
-            if ((t.duration ?? 0) + t.pauseDuration - motion.enter - (now - since) <= 0) {
-              toast.dismiss(t.id, toasterId, 'timeout');
-            }
-          });
-        }
-        wasActive.current = next;
-      },
-    );
-    return () => subscription.remove();
-  }, [state.toasts, toasterId, motion, visibleSince]);
-
-  /**
    * Split visible from pending, per position.
    *
    * Promotion is deliberately implicit. `toasts` is recomputed as a slice of the
@@ -253,6 +229,10 @@ export function useToaster({
       const depth = filled.get(toast.resolvedPosition) ?? 0;
 
       if (depth >= cap) {
+        // A toast pushed back out of the visible slice by a newer one forgets
+        // when it was first shown. Otherwise its clock keeps running while it
+        // waits, and on promotion it is retired on the very tick it reappears.
+        visibleSince.delete(toast.id);
         pen.push(toast);
         continue;
       }
@@ -272,6 +252,39 @@ export function useToaster({
 
     return { visible: vis, pending: pen };
   }, [toasts, state.settings.visibleToasts, visibleSince]);
+
+  /**
+   * Background recovery. On iOS and Android a suspended app freezes timers but
+   * not wall-clock time, so a toast that should have expired 10s ago is still
+   * sitting in the array on resume. Re-run the expiry check on foreground.
+   *
+   * rht handles this implicitly because `durationLeft < 0` is recomputed on
+   * any re-render; React Native gives us no such render after a resume.
+   */
+  const wasActive = useRef<AppStateStatus>(AppState.currentState ?? 'active');
+  useEffect(() => {
+    const isBackgrounded = (state: AppStateStatus | undefined | null): boolean =>
+      state === 'inactive' || state === 'background';
+
+    const subscription = AppState.addEventListener(
+      'change',
+      (next: AppStateStatus) => {
+        if (isBackgrounded(wasActive.current) && next === 'active') {
+          const now = Date.now();
+          // Visible toasts only, with the same budget as the timers below. A
+          // pending toast has not been seen yet, so it cannot have expired.
+          visible.forEach((t) => {
+            if (!t.visible || t.duration === Infinity) return;
+            if (remaining(t, visibleSince, motion, now) <= 0) {
+              toast.dismiss(t.id, toasterId, 'timeout');
+            }
+          });
+        }
+        wasActive.current = next;
+      },
+    );
+    return () => subscription.remove();
+  }, [visible, toasterId, motion, visibleSince]);
 
   /**
    * Timers, armed for visible toasts only.
@@ -294,12 +307,7 @@ export function useToaster({
     const timers = visible
       .filter((t) => t.visible && t.duration !== Infinity)
       .map((t) => {
-        const stagger = Math.min(t.depth * motion.stagger, motion.staggerMax);
-        // Measured from when the toast became visible, falling back to creation
-        // for the rare render where the map has not been written yet.
-        const since = shownAt(visibleSince, t);
-        const budget =
-          (t.duration ?? 0) + t.pauseDuration + stagger - motion.enter - (now - since);
+        const budget = remaining(t, visibleSince, motion, now);
 
         if (budget <= 0) {
           toast.dismiss(t.id, toasterId, 'timeout');
@@ -318,6 +326,23 @@ export function useToaster({
   }, [visible, pausedAt, toasterId, motion, visibleSince]);
 
   return { toasts: visible, pending, startPause, endPause };
+}
+
+/**
+ * Milliseconds left before a visible toast times out.
+ *
+ * Measured from when the toast became visible, falling back to creation for the
+ * rare render where the map has not been written yet. The enter animation is
+ * charged to the animation and the deadline is staggered by stack depth.
+ */
+function remaining(
+  t: Toast,
+  visibleSince: Map<string, number>,
+  motion: { enter: number; stagger: number; staggerMax: number },
+  now: number,
+): number {
+  const stagger = Math.min(t.depth * motion.stagger, motion.staggerMax);
+  return (t.duration ?? 0) + t.pauseDuration + stagger - motion.enter - (now - shownAt(visibleSince, t));
 }
 
 /**
@@ -343,11 +368,11 @@ function shownAt(visibleSince: Map<string, number>, t: Toast): number {
  * the store needs, and threading a whole resolved theme through the hook purely
  * to read three numbers would couple the core to the theme layer.
  */
-function useToasterMotion() {
-  return useMemo(
-    () => ({ enter: defaultMotion.enter, stagger: defaultMotion.stagger, staggerMax: defaultMotion.staggerMax }),
-    [],
-  );
+function useToasterMotion(override: UseToasterOptions['motion']) {
+  const enter = override?.enter ?? defaultMotion.enter;
+  const stagger = override?.stagger ?? defaultMotion.stagger;
+  const staggerMax = override?.staggerMax ?? defaultMotion.staggerMax;
+  return useMemo(() => ({ enter, stagger, staggerMax }), [enter, stagger, staggerMax]);
 }
 
 export interface UseToasterCleanupOptions {

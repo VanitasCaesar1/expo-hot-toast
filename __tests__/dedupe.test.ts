@@ -199,3 +199,49 @@ describe('dedupe registry primitives', () => {
     expect(findDedupeHit('r', 'middle', 1_000, 2_000)).toBeNull();
   });
 });
+
+describe('dedupe — only a live toast absorbs a duplicate', () => {
+  it('shows a new toast when the earlier one was dismissed inside the window', () => {
+    // Regression: the registry returned the dismissed toast's id, so the second
+    // message got an id back and was never shown.
+    const first = toast('Saved', { dedupeKey: 'save' });
+    toast.dismiss(first);
+
+    const second = toast('Saved again', { dedupeKey: 'save' });
+
+    expect(second).not.toBe(first);
+    expect(getState().toasts.find((t) => t.id === second)?.dismissed).toBe(false);
+  });
+
+  it('shows a new toast when the earlier one was removed inside the window', () => {
+    const first = toast('Saved', { dedupeKey: 'save' });
+    toast.remove(first);
+
+    const second = toast('Saved again', { dedupeKey: 'save' });
+
+    expect(second).not.toBe(first);
+    expect(getState().toasts).toHaveLength(1);
+  });
+});
+
+describe('updating by id', () => {
+  it('lands in the region that already holds the toast', () => {
+    // Regression: without a toasterId the update went to 'default', stacking a
+    // second toast there and leaving the original spinning in its own region.
+    const id = toast.loading('Uploading', { toasterId: 'sidebar' });
+    toast.success('Uploaded', { id });
+
+    expect(getState('default').toasts).toHaveLength(0);
+    expect(getState('sidebar').toasts).toHaveLength(1);
+    expect(getState('sidebar').toasts[0]).toMatchObject({ id, type: 'success' });
+  });
+
+  it('clears the previous dismiss reason when it revives a toast', () => {
+    const id = toast('Draft', { duration: 'infinite' });
+    toast.dismiss(id, undefined, 'swipe');
+    toast('Draft restored', { id });
+
+    expect(getState().toasts[0]!.dismissed).toBe(false);
+    expect(getState().toasts[0]!.dismissReason).toBeUndefined();
+  });
+});

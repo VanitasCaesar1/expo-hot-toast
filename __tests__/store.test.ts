@@ -210,6 +210,34 @@ describe('resolveToast', () => {
   });
 });
 
+describe('resolveToast — the toast always beats a Toaster default', () => {
+  // Regression: every field except `action` and `closeButton` used to read the
+  // Toaster default first, so `<Toaster toastOptions={{ position: 'bottom-center' }}>`
+  // pinned every toast there regardless of what the toast asked for.
+  it.each([
+    ['position', 'top-left', 'bottom-center'],
+    ['glass', false, true],
+    ['dismissOnTap', false, true],
+    ['important', false, true],
+    ['icon', 'mine', 'theirs'],
+    ['accessibilityLabel', 'mine', 'theirs'],
+    ['closeButtonColor', '#000', '#fff'],
+  ] as const)('%s', (key, own, fallback) => {
+    const resolved = resolveToast(baseToast({ [key]: own } as Partial<Toast>), {
+      [key]: fallback,
+    });
+    expect(resolved[key]).toBe(own);
+  });
+
+  it('lets a per-type default beat the Toaster default but not the toast', () => {
+    const options = { position: 'bottom-center', success: { position: 'top-right' } } as const;
+    expect(resolveToast(baseToast({ type: 'success', position: undefined }), options).position)
+      .toBe('top-right');
+    expect(resolveToast(baseToast({ type: 'success', position: 'top-left' }), options).position)
+      .toBe('top-left');
+  });
+});
+
 /**
  * `action` is the one `ToastOptions` field that carries behaviour rather than
  * appearance, so it has to survive the merge intact: a Toaster-level default

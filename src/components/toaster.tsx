@@ -118,7 +118,7 @@ export function Toaster({
   const reduceMotion = useReduceMotion();
   const reduceTransparency = useReduceTransparency();
 
-  const { toasts, pending, startPause, endPause } = useToaster({
+  const { toasts, startPause, endPause } = useToaster({
     toastOptions,
     toasterId,
     toastLimit,
@@ -131,6 +131,7 @@ export function Toaster({
     // used rather than a hardcoded default — a consumer who lengthens the exit
     // animation would otherwise have toasts vanish mid-flight.
     exitDuration: theme.motion.exit,
+    motion: theme.motion,
   });
 
   useToasterCleanup({ toasterId });
@@ -186,7 +187,7 @@ export function Toaster({
       }
       seen.current.set(t.id, { createdAt: t.createdAt, type: t.type, message: t.message });
 
-      const label = t.accessibilityLabel ?? extractLabel(t.message, t);
+      const label = t.accessibilityLabel ?? extractLabel(t.message);
       if (label) announce(label, t.type === 'error');
 
       // A loading toast is a placeholder, not an outcome. Buzzing for it would
@@ -421,7 +422,7 @@ function dismiss(id: string, toasterId: string, reason: DismissReason): void {
   toast.dismiss(id, toasterId, reason);
 }
 
-function extractLabel(node: Toast['message'], toast: Toast): string | undefined {
+function extractLabel(node: Toast['message']): string | undefined {
   if (typeof node === 'function') return undefined;
   if (typeof node === 'string' || typeof node === 'number') return String(node);
   if (Array.isArray(node)) {
@@ -432,44 +433,27 @@ function extractLabel(node: Toast['message'], toast: Toast): string | undefined 
       .filter(Boolean);
     return parts.length > 0 ? parts.join(' ') : undefined;
   }
-  void toast;
   return undefined;
 }
 
 /**
- * Keyboard height, plus the keyboard's own animation curve and duration.
+ * Keyboard height, for lifting bottom-anchored stacks clear of it.
  *
- * Reading only `endCoordinates.height` and snapping to it means the stack jumps
- * while the keyboard glides, which reads as a stutter on every focus change.
- * iOS publishes the keyboard's animation parameters on the event; matching them
- * means the toasts move with the keyboard instead of chasing it.
- *
- * Returns a plain object rather than a height so the curve and duration are not
- * thrown away by the caller.
+ * iOS listens to the will-events so the lift lands as the keyboard starts to
+ * move rather than after it has finished. The lift itself is not animated.
  */
-function useKeyboard(): { height: number; duration: number } {
-  const [state, setState] = React.useState({ height: 0, duration: 250 });
+function useKeyboard(): { height: number } {
+  const [height, setHeight] = React.useState(0);
 
   React.useEffect(() => {
     const isIOS = Platform.OS === 'ios';
     const showEvent = isIOS ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = isIOS ? 'keyboardWillHide' : 'keyboardDidHide';
 
-    const show = Keyboard.addListener(showEvent, (event: any) => {
-      const duration =
-        // Present on iOS only, and absent on some third-party keyboards.
-        event?.endCoordinates?.screenY === undefined
-          ? 250
-          : Number(event.duration ?? 250);
-
-      setState({ height: event.endCoordinates.height, duration });
+    const show = Keyboard.addListener(showEvent, (event) => {
+      setHeight(event.endCoordinates.height);
     });
-
-    const hide = Keyboard.addListener(hideEvent, (event: any) => {
-      const duration =
-        Platform.OS === 'ios' ? Number(event?.duration ?? 250) : 0;
-      setState({ height: 0, duration });
-    });
+    const hide = Keyboard.addListener(hideEvent, () => setHeight(0));
 
     return () => {
       show.remove();
@@ -477,7 +461,7 @@ function useKeyboard(): { height: number; duration: number } {
     };
   }, []);
 
-  return state;
+  return { height };
 }
 
 const styles = StyleSheet.create({

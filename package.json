@@ -64,9 +64,10 @@
     "typecheck:example": "tsc --noEmit --project example/tsconfig.json",
     "build": "bob build",
     "clean": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\"",
+    "prepare": "bob build",
     "verify:package": "node scripts/verify-package.mjs",
-    "prepublishOnly": "npm run test && npm run typecheck && npm run build",
-    "verify:consumer": "node scripts/verify-consumer.mjs"
+    "verify:consumer": "node scripts/verify-consumer.mjs",
+    "prepublishOnly": "npm run test && npm run typecheck"
   },
   "react-native-builder-bob": {
     "source": "src",
@@ -122,9 +123,7 @@
     "react-native-worklets": "^0.13.0",
     "react-test-renderer": "^19.2.3",
     "typescript": "5.6",
-    "vitest": "^2.1.0"
-  },
-  "dependencies": {
-    "expo-modules-core": "^57.0.20"
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   }
 }

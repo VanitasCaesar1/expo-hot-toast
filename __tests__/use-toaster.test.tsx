@@ -936,3 +936,58 @@ describe('useToaster — dismissed toasts are eventually removed', () => {
     expect(() => act(() => { jest.advanceTimersByTime(1); })).not.toThrow();
   });
 });
+
+describe('useToaster — demotion and re-promotion', () => {
+  it('gives a toast pushed back into the queue a fresh budget when it returns', () => {
+    // Regression: a visible toast displaced by a newer one kept its original
+    // first-visible time, so on promotion its budget was already spent and it
+    // was dismissed on the tick it reappeared.
+    const { result } = renderHook(() => useToaster({ visibleToasts: 1 }));
+    act(() => {
+      toast('first', { duration: 3000 });
+    });
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    act(() => {
+      toast('second', { duration: 2000 });
+    });
+    expect(result.current.pending.map((t) => t.message)).toEqual(['first']);
+
+    // `second` times out, then its exit window passes and `first` is promoted.
+    act(() => {
+      jest.advanceTimersByTime(deadline(2000) + EPSILON);
+    });
+    act(() => {
+      jest.advanceTimersByTime(defaultMotion.exit + EPSILON);
+    });
+
+    expect(result.current.toasts.map((t) => [t.message, t.dismissed])).toEqual([
+      ['first', false],
+    ]);
+    act(() => {
+      jest.advanceTimersByTime(deadline(3000) - EPSILON * 2);
+    });
+    expect(result.current.toasts[0]!.dismissed).toBe(false);
+  });
+});
+
+describe('useToaster — motion override', () => {
+  it('times toasts with the motion it is given', () => {
+    const { result } = renderHook(() => useToaster({ motion: { enter: 0 } }));
+    act(() => {
+      toast('x', { duration: 1000 });
+    });
+
+    // With the default 350ms enter this toast would already be gone.
+    act(() => {
+      jest.advanceTimersByTime(1000 - EPSILON);
+    });
+    expect(result.current.toasts[0]!.dismissed).toBe(false);
+    act(() => {
+      jest.advanceTimersByTime(EPSILON * 2);
+    });
+    expect(result.current.toasts[0]!.dismissed).toBe(true);
+  });
+});
+

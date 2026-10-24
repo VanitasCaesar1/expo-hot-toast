@@ -201,6 +201,14 @@ export function getState(toasterId: string = DEFAULT_TOASTER_ID): ToasterState {
   return readState(toasterId);
 }
 
+/** The region currently holding a toast with this id, if any. */
+export function findToasterIdFor(toastId: string): string | undefined {
+  for (const [toasterId, state] of memoryState) {
+    if (state.toasts.some((t) => t.id === toastId)) return toasterId;
+  }
+  return undefined;
+}
+
 function emit(toasterId: string): void {
   listeners.get(toasterId)?.forEach((listener) => listener(toasterId));
 }
@@ -270,25 +278,12 @@ export function useToasterStore(
     () => defaultToasterState,
   );
 
-  // Per-type buckets live under keys named after the toast type; they must not
-  // be mistaken for top-level Toaster options.
-  const { blank, custom, error, loading, success, ...rest } = toastOptions;
-  void blank;
-  void custom;
-  void error;
-  void loading;
-  void success;
-
-  return { ...state, toasts: state.toasts.map((t) => resolveToast(t, rest)) };
+  // The per-type buckets (`success`, `error`, …) are passed through whole:
+  // `resolveToast` reads only the bucket matching the toast's type, and no
+  // top-level option shares a name with a toast type.
+  return { ...state, toasts: state.toasts.map((t) => resolveToast(t, toastOptions)) };
 }
 
-/**
- * Precedence, low to high: type defaults -> Toaster defaults -> the toast.
- *
- * `duration` is re-derived explicitly because the spread of `t` would carry an
- * explicit `undefined` and shadow the fallback (react-hot-toast hits this and
- * re-derives for the same reason).
- */
 /**
  * Write-or-delete a key without leaving a cast at every call site.
  *
@@ -306,31 +301,25 @@ function put<K extends keyof Toast>(
   else bag[key] = value;
 }
 
+/**
+ * Apply Toaster-level defaults to a toast.
+ *
+ * Precedence, low to high: Toaster defaults -> per-type defaults (e.g.
+ * `toastOptions.success`) -> the toast itself — the same order react-hot-toast
+ * uses. A default only fills a field the toast left unset; it never overrides
+ * one the toast chose.
+ */
 export function resolveToast(
   toast: Toast,
-  toastOptions: Partial<Record<ToastType | string, unknown>> = {},
+  options: DefaultToastOptions = {},
 ): Toast {
-  const typeOptions = (toastOptions[toast.type] ?? {}) as Partial<Toast>;
+  // Indexed by toast field names below, which `DefaultToastOptions` does not
+  // declare one-for-one, so it is read through an untyped view.
+  const toastOptions = options as Partial<Record<ToastType | string, unknown>>;
+  const typeOptions = (options[toast.type] ?? {}) as Partial<Toast>;
   const draft: Toast = { ...toast };
 
-  // Low to high: Toaster defaults -> per-type defaults -> the toast itself.
-  //
-  // The toast MUST come last. Reading the Toaster default first inverts the
-  // precedence the comment above describes and silently makes every Toaster-level
-  // default beat the toast that was supposed to override it — a per-toaster
-  // default `action`, for instance, would stomp on the toast's own.
   const pick = <K extends keyof Toast>(key: K): void => {
-    put(
-      draft,
-      key,
-      (toastOptions[key] as Toast[K] | undefined) ??
-        typeOptions[key] ??
-        toast[key],
-    );
-  };
-
-  /** Same precedence, but the toast's own value wins outright. */
-  const preferToast = <K extends keyof Toast>(key: K): void => {
     put(
       draft,
       key,
@@ -345,7 +334,7 @@ export function resolveToast(
   // `closeButton` is the canonical name; `closeable` is honoured as an alias
   // from any of the three sources, so an existing caller using the old name at
   // any level keeps working.
-  preferToast('closeButton');
+  pick('closeButton');
   if (draft.closeButton === undefined) {
     const legacy =
       toast.closeable ?? typeOptions.closeable ?? toastOptions.closeable;
@@ -353,12 +342,11 @@ export function resolveToast(
   }
   pick('closeButtonColor');
   pick('important');
-  // These describe the toast's own interaction, so a Toaster default must not
-  // override an explicit per-toast value.
-  preferToast('action');
+  pick('action');
   pick('dedupeKey');
   pick('icon');
   pick('theme');
+  pick('onDismiss');
 
   // Style props merge into an array; React Native flattens it itself and later
   // entries win. A single remaining entry is unwrapped so `StyleProp` stays a

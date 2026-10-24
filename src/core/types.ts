@@ -175,7 +175,6 @@ export type DismissReason =
   | 'close'
   | 'overflow'
   | 'programmatic'
-  | 'replaced'
   | 'action';
 
 /* ------------------------------------------------------------------ */

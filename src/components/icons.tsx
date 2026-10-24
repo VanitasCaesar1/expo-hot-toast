@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import type { ToastTheme } from '../core/types';
 
@@ -84,10 +84,6 @@ export { ACCENTS as TOAST_ICON_ACCENTS };
  * and lands inconsistently across type ramps; this is a fixed 24x24 box.
  */
 export function CloseIcon({ size, color }: { size: number; color: string }) {
-  if (!Svg || !Path) {
-    return <Text style={{ fontSize: size, lineHeight: size, color }}>×</Text>;
-  }
-
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path

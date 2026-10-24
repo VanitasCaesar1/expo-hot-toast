@@ -111,16 +111,14 @@ export function __resetAccessibilityCache(): void {
   cache.clear();
 }
 
-/**
- * Whether a real Liquid Glass material can be used right now.
- *
- * Three conditions, all required:
- *  1. iOS 26 or later on a build that compiles against the iOS 26 SDK.
- *  2. The app has not opted out via `UIDesignRequiresCompatibility`.
- *  3. The user has not asked for reduced transparency.
- */
 export type GlassMode = 'glass' | 'opaque';
 
+/**
+ * Combine a glass setting with the user's Reduce Transparency preference.
+ *
+ * Pass `GLASS_SUPPORTED` (or your own setting ANDed with it) as `enabled`; this
+ * hook adds only the accessibility check, not platform availability.
+ */
 export function useGlassMode(enabled: boolean): GlassMode {
   const reduceTransparency = useReduceTransparency();
   return enabled && !reduceTransparency ? 'glass' : 'opaque';
@@ -135,8 +133,6 @@ export function useGlassMode(enabled: boolean): GlassMode {
  * message in progress. The argument is kept so Android's real live region can
  * honour it (see ToastBar's `accessibilityLiveRegion`) and so a future API with
  * interruption support has somewhere to plug in.
- *
- * Returning the text rather than logging nothing also lets callers assert on it.
  */
 export function announce(message: string, assertive: boolean): void {
   void assertive;

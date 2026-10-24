@@ -33,7 +33,7 @@ Initial release. Not yet published to npm; `main` previously pointed at
   the live id instead of stacking, so a caller can update in place. Bounded to
   500 keys.
 - **Typed dismiss reasons** — `'timeout' | 'swipe' | 'tap' | 'close' | 'action' |
-  'overflow' | 'programmatic' | 'replaced'` — with `onDismiss`. The first reason
+  'overflow' | 'programmatic'` — with `onDismiss`. The first reason
   wins, so a toast that times out and is then swiped reports `timeout`.
 - **Action buttons** (`action: { label, onPress }`), dismissed with reason
   `'action'` after the handler runs, so the queue never shows a message
@@ -41,7 +41,7 @@ Initial release. Not yet published to npm; `main` previously pointed at
 - **Accessibility**: `important` selects an assertive live region; Android gets a
   real `accessibilityLiveRegion`, iOS an imperative announcement.
 - **RN affordances** the web version has no concept of: safe-area insets,
-  keyboard avoidance with the keyboard's own duration and curve, drag-to-dismiss
+  keyboard avoidance for bottom stacks, drag-to-dismiss
   with velocity fling, press-and-hold to freeze the queue, backgrounded-app expiry
   recovery, `borderCurve: 'continuous'`, and Reduce Motion handled as its own
   motion config rather than a skip-animation flag.
@@ -61,6 +61,13 @@ Initial release. Not yet published to npm; `main` previously pointed at
   Old names remain as deprecated aliases.
 - Peer requirement raised to `react-native-safe-area-context >=5.10.0`;
   5.0.0 does not compile against React Native 0.86's Yoga.
+- `expo-modules-core` is no longer a runtime dependency. Nothing imported it, and
+  pinning it could install a second copy next to the app's own.
+- A `prepare` script builds `lib/` on install from GitHub; before it, a git
+  install had no compiled output or type declarations.
+- `useToaster` accepts `motion` (`enter`, `stagger`, `staggerMax`), and the
+  Toaster passes its theme's, so retuned motion moves the timers with it.
+- Removed the `'replaced'` dismiss reason, which nothing ever emitted.
 
 ### Fixed
 
@@ -113,6 +120,25 @@ Found by running the example on an iOS 26.5 simulator:
   left/right positions are no longer centred.
 - Reanimated warnings for a dependency array and a render-time shared-value read.
 
+Found in a source audit (2026-10-24):
+
+- `<Toaster toastOptions>` defaults overrode a toast's own `position`, `glass`,
+  `icon`, `theme`, `dismissOnTap`, `important`, `accessibilityLabel` and
+  `closeButtonColor`. The toast now always wins, as in react-hot-toast.
+- Per-type buckets (`toastOptions={{ success: { … } }}`) were stripped before
+  resolution and never reached a toast.
+- A visible toast pushed back into the queue by newer ones kept its original
+  clock, so on promotion it was dismissed on the tick it reappeared.
+- After returning from the background, toasts still waiting in the queue could
+  be expired before they were ever shown.
+- `dedupeKey` returned the id of a toast that had already been dismissed or
+  removed, so the new message was silently dropped.
+- Updating a toast by id without a `toasterId` stacked a copy in the default
+  region instead of updating the toast where it was. A revived toast also kept
+  its old dismiss reason.
+- Android buzzed the success haptic for blank and custom toasts, and a failed
+  Android haptic was an unhandled rejection.
+
 ### Known limitations
 
 - **Verified on the iOS 26.5 simulator only** — not on a physical device, on
@@ -129,5 +155,3 @@ Found by running the example on an iOS 26.5 simulator:
 - Toasts do not render above a presented sheet (`FullWindowOverlay` is not
   used) — it would add `react-native-screens` as a dependency for a case most
   apps never hit.
-
-[Unreleased]: https://github.com/VanitasCaesar1/expo-hot-toast/compare/v0.1.0...HEAD

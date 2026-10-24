@@ -6,6 +6,8 @@ import {
   dispatch,
   dispatchAll,
   findDedupeHit,
+  findToasterIdFor,
+  getState,
   recordDedupe,
   resolveValue,
 } from './store';
@@ -56,11 +58,6 @@ export interface ToastAPI {
   removeAll(toasterId?: string): void;
 }
 
-/**
- * Pull the intended toasterId out of a toast id when the caller updates a
- * toast by id but doesn't name the region explicitly. This is what lets
- * `toast.success(msg, { id })` land in a non-default Toaster.
- */
 function createToast(
   message: Message,
   type: ToastType,
@@ -76,7 +73,13 @@ function createToast(
     ...opts,
     type,
     id,
-    toasterId: opts?.toasterId ?? DEFAULT_TOASTER_ID,
+    // Updating a toast by id without naming a region lands in the region that
+    // already holds it, as in react-hot-toast. Defaulting to 'default' here
+    // would stack a second copy there and leave the original untouched.
+    toasterId:
+      opts?.toasterId ??
+      (opts?.id === undefined ? undefined : findToasterIdFor(opts.id)) ??
+      DEFAULT_TOASTER_ID,
     message,
     // A numeric duration travels as-is; only a symbolic one needs the preset
     // field. Dropping the number here would silently fall back to the per-type
@@ -91,6 +94,9 @@ function createToast(
     createdAt: Date.now(),
     visible: true,
     dismissed: false,
+    // Cleared explicitly: an update by id revives a dismissed toast, and the
+    // reason it was dismissed the first time no longer applies.
+    dismissReason: undefined,
   };
 }
 
@@ -101,30 +107,34 @@ const toasterIdFor = (toast: Toast): string =>
  * Deduplication.
  *
  * A toast whose `dedupeKey` is already on screen inside its window returns that
- * toast's id instead of stacking a copy. The caller can then `transition()` it.
+ * toast's id instead of stacking a copy. The caller can then update it in place
+ * by passing that id back.
  *
  * This is the fix for a spinner that fires twenty times a second: twenty stacked
  * toasts tell the user nothing, whereas one toast that updates in place tells
  * them exactly what is happening.
  */
-function dedupe(
-  message: Message,
-  opts: ToastOptions | undefined,
-): string | null {
+function dedupe(opts: ToastOptions | undefined): string | null {
   if (opts?.dedupeKey === undefined) return null;
 
   const toasterId = opts.toasterId ?? DEFAULT_TOASTER_ID;
-  return findDedupeHit(
+  const hit = findDedupeHit(
     toasterId,
     opts.dedupeKey,
     opts.dedupeWindowMs ?? DEFAULT_DEDUPE_WINDOW,
   );
+  // Only a toast that is still on screen can absorb a duplicate. Returning the
+  // id of one that was already dismissed or removed would swallow the new
+  // message: the caller gets an id, and nothing is shown.
+  if (hit === null) return null;
+  const live = getState(toasterId).toasts.some((t) => t.id === hit && !t.dismissed);
+  return live ? hit : null;
 }
 
 const createHandler =
   (type: ToastType = 'blank'): ToastHandler =>
   (message, options) => {
-    const existing = dedupe(message, options);
+    const existing = dedupe(options);
     if (existing) return existing;
 
     const toast = createToast(message, type, options);

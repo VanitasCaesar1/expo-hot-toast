@@ -18,8 +18,9 @@ await toast.promise(save(), {
 
 ## Install
 
-Not yet on npm. Until it is, install it from GitHub — the published tarball is
-built, so Metro will resolve the compiled output and the source maps:
+Not yet on npm. Until it is, install it from GitHub. The compiled `lib/` is not
+committed, so npm runs the package's `prepare` script (`bob build`) after
+cloning; that installs the dev toolchain first and takes a minute or two:
 
 ```sh
 npm install github:VanitasCaesar1/expo-hot-toast
@@ -32,7 +33,9 @@ npx expo install expo-glass-effect expo-haptics react-native-reanimated \
   react-native-gesture-handler react-native-safe-area-context react-native-svg
 ```
 
-Requires Expo SDK 55+ (SDK 57 recommended), React 19, RN 0.80+.
+The peer ranges allow Expo SDK 55+, React 19 and RN 0.80+, but the only
+combination tested so far is Expo SDK 57, React Native 0.86.3, Reanimated 4.7
+and Gesture Handler 3.3 (the example app's versions).
 `react-native-safe-area-context` must be **>=5.10.0** — 5.0.0 does not compile
 against RN 0.86's Yoga (`no member named 'unit' in 'facebook::yoga::StyleLength'`).
 Add the Reanimated Babel plugin and wrap your app in `GestureHandlerRootView`
@@ -107,7 +110,8 @@ const t2 = useToastTheme({ radius: 12 });
 ### RN affordances the web version has no concept of
 
 Safe-area insets (a top-anchored toast would otherwise sit inside the Dynamic
-Island), keyboard avoidance for bottom positions, drag-to-dismiss with velocity
+Island), keyboard avoidance for bottom positions (the stack lifts clear of the
+keyboard; the lift is not animated), drag-to-dismiss with velocity
 fling, press-and-hold to freeze the queue, backgrounded-app expiry recovery,
 `accessibilityLiveRegion` on Android plus imperative announcements on iOS, and
 Reduce Motion handled as its own motion config rather than a skip-animation flag
@@ -119,8 +123,9 @@ repeating buzz is worse than none.
 
 ## API
 
-`toast` matches `react-hot-toast` exactly, so an existing codebase ports with
-search and replace:
+`toast` mirrors `react-hot-toast`'s API, so an existing codebase mostly ports
+with search and replace (`ariaProps` and `className` have no equivalent; see
+"What's different" above):
 
 ```ts
 toast(message, options?)   // returns id
@@ -142,10 +147,26 @@ toast.remove(id?, toasterId?)            toast.removeAll(toasterId?)
 `glass`, `panThreshold`, `paused`, `containerStyle`, and a render-prop `children`
 for a fully custom bar.
 
+`toastOptions` sets defaults for every toast in that Toaster, with per-type
+buckets on top. A toast's own options always win:
+
+```tsx
+<Toaster
+  toastOptions={{
+    position: 'bottom-center',          // every toast…
+    success: { duration: 'short' },     // …success toasts…
+  }}
+/>
+toast.success('Saved', { position: 'top-center' });  // …this one toast
+```
+
+Updating a toast by id (`toast.success('Done', { id })`) lands in whichever
+Toaster already holds it, so a `toasterId` is only needed when creating.
+
 Headless access for building your own renderer:
 
 ```ts
-const { toasts } = useToaster({ toastOptions, toasterId });
+const { toasts, pending } = useToaster({ toastOptions, toasterId });
 ```
 
 Signatures that are stricter than they look, so you are not surprised by tsc:
@@ -167,28 +188,31 @@ through `toastOptions`, not a top-level `<Toaster>` prop:
 
 ## Upstream bugs fixed in the port
 
-Each of these is a real defect in `react-hot-toast` v2.6.1, with a regression
-test in `__tests__/store.test.ts`:
+Each of these was checked against the `react-hot-toast` v2.6.1 source published
+on npm. All but the concurrent-rendering one, which is structural, have a
+regression test here:
 
 - **Over-limit toasts were deleted, not dismissed.** `.slice(0, toastLimit)`
   removed the 21st toast from the array, which unmounts it with no exit
   animation — the toast a user is reading blinks out. Now the oldest is marked
   dismissed so it plays its exit.
 - **`toast.promise` could orphan its loading toast.** It builds
-  `{ id, ...opts, ...opts.success }`, so `toastOptions.success.id` overrides the
-  id; the loading toast is then never updated and never dismissed, and spins
-  forever. The id is now spread last.
+  `{ id, ...opts, ...opts.success }`, so an `id` in the promise's per-outcome
+  options (`toast.promise(p, msgs, { success: { id } })`) replaces the loading
+  toast's id; the loading toast is then never updated and spins forever. The id
+  is now spread last.
 - **Timers leaked and ignored `toasterId`.** The pending-removal map was never
   cleared on unmount, and removal always dispatched to the `'default'` region,
   so delayed removals never fired on any custom `toasterId`.
 - **Ids collided.** `genId()` was a bare module counter, so two copies of the
   library in one bundle both produced `"1"`. Now time + counter + random.
-- **`useState` + a manual listener list** tore under concurrent rendering.
-  Replaced with `useSyncExternalStore`.
-- **Reduce Motion was cached forever**, so toggling the OS setting mid-session
-  did nothing.
-- **Explicit `undefined` shadowed fallbacks** during option resolution.
-  Undefined keys are now deleted rather than stored.
+- **`useState` + a manual listener list** can tear under concurrent rendering
+  (upstream carries a TODO to switch). Replaced with `useSyncExternalStore`.
+- **Reduce Motion was cached forever** (`prefersReducedMotion` reads
+  `matchMedia` once), so toggling the OS setting mid-session did nothing.
+- **Explicit `undefined` shadowed fallbacks.** Options are resolved by spreading
+  the toast over the defaults, so `toast('x', { icon: undefined })` cleared a
+  Toaster-level icon. Undefined keys are now dropped instead.
 
 ### Dismiss reasons
 
@@ -196,7 +220,7 @@ A dismissed toast reports *why*, not just that it happened:
 
 ```ts
 toast('Saved', { onDismiss: (id, reason) => log(id, reason) });
-// 'timeout' | 'swipe' | 'tap' | 'close' | 'overflow' | 'programmatic' | 'replaced'
+// 'timeout' | 'swipe' | 'tap' | 'close' | 'action' | 'overflow' | 'programmatic'
 ```
 
 `react-native-snackbar` has shipped `DISMISS_EVENT_*` constants since 2016, so
@@ -254,7 +278,11 @@ The deadline is then `duration + pauseDuration + stagger - enter`:
   collapsing on one frame — which reads as a glitch, not three events.
 - **Time runs from when a toast became *visible*,** not from creation, so a queued
   toast that waited longer than its own duration is not retired on the tick it is
-  promoted.
+  promoted. A visible toast pushed back into the queue by newer ones starts over
+  when it returns.
+
+`enter` and `stagger` are read from the Toaster's theme, so retuning the motion
+moves the deadlines with it.
 
 ## Deduplication
 
@@ -263,8 +291,11 @@ toast('Saving…', { dedupeKey: 'save' });   // fires once
 toast('Saving…', { dedupeKey: 'save' });   // returns the SAME id, adds nothing
 ```
 
-A spinner firing twenty times a second says nothing; one toast that transitions
-in place says a lot. No JS toast library has this. Bounded to 500 keys.
+A spinner firing twenty times a second says nothing; one toast that updates in
+place says a lot. A duplicate is absorbed only while the earlier toast is still
+on screen and inside `dedupeWindowMs` (default 1000ms); once it has been
+dismissed, the next call shows a new toast. None of the JS toast libraries
+surveyed in [`RESEARCH.md`](./RESEARCH.md) had this. Bounded to 500 keys.
 
 ## Actions
 
@@ -284,7 +315,7 @@ behind these choices is in [`RESEARCH.md`](./RESEARCH.md).
 ## Testing
 
 ```sh
-npm test                 # 295 tests
+npm test                 # vitest (logic) + jest (components)
 npm run typecheck
 npm run typecheck:example
 npm run verify:package   # tarball integrity
@@ -375,10 +406,16 @@ nothing — but strict resolution still refuses, which leaves the lockfile
 unreproducible and `npm ci` broken. Recording the flag means a fresh clone
 installs the tree the tests were written against.
 
-`npm audit --omit=dev` reports **0 vulnerabilities**. The dev tree reports 57
-advisories in vitest/esbuild/braces/node-forge transitives whose only offered
-fix is `npm audit fix --force`, which would break the pinned Expo/RN toolchain.
-They are left in place deliberately.
+The package has no runtime dependencies of its own, only peers, so
+`npm audit --omit=dev` reports **0 vulnerabilities**. The dev tree (checked
+2026-10-24) reports advisories in the Expo CLI toolchain (`@expo/cli`,
+`node-forge`, `xcode`, …) whose only offered fix is `npm audit fix --force`, which
+"fixes" them by downgrading `expo` to SDK 44. They are dev-only and left in
+place.
+
+## Contributing
+
+Issues and pull requests are welcome; see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## License
 

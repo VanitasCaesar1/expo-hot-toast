@@ -1,20 +1,20 @@
 # Competitive landscape — React Native / Expo toasts
 
-Research date: October 2026. Purpose: find what `expo-hot-toast` is missing and
-match ecosystem conventions instead of inventing our own.
+Research date: October 2026. Purpose: find what `expo-hot-toast` was missing and
+match ecosystem conventions instead of inventing our own. These are working
+notes; the "Conventions to match" table shows where the library stood before
+the changes listed under "Adopted".
 
 ## Libraries surveyed
 
-| Library | Signal | Status |
-|---|---|---|
-| **sonner-native** | — | Most mature RN port. Real queue semantics, per-channel Toasters, ~30 modules of edge cases. Study `toast-store.ts` + `toaster.tsx`. |
-| **@lucaleukert/expo-toast** | 0 stars | Ignored by everyone, yet the most conceptually advanced toast on iOS: promotion queue, drop policy, dedupe-by-key, stack-depth stagger, in-place morphing, velocity-scaled exit, keyboard-curve matching. Swift/SwiftUI today. |
-| **react-native-toast-message** (Shift-E) | 28k/wk | The incumbent. Study for what to avoid; its 2px pan dead-zone (issue #113) is the correct pan-vs-tap fix and worth porting to RNGH. |
-| **react-native-snackbar** | 867★, 28k/wk | Rewritten as a TurboModule. Has shipped `DISMISS_EVENT_*` constants since 2016 — the ecosystem's acknowledgement that **a dismiss reason is part of the API**. Only library with `rtl` and Android-asset `fontFamily`. |
-| **sonner** (web) | — | Read for three mechanics only: soft `visibleToasts` limit, `style.height='auto'` re-measure trick, and `TIME_BEFORE_UNMOUNT` + `offsetBeforeRemove` (capture the offset *before* recomputing siblings). |
-| **@gorhom/portal** based toasts | — | Portal primitive rather than a toast library. |
-
-Everything else matching "react native toast" is unmaintained or abandoned.
+| Library | Notes |
+|---|---|
+| **sonner-native** | Most mature RN port. Real queue semantics, per-channel Toasters, ~30 modules of edge cases. Study `toast-store.ts` + `toaster.tsx`. |
+| **@lucaleukert/expo-toast** | Little known, yet the most conceptually advanced toast on iOS we found: promotion queue, drop policy, dedupe-by-key, stack-depth stagger, in-place morphing, velocity-scaled exit, keyboard-curve matching. Swift/SwiftUI today. |
+| **react-native-toast-message** | The incumbent. Its 2px pan dead-zone (issue #113) is the correct pan-vs-tap fix and worth porting to RNGH. |
+| **react-native-snackbar** | Rewritten as a TurboModule. Has shipped `DISMISS_EVENT_*` constants since 2016 — the ecosystem's acknowledgement that **a dismiss reason is part of the API**. Only library with `rtl` and Android-asset `fontFamily`. |
+| **sonner** (web) | Read for three mechanics only: soft `visibleToasts` limit, `style.height='auto'` re-measure trick, and `TIME_BEFORE_UNMOUNT` + `offsetBeforeRemove` (capture the offset *before* recomputing siblings). |
+| **@gorhom/portal** based toasts | Portal primitive rather than a toast library. |
 
 ## Ideas worth taking
 
@@ -39,7 +39,7 @@ Everything else matching "react native toast" is unmaintained or abandoned.
 6. **`dedupeKey` + `dedupeWindowMs`**, with `show()` returning the existing id so
    the caller can `transition()` it instead of stacking duplicates. Cheapest
    possible fix for a spinner firing 20×/sec. Bounded LRU (expo-toast caps at
-   500). Absent from every JS toast library.
+   500). Not present in any of the JS libraries above.
 7. **Symbolic durations** `'short' | 'long' | 'infinite'` — snackbar and
    expo-toast converged on this independently.
 8. **`important` → assertive announcement.** *We already compute this flag and
@@ -59,9 +59,9 @@ Everything else matching "react native toast" is unmaintained or abandoned.
     with `extraLift = max(0, overlap - safeAreaInsets.bottom)` so a toast with a
     34pt inset isn't over-lifted.
 
-## Conventions to match
+## Conventions to match (status before adoption)
 
-| Convention | We |
+| Convention | Before |
 |---|---|
 | `toast()` + `.success/.error/.loading/.promise/.dismiss()` | ✅ |
 | `<Toaster />` holds config, `toast()` fires from anywhere | ✅ |

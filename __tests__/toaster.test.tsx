@@ -1,8 +1,9 @@
 import { render, screen, act } from '@testing-library/react-native';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { Text } from 'react-native';
+import { Platform, Text } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Toaster } from '../src/components/toaster';
+import { triggerToastHaptic } from '../src/utils/haptics';
 import { toast } from '../src/core/toast';
 import { __resetStore } from '../src/core/store';
 import { __resetIdCounter } from '../src/core/ids';
@@ -221,6 +222,64 @@ describe('Toaster — haptics', () => {
     ).not.toThrow();
 
     expect(screen.getByText('still renders')).toBeTruthy();
+  });
+});
+
+describe('Toaster — haptics on Android', () => {
+  // Regression: Android buzzed the success pattern for every blank and custom
+  // toast, and an unsupported device turned the rejection into an unhandled one.
+  it('stays silent for blank, custom and loading toasts', () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    const notify = jest.spyOn(Haptics, 'notificationAsync');
+
+    triggerToastHaptic('blank');
+    triggerToastHaptic('custom');
+    triggerToastHaptic('loading');
+
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('uses the notification patterns for success and error', () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    const notify = jest.spyOn(Haptics, 'notificationAsync');
+
+    triggerToastHaptic('success');
+    triggerToastHaptic('error');
+
+    expect(notify.mock.calls.map((call) => call[0])).toEqual(['success', 'error']);
+  });
+
+  it('swallows a failed haptic', async () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    jest.spyOn(Haptics, 'notificationAsync').mockRejectedValueOnce(new Error('no actuator'));
+
+    expect(() => triggerToastHaptic('error')).not.toThrow();
+    // Lets the rejection settle; an unhandled one would fail the run.
+    await Promise.resolve();
+  });
+});
+
+describe('Toaster — toastOptions', () => {
+  it('applies a per-type bucket', () => {
+    // Regression: the Toaster stripped `toastOptions.success` and friends before
+    // resolving, so per-type defaults never reached a toast.
+    render(<Toaster toastOptions={{ success: { icon: <Text>per-type icon</Text> } }} />);
+    act(() => {
+      toast.success('done');
+      toast.error('broke');
+    });
+
+    expect(screen.getAllByText('per-type icon')).toHaveLength(1);
+  });
+
+  it('lets a toast override a Toaster default', () => {
+    render(<Toaster toastOptions={{ icon: <Text>default icon</Text> }} />);
+    act(() => {
+      toast('own', { icon: <Text>own icon</Text> });
+    });
+
+    expect(screen.getByText('own icon')).toBeTruthy();
+    expect(screen.queryByText('default icon')).toBeNull();
   });
 });
 

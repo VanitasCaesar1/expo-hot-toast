@@ -72,7 +72,7 @@ const opts: ToastOptions = {
   duration: preset,
   position: 'bottom-center' as ToastPosition,
   style: { opacity: 1 },
-  glass: { enabled: true } as GlassConfig,
+  glass: { style: 'regular', interactive: true } satisfies GlassConfig,
   action: act,
   onDismiss: (_i: string, r: DismissReason) => void r,
 };

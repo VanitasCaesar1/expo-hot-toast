@@ -17,9 +17,14 @@ const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const failures = [];
 const fail = (msg) => failures.push(msg);
 
-// `npm pack --json --dry-run` lists exactly what would be published.
+// `npm pack --json --dry-run` lists exactly what would be published. Scripts
+// are skipped: `prepare` would rebuild and print to stdout, corrupting the JSON,
+// and this check is about the build that is already on disk.
 const packed = JSON.parse(
-  execFileSync('npm', ['pack', '--json', '--dry-run'], { cwd: root, encoding: 'utf8' }),
+  execFileSync('npm', ['pack', '--json', '--dry-run', '--ignore-scripts'], {
+    cwd: root,
+    encoding: 'utf8',
+  }),
 )[0];
 const files = new Set(packed.files.map((f) => f.path));
 
