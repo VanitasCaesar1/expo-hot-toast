@@ -12,13 +12,47 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { DismissReason, Toast, ToastTheme } from '../core/types';
 import { resolveValue } from '../core/store';
+import { defaultTheme } from '../core/defaults';
+import { toast as toastApi } from '../core/toast';
 import { GlassSurface } from './glass-surface';
 import { ToastIcon, CloseIcon } from './icons';
 import type { ToastIconKind } from './icons';
 
+/**
+ * What the Toaster resolves for one toast, beyond the toast itself.
+ *
+ * One shape for both paths: the Toaster spreads it into the built-in bar and
+ * provides it through `ToastBarContext` to a bar rendered by the `<Toaster>`
+ * render prop, so the two cannot drift apart.
+ */
+export interface ToastBarContextValue {
+  /** The Toaster theme with the toast's own `theme` already merged in. */
+  theme: ToastTheme;
+  reduceTransparency: boolean;
+  reduceMotion: boolean;
+  colorScheme?: 'light' | 'dark';
+  atTop: boolean;
+  reverseOrder: boolean;
+  panThreshold: number;
+  onDismiss: (id: string, reason: DismissReason) => void;
+  onPressIn: () => void;
+  onPressOut: () => void;
+}
+
+/**
+ * Provided per toast by the Toaster. Lets `<ToastBar toast={t} />` inside the
+ * Toaster's render prop work with no other props, as in react-hot-toast.
+ */
+export const ToastBarContext = React.createContext<ToastBarContextValue | null>(null);
+
+/**
+ * Every prop except `toast` is optional. An explicit prop wins over the
+ * Toaster's value from context, which wins over the standalone default.
+ */
 export interface ToastBarProps {
   toast: Toast;
-  theme: ToastTheme;
+  /** Default: the Toaster's theme for this toast, else `defaultTheme`. */
+  theme?: ToastTheme;
   /** True when the user has Reduce Transparency on. Forces the opaque surface. */
   reduceTransparency?: boolean;
   /** Forces the glass appearance to match tokens forced by the Toaster. */
@@ -28,15 +62,23 @@ export interface ToastBarProps {
    * its final state: no pop, no draw-in.
    */
   reduceMotion?: boolean;
-  /** True when the stack is anchored to the top; flips the travel direction. */
-  atTop: boolean;
-  reverseOrder: boolean;
-  /** Fired with the reason whenever the toast is dismissed. */
-  onDismiss: (id: string, reason: DismissReason) => void;
-  onPressIn: () => void;
-  onPressOut: () => void;
-  /** Drag-to-dismiss threshold in px. 0 disables the gesture. */
-  panThreshold: number;
+  /**
+   * True when the stack is anchored to the top; flips the travel direction.
+   * Default: from `toast.resolvedPosition`.
+   */
+  atTop?: boolean;
+  /** Default false. */
+  reverseOrder?: boolean;
+  /**
+   * Fired with the reason whenever the toast is dismissed. Default: dismisses
+   * this toast in its Toaster.
+   */
+  onDismiss?: (id: string, reason: DismissReason) => void;
+  /** Press handlers pause and resume the Toaster's timers. Default: no-ops. */
+  onPressIn?: () => void;
+  onPressOut?: () => void;
+  /** Drag-to-dismiss threshold in px. 0 disables the gesture. Default 72. */
+  panThreshold?: number;
   children?: (props: {
     icon: React.ReactNode;
     message: React.ReactNode;
@@ -49,20 +91,38 @@ const ASSUMED_HEIGHT = 56;
 /** rht pops its icon in from 0.6. */
 const ICON_POP_FROM_SCALE = 0.6;
 
+const noop = () => {};
+
 export const ToastBar = React.memo(function ToastBar({
   toast,
-  theme,
-  reduceTransparency = false,
-  colorScheme,
-  reduceMotion = false,
-  atTop,
-  reverseOrder,
-  onDismiss,
-  onPressIn,
-  onPressOut,
-  panThreshold,
+  theme: themeProp,
+  reduceTransparency: reduceTransparencyProp,
+  colorScheme: colorSchemeProp,
+  reduceMotion: reduceMotionProp,
+  atTop: atTopProp,
+  reverseOrder: reverseOrderProp,
+  onDismiss: onDismissProp,
+  onPressIn: onPressInProp,
+  onPressOut: onPressOutProp,
+  panThreshold: panThresholdProp,
   children,
 }: ToastBarProps) {
+  const slot = React.useContext(ToastBarContext);
+
+  const theme = themeProp ?? slot?.theme ?? defaultTheme;
+  const reduceTransparency = reduceTransparencyProp ?? slot?.reduceTransparency ?? false;
+  const reduceMotion = reduceMotionProp ?? slot?.reduceMotion ?? false;
+  const colorScheme = colorSchemeProp ?? slot?.colorScheme;
+  const atTop = atTopProp ?? slot?.atTop ?? toast.resolvedPosition.startsWith('top');
+  const reverseOrder = reverseOrderProp ?? slot?.reverseOrder ?? false;
+  const panThreshold = panThresholdProp ?? slot?.panThreshold ?? 72;
+  const onPressIn = onPressInProp ?? slot?.onPressIn ?? noop;
+  const onPressOut = onPressOutProp ?? slot?.onPressOut ?? noop;
+  const onDismiss =
+    onDismissProp ??
+    slot?.onDismiss ??
+    ((id: string, reason: DismissReason) => toastApi.dismiss(id, toast.toasterId, reason));
+
   const { motion } = theme;
 
   const dragX = useSharedValue(0);

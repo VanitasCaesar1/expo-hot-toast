@@ -18,7 +18,8 @@ import type { DropPolicy } from '../core/store';
 import { useToastTheme, mergeTheme } from '../theme/tokens';
 import { useReduceMotion, useReduceTransparency, announce } from '../utils/a11y';
 import { triggerToastHaptic } from '../utils/haptics';
-import { ToastBar } from './toast-bar';
+import { ToastBar, ToastBarContext } from './toast-bar';
+import type { ToastBarContextValue } from './toast-bar';
 import { resolveValue } from '../core/store';
 import Animated, {
   LinearTransition,
@@ -336,44 +337,21 @@ export function Toaster({
   );
 }
 
-interface ToastSlotProps {
+interface ToastSlotProps extends ToastBarContextValue {
   toast: Toast;
-  atTop: boolean;
-  reverseOrder: boolean;
-  colorScheme?: 'light' | 'dark';
+  /** The Toaster-level `glass` setting, already merged with the toast's own. */
   glass: boolean | GlassConfig;
-  reduceTransparency: boolean;
-  reduceMotion: boolean;
-  theme: ReturnType<typeof useToastTheme>;
-  panThreshold: number;
-  onDismiss: (id: string, reason: DismissReason) => void;
-  onPressIn: () => void;
-  onPressOut: () => void;
   children?: (props: { toast: Toast; theme: ToastSlotProps['theme'] }) => React.ReactNode;
 }
 
 /** Picks the renderer for one toast: custom element, render prop, or the bar. */
-function ToastSlot({
-  toast,
-  atTop,
-  reverseOrder,
-  colorScheme,
-  glass,
-  reduceTransparency,
-  reduceMotion,
-  theme,
-  panThreshold,
-  onDismiss,
-  onPressIn,
-  onPressOut,
-  children,
-}: ToastSlotProps) {
+function ToastSlot({ toast, glass, children, ...bar }: ToastSlotProps) {
   // `toast.custom` renders the caller's element as-is, with no bar, icon or
   // material — the react-hot-toast contract. It previously went through the
   // default bar like any other type, so a custom element was drawn inside a
   // glass pill next to a stray glyph.
   if (toast.type === 'custom') {
-    return <CustomToast toast={toast} motion={theme.motion} />;
+    return <CustomToast toast={toast} motion={bar.theme.motion} />;
   }
 
   // The Toaster-level `glass` setting is folded into the toast here. The bar
@@ -381,22 +359,15 @@ function ToastSlot({
   // nothing at all: every toast still rendered on glass.
   const resolved = glass === toast.glass ? toast : { ...toast, glass };
 
+  // `bar` is the one source of truth for what the Toaster resolves per toast.
+  // The built-in bar takes it as props; a `<ToastBar>` rendered from the render
+  // prop reads the same object from context, so it matches without being told.
   return children ? (
-    children({ toast: resolved, theme })
+    <ToastBarContext.Provider value={bar}>
+      {children({ toast: resolved, theme: bar.theme })}
+    </ToastBarContext.Provider>
   ) : (
-    <ToastBar
-      toast={resolved}
-      theme={theme}
-      reduceTransparency={reduceTransparency}
-      reduceMotion={reduceMotion}
-      colorScheme={colorScheme}
-      atTop={atTop}
-      reverseOrder={reverseOrder}
-      onDismiss={onDismiss}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
-      panThreshold={panThreshold}
-    />
+    <ToastBar toast={resolved} {...bar} />
   );
 }
 

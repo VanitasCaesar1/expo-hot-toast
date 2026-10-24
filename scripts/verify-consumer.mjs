@@ -114,6 +114,8 @@ export function Screen() {
   handlers.startPause();
   handlers.endPause();
   const t: Toast | undefined = toasts[0];
+  // Drop-in use: only the toast is required.
+  const barProps: ToastBarProps | undefined = t && { toast: t, reduceMotion: false };
   const type: ToastType | undefined = t?.type;
   const motion: MotionConfig = useToastTheme().motion;
   const rm = useReduceMotion();
@@ -126,7 +128,7 @@ export function Screen() {
   void [DEFAULT_TOASTER_ID, REMOVE_DELAY, GLASS_SUPPORTED, getState, subscribe,
        dispatch, dispatchAll, setSettings, resolveValue, Toaster, ToastBar,
        GlassSurface, ToastIcon, CloseIcon, motion, rm, reduceTransparency, gm,
-       store, type];
+       store, type, barProps];
   return null;
 }
 `;
