@@ -1,0 +1,55 @@
+---
+/**
+ * The top of a real recording, large: status bar, Dynamic Island and the toast
+ * stack, where every top-positioned toast lands. No drawn bezel; the display's
+ * own corner radius and a fade into the page carry the device.
+ */
+import { url } from '../lib/url';
+
+interface Props {
+  /** Base name of the media files, as for Phone: `<name>-dark.mp4`, `<name>-dark.jpg`. */
+  media: string;
+  label: string;
+  /** Fraction of the screen height to show, from the top. */
+  crop?: number;
+  /** Seconds to loop at, so the loop skips moments outside the crop. */
+  loopEnd?: number;
+}
+
+const { media, label, crop = 0.36, loopEnd } = Astro.props;
+// iPhone 17 Pro recordings are 1206 x 2622.
+const ratio = `1206 / ${Math.round(2622 * crop)}`;
+---
+
+<figure class="crop" style={`--ratio: ${ratio}`}>
+  <video
+    src={url(`media/${media}-dark.mp4`)}
+    poster={url(`media/${media}-dark.jpg`)}
+    data-loop-end={loopEnd}
+    muted
+    loop
+    playsinline
+    preload="none"
+    aria-label={label}
+  ></video>
+</figure>
+
+<style>
+  .crop {
+    margin: 0;
+    width: 100%;
+    container-type: inline-size;
+  }
+  .crop video {
+    display: block;
+    width: 100%;
+    aspect-ratio: var(--ratio);
+    object-fit: cover;
+    object-position: top;
+    background: #000;
+    /* The display's corner radius: 55pt on a 402pt-wide screen. */
+    border-radius: 13.7cqw 13.7cqw 0 0;
+    -webkit-mask-image: linear-gradient(#000 62%, transparent);
+    mask-image: linear-gradient(#000 62%, transparent);
+  }
+</style>

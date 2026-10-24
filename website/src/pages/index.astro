@@ -1,7 +1,7 @@
 ---
 import { Code } from 'astro:components';
 import Base from '../layouts/Base.astro';
-import Phone from '../components/Phone.astro';
+import ScreenCrop from '../components/ScreenCrop.astro';
 import DemoWindow from '../components/DemoWindow.astro';
 import CopyInstall from '../components/CopyInstall.astro';
 import Icon from '../components/Icon.astro';
@@ -72,9 +72,9 @@ const faq = [
     <div class="hero-devices">
       <div class="glow" aria-hidden="true"></div>
       <div class="field dots" aria-hidden="true"></div>
-      <div class="pair">
-        <div class="back"><Phone platform="android" media="android-demo" label="expo-hot-toast running on Android" /></div>
-        <div class="front"><Phone platform="ios" media="ios-demo" label="expo-hot-toast running on iOS 26 with Liquid Glass" /></div>
+      <div class="shot">
+        <ScreenCrop media="ios-demo" label="Toasts stacking in Liquid Glass at the top of an iPhone running iOS 26" loopEnd={20.5} />
+        <p class="label caption">Screen recording · iOS 26 simulator in CI</p>
       </div>
     </div>
   </section>
@@ -207,6 +207,14 @@ const faq = [
     { threshold: 0.35 },
   );
   document.querySelectorAll('video').forEach((v) => seen.observe(v));
+
+  // A clip with data-loop-end restarts there instead of at its end.
+  document.querySelectorAll<HTMLVideoElement>('video[data-loop-end]').forEach((v) => {
+    const end = Number(v.dataset.loopEnd);
+    v.addEventListener('timeupdate', () => {
+      if (v.currentTime >= end) v.currentTime = 0;
+    });
+  });
 </script>
 
 <style>
@@ -280,26 +288,16 @@ const faq = [
     background: radial-gradient(circle, rgb(255 173 59 / 0.2), rgb(255 173 59 / 0.07) 38%, transparent 68%);
     pointer-events: none;
   }
-  .pair {
+  .shot {
     position: relative;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: center;
     width: 100%;
-    max-width: 500px;
-  }
-  .front {
-    grid-area: 1 / 1 / 1 / 3;
-    width: 60%;
-    z-index: 1;
+    max-width: 560px;
     animation: rise 1000ms 250ms var(--ease-out) both;
   }
-  .back {
-    grid-area: 1 / 2;
-    width: 86%;
-    justify-self: end;
-    transform: translateY(10%);
-    opacity: 0.9;
+  .caption {
+    margin: 4px 0 0;
+    color: var(--faint);
+    text-align: center;
   }
   @keyframes rise {
     from {
@@ -308,7 +306,7 @@ const faq = [
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .front {
+    .shot {
       animation: none;
     }
   }
