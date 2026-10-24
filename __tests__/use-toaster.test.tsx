@@ -893,6 +893,56 @@ describe('useToaster — dismissed toasts are eventually removed', () => {
     expect(result.current.toasts).toHaveLength(0);
   });
 
+  it('removes after the toast\'s own removeDelay instead of the exit duration', () => {
+    const { result } = renderHook(() => useToaster({ exitDuration: 400 }));
+
+    act(() => {
+      toast('quick', { id: 'quick', removeDelay: 100 });
+      toast('slow', { id: 'slow', removeDelay: 1000 });
+    });
+    act(() => {
+      toast.dismissAll();
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(101);
+    });
+    expect(result.current.toasts.map((t) => t.id)).toEqual(['slow']);
+
+    // Past the exit duration, but not past the toast's own delay.
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+    expect(result.current.toasts.map((t) => t.id)).toEqual(['slow']);
+
+    act(() => {
+      jest.advanceTimersByTime(400);
+    });
+    expect(result.current.toasts).toHaveLength(0);
+  });
+
+  it('takes removeDelay from toastOptions, per-type bucket first', () => {
+    const { result } = renderHook(() =>
+      useToaster({
+        exitDuration: 400,
+        toastOptions: { removeDelay: 1000, error: { removeDelay: 50 } },
+      }),
+    );
+
+    act(() => {
+      toast.error('bucket', { id: 'bucket' });
+      toast('global', { id: 'global' });
+    });
+    act(() => {
+      toast.dismissAll();
+    });
+    act(() => {
+      jest.advanceTimersByTime(51);
+    });
+
+    expect(result.current.toasts.map((t) => t.id)).toEqual(['global']);
+  });
+
   it('does not remove a toast that is revived during its exit', () => {
     // The toast.promise loading -> success swap upserts onto the same id while
     // the loading toast's removal is pending. Without cancelling, the live toast

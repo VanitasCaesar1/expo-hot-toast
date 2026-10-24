@@ -21,12 +21,10 @@ export type ValueOrFunction<T, P> = T | ValueFunction<T, P>;
 /**
  * Options accepted per-toast, and as Toaster-level defaults keyed by type.
  *
- * Diverges from react-hot-toast in three deliberate ways:
+ * Diverges from react-hot-toast in two deliberate ways:
  *  - `ariaProps` is replaced by real RN accessibility props.
  *  - `className` is dropped (there is no CSS engine); styling goes through
  *    `style` + the `theme` token layer.
- *  - `removeDelay` survives for API parity but is no longer load-bearing,
- *    because Reanimated owns exit-animation mount retention.
  */
 export interface ToastOptions {
   id?: string;
@@ -44,6 +42,15 @@ export interface ToastOptions {
   position?: ToastPosition;
   /** Route to a specific mounted Toaster. Defaults to `'default'`. */
   toasterId?: string;
+  /**
+   * How long a dismissed toast stays mounted before it is removed, in ms.
+   * Defaults to the Toaster's exit duration (`theme.motion.exit`).
+   *
+   * The exit animation plays inside this window, so a value shorter than it
+   * unmounts the toast mid-exit and cuts the animation short. Longer values
+   * keep the toast in the store, invisible, after it has finished leaving.
+   */
+  removeDelay?: number;
 
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
@@ -153,7 +160,7 @@ export interface Toast {
   important?: boolean;
   onDismiss?: (id: string, reason: DismissReason) => void;
 
-  /** Retained for API parity with react-hot-toast. See note on ToastOptions. */
+  /** See `ToastOptions.removeDelay`. */
   removeDelay?: number;
 }
 

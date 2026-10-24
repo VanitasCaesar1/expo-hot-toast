@@ -44,7 +44,7 @@ export interface UseToasterOptions {
    * scheduled removal, a dismissed toast stays in the array forever: it plays its
    * exit, then sits there at the exit transform, dead but still occupying the
    * screen and a toastLimit slot forever. react-hot-toast has the same concept as
-   * `removeDelay`; it is the same mechanism under a different name.
+   * `removeDelay`, which overrides this per toast (see `ToastOptions.removeDelay`).
    */
   exitDuration?: number;
   /**
@@ -174,7 +174,7 @@ export function useToaster({
             // gone from the screen at this point, and by construction this runs
             // once per dismissal, so consumers do not have to de-duplicate.
             t.onDismiss?.(t.id, t.dismissReason ?? 'programmatic');
-          }, exitDuration);
+          }, t.removeDelay ?? exitDuration);
           removalTimers.set(t.id, timer);
         }
       } else {

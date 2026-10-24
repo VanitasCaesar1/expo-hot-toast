@@ -236,6 +236,15 @@ describe('resolveToast — the toast always beats a Toaster default', () => {
     expect(resolveToast(baseToast(), { closeable: true }).closeButton).toBe(true);
   });
 
+  it('fills removeDelay from the per-type bucket, then the Toaster, but never over the toast', () => {
+    const options = { removeDelay: 900, error: { removeDelay: 50 } };
+    expect(resolveToast(baseToast({ type: 'error' }), options).removeDelay).toBe(50);
+    expect(resolveToast(baseToast({ type: 'blank' }), options).removeDelay).toBe(900);
+    expect(resolveToast(baseToast({ type: 'error', removeDelay: 0 }), options).removeDelay)
+      .toBe(0);
+    expect(resolveToast(baseToast()).removeDelay).toBeUndefined();
+  });
+
   it('keeps icon: null instead of falling back to a default icon', () => {
     const resolved = resolveToast(baseToast({ icon: null }), { icon: 'theirs' });
     expect(resolved.icon).toBeNull();

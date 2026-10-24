@@ -336,6 +336,7 @@ export function resolveToast(
   };
 
   pick('position');
+  pick('removeDelay');
   pick('glass');
   pick('accessibilityLabel');
   pick('dismissOnTap');
