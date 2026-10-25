@@ -90,7 +90,7 @@ const makeToast = (overrides: Partial<Toast> = {}): Toast => ({
  * callbacks, the two shared values in declaration order (`dragX`, then `fling`),
  * and the `exiting` builder.
  */
-function mountBar(panThreshold: number, onDismiss: ToastBarProps['onDismiss'], atTop = false) {
+function mountBar(panThreshold: number, onDismiss: ToastBarProps['onDismiss'], atTop = false, overrides: Partial<Toast> = {}) {
   const shared: Array<{ value: number }> = [];
   jest
     .spyOn(Reanimated, 'useSharedValue')
@@ -110,7 +110,7 @@ function mountBar(panThreshold: number, onDismiss: ToastBarProps['onDismiss'], a
   mockGestureConfig.length = 0;
   const bar = (visible: boolean) => (
     <ToastBar
-      toast={makeToast({ visible, dismissed: !visible })}
+      toast={makeToast({ visible, dismissed: !visible, ...overrides })}
       theme={defaultTheme}
       atTop={atTop}
       reverseOrder={false}
@@ -539,5 +539,39 @@ describe('ToastBar — vertical swipe', () => {
     release({ translationX: 24, translationY: -60, velocityX: 0, velocityY: 0 });
 
     expect(onDismiss).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('swipe directions', () => {
+  it('resists a direction the toast does not allow', () => {
+    const onDismiss = jest.fn();
+    const bar = mountBar(72, onDismiss, true, { swipeDirections: ['left'] });
+    bar.drag({ translationX: 140, velocityX: 0 });
+    bar.release({ translationX: 140, velocityX: 0 });
+    expect(onDismiss).not.toHaveBeenCalled();
+    // The wrong way resists: the toast travels a fraction of the finger.
+    expect(Math.abs(bar.dragX.value)).toBeLessThan(140);
+  });
+
+  it('dismisses toward a direction the toast allows', () => {
+    const onDismiss = jest.fn();
+    const bar = mountBar(72, onDismiss, true, { swipeDirections: ['left'] });
+    bar.drag({ translationX: -140, velocityX: 0 });
+    bar.release({ translationX: -140, velocityX: 0 });
+    expect(onDismiss).toHaveBeenCalledWith('swipe-me', 'swipe');
+  });
+
+  it('lets a top toast be flicked down when down is allowed', () => {
+    const onDismiss = jest.fn();
+    const bar = mountBar(72, onDismiss, true, { swipeDirections: ['down'] });
+    bar.drag({ translationX: 0, translationY: 60 });
+    bar.release({ translationX: 0, translationY: 60 });
+    expect(onDismiss).toHaveBeenCalledWith('swipe-me', 'swipe');
+  });
+
+  it('turns the gesture off for a toast that is not dismissible', () => {
+    const bar = mountBar(72, jest.fn(), true, { dismissible: false });
+    expect(bar.config.enabled).toBe(false);
   });
 });

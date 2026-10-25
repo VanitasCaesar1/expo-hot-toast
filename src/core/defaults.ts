@@ -40,6 +40,8 @@ export const defaultTimeouts: Record<ToastType, number> = {
   error: 4000,
   success: 2000,
   loading: Infinity,
+  info: 4000,
+  warning: 4000,
   custom: 4000,
 };
 
@@ -94,6 +96,9 @@ export const defaultTheme: ToastTheme = {
   fontSize: 15,
   lineHeight: 20,
   fontWeight: '500',
+  maxLines: 3,
+  descriptionMaxLines: 3,
+  fill: false,
   descriptionColor: 'rgba(60,60,67,0.78)',
   descriptionFontSize: 13,
   descriptionLineHeight: 18,
@@ -106,6 +111,8 @@ export const defaultTheme: ToastTheme = {
   rich: {
     success: { background: '#ECFDF3', border: '#BFF5D6', color: '#00702A', tint: 'rgba(52,199,89,0.22)' },
     error: { background: '#FFF0F0', border: '#FFD9DA', color: '#C8000F', tint: 'rgba(255,59,48,0.22)' },
+    info: { background: '#EEF6FF', border: '#C9E2FF', color: '#0058C4', tint: 'rgba(10,132,255,0.2)' },
+    warning: { background: '#FFF8EB', border: '#FFE2B0', color: '#9A5B00', tint: 'rgba(255,159,10,0.24)' },
   },
   motion: defaultMotion,
 };
@@ -122,7 +129,7 @@ export function mergeTheme(
   let result: ToastTheme = {
     ...base,
     motion: { ...base.motion },
-    rich: { success: { ...base.rich.success }, error: { ...base.rich.error } },
+    rich: copyRich(base.rich),
   };
 
   for (const override of overrides) {
@@ -136,9 +143,20 @@ export function mergeTheme(
       result.rich = {
         success: { ...result.rich.success, ...rich.success },
         error: { ...result.rich.error, ...rich.error },
+        info: { ...result.rich.info, ...rich.info },
+        warning: { ...result.rich.warning, ...rich.warning },
       };
     }
   }
 
   return result;
+}
+
+function copyRich(rich: ToastTheme['rich']): ToastTheme['rich'] {
+  return {
+    success: { ...rich.success },
+    error: { ...rich.error },
+    info: { ...rich.info },
+    warning: { ...rich.warning },
+  };
 }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Keyboard, Platform, StyleSheet, View } from 'react-native';
+import { Keyboard, Platform, StyleSheet, View, useColorScheme } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { GlassContainer } from 'expo-glass-effect';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -9,17 +9,22 @@ import type {
   DismissReason,
   GlassConfig,
   Toast,
+  ToastHaptic,
   ToastPosition,
   ToastThemeOverride,
+  ToastType,
 } from '../core/types';
+import { animationMotion, materialTheme, resolvePreset, resolveVariant } from '../core/presets';
+import type { ToastAnimation, ToasterPreset } from '../core/presets';
+import { dropProgress } from '../core/progress';
 import { useToaster, useToasterCleanup } from '../core/use-toaster';
 import { toast } from '../core/toast';
 import type { DropPolicy } from '../core/store';
 import { useToastTheme, mergeTheme } from '../theme/tokens';
 import { useReduceMotion, useReduceTransparency, useScreenReaderEnabled, announce } from '../utils/a11y';
-import { triggerToastHaptic } from '../utils/haptics';
+import { DEFAULT_HAPTICS, triggerToastHaptic } from '../utils/haptics';
 import { ToastBar, ToastBarContext } from './toast-bar';
-import type { StackPlacement, ToastBarContextValue } from './toast-bar';
+import type { StackPlacement, ToastBarContextValue, ToastIcons } from './toast-bar';
 import { resolveValue } from '../core/store';
 import Animated, {
   LinearTransition,
@@ -77,10 +82,21 @@ export interface ToasterProps {
   /** Freezes all timers in this region. */
   paused?: boolean;
   /**
-   * Play a haptic when a success or error toast appears. Default true. A
-   * toast's own `haptics` option wins.
+   * Haptics: `true` plays each type's default (success, error and warning
+   * have one), `false` none, or a map from type to haptic:
+   * `{ success: 'medium', info: 'light' }`. A toast's own `haptics` wins.
    */
-  haptics?: boolean;
+  haptics?: boolean | Partial<Record<ToastType, ToastHaptic>>;
+  /**
+   * The look to start from. `'auto'` (default): a Material 3 snackbar on
+   * Android, rising from the bottom; the glass pill elsewhere. `'glass'` or
+   * `'material'` picks one everywhere. `theme` is laid over it.
+   */
+  preset?: ToasterPreset;
+  /** How toasts come and go: `'hot'` (default), `'slide'`, `'fade'`, `'pop'` or `'none'`. */
+  animation?: ToastAnimation;
+  /** Icons for each type, and the close button, in place of the built-in glyphs. */
+  icons?: ToastIcons;
   /**
    * Collapse each stack: older toasts tuck behind the newest, showing only
    * their edges, and the stack fans out while it is pressed. Default false.
@@ -111,6 +127,37 @@ const POSITIONS: ToastPosition[] = [
   'bottom-center',
   'bottom-right',
 ];
+
+/**
+ * Where a stack is drawn. The six positions, plus places some shapes take
+ * whatever their position: a HUD in the middle of the screen, the island in
+ * the status bar, and a banner against the top or bottom edge.
+ */
+type Bucket = ToastPosition | 'center' | 'island' | 'banner-top' | 'banner-bottom';
+const BUCKETS: Bucket[] = [...POSITIONS, 'center', 'island', 'banner-top', 'banner-bottom'];
+
+function bucketOf(t: Toast, position: ToastPosition, preset: Exclude<ToasterPreset, 'auto'>): Bucket {
+  const at = t.position ?? position;
+  switch (resolveVariant(t.variant, preset)) {
+    case 'hud':
+      return 'center';
+    case 'island':
+      return 'island';
+    case 'banner':
+      return at.startsWith('bottom') ? 'banner-bottom' : 'banner-top';
+    default:
+      return at;
+  }
+}
+
+/**
+ * The island's top: just inside the Dynamic Island (about 11pt from the top on
+ * iPhones that have one, whose top inset is over 50), and just below the
+ * notch or status bar elsewhere.
+ */
+function islandTop(insetTop: number): number {
+  return insetTop > 50 ? 11 : Math.max(insetTop - 34, 6);
+}
 
 /** How far each toast behind the front one peeks out of a collapsed stack, in px. */
 export const STACK_PEEK = 10;
@@ -151,7 +198,7 @@ const isCenter = (position: ToastPosition) => position.includes('center');
 const isRight = (position: ToastPosition) => position.includes('right');
 
 export function Toaster({
-  position = 'top-center',
+  position: positionProp,
   toastOptions,
   reverseOrder = false,
   gap,
@@ -170,18 +217,38 @@ export function Toaster({
   paused,
   haptics = true,
   stacked = false,
+  preset: presetProp = 'auto',
+  animation,
+  icons,
   ContainerComponent,
   children,
 }: ToasterProps) {
   const resolvedGap = gap ?? gutter ?? 14;
+  const preset = resolvePreset(presetProp);
+  // A Material snackbar rises from the bottom, unless a position is given.
+  const position: ToastPosition = positionProp ?? (preset === 'material' ? 'bottom-center' : 'top-center');
 
   const insets = useSafeAreaInsets();
-  const theme = useToastTheme(themeOverride, colorScheme);
+  // The preset's tokens and the animation's motion sit under the consumer's
+  // own theme, which wins.
+  const system = useColorScheme();
+  const scheme: 'light' | 'dark' = (colorScheme ?? system) === 'dark' ? 'dark' : 'light';
+  const layered = React.useMemo(() => {
+    const base = preset === 'material' ? materialTheme(scheme) : undefined;
+    const motion = animationMotion(animation);
+    if (!base && !motion) return themeOverride;
+    return {
+      ...base,
+      ...themeOverride,
+      motion: { ...motion, ...themeOverride?.motion },
+    } as ToastThemeOverride;
+  }, [preset, scheme, animation, themeOverride]);
+  const theme = useToastTheme(layered, colorScheme);
   const reduceMotion = useReduceMotion();
   const screenReader = useScreenReaderEnabled();
   const reduceTransparency = useReduceTransparency();
 
-  const { toasts, startPause, endPause } = useToaster({
+  const { toasts, startPause, endPause, paused: timersPaused } = useToaster({
     toastOptions,
     toasterId,
     toastLimit,
@@ -259,7 +326,10 @@ export function Toaster({
 
       // A loading toast is a placeholder, not an outcome. Buzzing for it would
       // be both premature and, for a long request, unbearable.
-      if (t.type !== 'loading' && (t.haptics ?? haptics)) triggerToastHaptic(t.type);
+      if (t.type !== 'loading') {
+        const haptic = hapticFor(t, haptics);
+        if (haptic) triggerToastHaptic(t.type, haptic);
+      }
     });
   }, [toasts, haptics]);
 
@@ -269,7 +339,11 @@ export function Toaster({
   React.useEffect(() => {
     const live = new Set(toasts.map((t) => t.id));
     seen.current.forEach((_last, id) => {
-      if (!live.has(id)) seen.current.delete(id);
+      if (!live.has(id)) {
+        seen.current.delete(id);
+        // Its progress, if it had one, is no longer drawn anywhere.
+        dropProgress(id);
+      }
     });
   }, [toasts]);
 
@@ -345,17 +419,16 @@ export function Toaster({
   );
 
   const grouped = React.useMemo(() => {
-    const map = new Map<ToastPosition, Toast[]>();
-    for (const candidate of POSITIONS) map.set(candidate, []);
+    const map = new Map<Bucket, Toast[]>();
+    for (const candidate of BUCKETS) map.set(candidate, []);
 
     toasts.forEach((t) => {
-      const resolved = t.position ?? position;
-      const bucket = map.get(resolved);
+      const bucket = map.get(bucketOf(t, position, preset));
       if (bucket) bucket.push(t);
     });
 
     return map;
-  }, [toasts, position]);
+  }, [toasts, position, preset]);
 
   const keyboard = useKeyboard();
 
@@ -373,11 +446,12 @@ export function Toaster({
       pointerEvents="box-none"
       style={[StyleSheet.absoluteFill, styles.root, containerStyle]}
     >
-      {POSITIONS.map((candidate) => {
+      {BUCKETS.map((candidate) => {
         const bucket = grouped.get(candidate) ?? [];
         if (bucket.length === 0) return null;
 
-        const anchoredTop = isTop(candidate);
+        const special = !POSITIONS.includes(candidate as ToastPosition);
+        const anchoredTop = candidate === 'banner-bottom' ? false : special ? true : isTop(candidate as ToastPosition);
         /**
          * Subtract the safe-area inset from the keyboard height.
          *
@@ -409,13 +483,23 @@ export function Toaster({
             // changes: the toasts inside keep their props and do not re-render.
             style={[
               styles.stack,
-              {
-                paddingLeft: insets.left + offset,
-                paddingRight: insets.right + offset,
-              },
-              anchoredTop
-                ? { top: insets.top + offset }
-                : { bottom: bottomInset + offset },
+              candidate === 'banner-top'
+                ? { top: 0 }
+                : candidate === 'banner-bottom'
+                  ? { bottom: keyboardInset }
+                  : [
+                      {
+                        paddingLeft: insets.left + offset,
+                        paddingRight: insets.right + offset,
+                      },
+                      candidate === 'center'
+                        ? styles.center
+                        : candidate === 'island'
+                          ? { top: islandTop(insets.top) }
+                          : anchoredTop
+                            ? { top: insets.top + offset }
+                            : { bottom: bottomInset + offset },
+                    ],
             ]}
           >
           <Stack
@@ -424,9 +508,9 @@ export function Toaster({
             style={[
               {
                 gap: resolvedGap,
-                alignItems: isCenter(candidate)
+                alignItems: special || isCenter(candidate as ToastPosition)
                   ? 'center'
-                  : isRight(candidate)
+                  : isRight(candidate as ToastPosition)
                     ? 'flex-end'
                     : 'flex-start',
                 // column-reverse puts array index 0 (the newest toast) nearest
@@ -466,6 +550,14 @@ export function Toaster({
                     : undefined
                 }
                 onMeasure={stacked ? handleMeasure : undefined}
+                preset={preset}
+                icons={icons}
+                // Only an Undo countdown needs to know; passing it to every toast
+                // would re-render them all whenever one is pressed.
+                paused={t.action?.countdown ? timersPaused : false}
+                edgeInset={
+                  candidate === 'banner-top' ? insets.top : candidate === 'banner-bottom' && keyboardInset === 0 ? insets.bottom : 0
+                }
               >
                 {children}
               </ToastSlot>
@@ -577,6 +669,19 @@ function mergeGlass(
   return toastGlass ?? toasterGlass ?? true;
 }
 
+/**
+ * The haptic a toast plays: its own choice, else the Toaster's map or switch,
+ * else its type's default. `false` at the toast, or at the Toaster when the
+ * toast has not asked, plays nothing.
+ */
+function hapticFor(t: Toast, toaster: ToasterProps['haptics']): ToastHaptic | undefined {
+  if (t.haptics === false) return undefined;
+  if (typeof t.haptics === 'string') return t.haptics;
+  if (t.haptics !== true && toaster === false) return undefined;
+  const map = typeof toaster === 'object' ? toaster : undefined;
+  return map && t.type in map ? map[t.type] : DEFAULT_HAPTICS[t.type];
+}
+
 function dismiss(id: string, toasterId: string, reason: DismissReason): void {
   toast.dismiss(id, toasterId, reason);
 }
@@ -631,6 +736,12 @@ const styles = StyleSheet.create({
   },
   custom: {
     alignItems: 'center',
+  },
+  // A HUD's stack fills the screen and centres it.
+  center: {
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   stack: {
     position: 'absolute',

@@ -1,7 +1,9 @@
 import * as React from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import type { TextStyle } from 'react-native';
+import { I18nManager, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import Animated, {
+  FadeIn,
+  FadeOut,
   LinearTransition,
   runOnJS,
   useAnimatedStyle,
@@ -10,9 +12,15 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import type { DismissReason, Toast, ToastTheme } from '../core/types';
+import type { DismissReason, SwipeDirection, Toast, ToastSlot, ToastTheme, ToastType } from '../core/types';
 import { resolveValue } from '../core/store';
-import { defaultTheme } from '../core/defaults';
+import { defaultTheme, mergeTheme } from '../core/defaults';
+import { resolvePreset, resolveVariant, variantMotion, variantTheme } from '../core/presets';
+import type { ToasterPreset } from '../core/presets';
+import { progressValue, setProgress } from '../core/progress';
+import { bolder, useBoldText } from '../utils/a11y';
+import { withAlpha } from '../utils/color';
+import { Avatar, Chevron, CountBadge, CountdownRing, ProgressBar, ProgressPercent, ProgressRing } from './parts';
 import { toast as toastApi } from '../core/toast';
 import { GlassSurface, GLASS_SUPPORTED } from './glass-surface';
 import { ToastIcon, CloseIcon } from './icons';
@@ -41,7 +49,18 @@ export interface ToastBarContextValue {
   stack?: StackPlacement;
   /** Reports the toast's measured height, which a `stacked` Toaster needs. */
   onMeasure?: (id: string, height: number) => void;
+  /** The Toaster's preset, which picks the shape of `variant: 'auto'` toasts. */
+  preset?: Exclude<ToasterPreset, 'auto'>;
+  /** The Toaster's icon set, used for any type whose toast names no icon. */
+  icons?: ToastIcons;
+  /** True while the Toaster's timers are paused, for the Undo countdown. */
+  paused?: boolean;
+  /** Extra top or bottom padding for a banner against the screen edge: the safe-area inset. */
+  edgeInset?: number;
 }
+
+/** Icons for each type, and the close button, replacing the built-in glyphs. */
+export type ToastIcons = Partial<Record<Exclude<ToastType, 'custom'> | 'close', React.ReactNode>>;
 
 /**
  * A toast's place in a collapsed stack, computed by the Toaster.
@@ -100,6 +119,10 @@ export interface ToastBarProps {
   stack?: StackPlacement;
   /** Set by a `stacked` Toaster. */
   onMeasure?: (id: string, height: number) => void;
+  /** Default: the Toaster's, else the platform's (`material` on Android, `glass` elsewhere). */
+  preset?: Exclude<ToasterPreset, 'auto'>;
+  /** Default: the Toaster's icon set. */
+  icons?: ToastIcons;
   children?: (props: {
     icon: React.ReactNode;
     message: React.ReactNode;
@@ -130,15 +153,33 @@ export const ToastBar = React.memo(function ToastBar({
   panThreshold: panThresholdProp,
   stack: stackProp,
   onMeasure: onMeasureProp,
+  preset: presetProp,
+  icons: iconsProp,
   children,
 }: ToastBarProps) {
   const slot = React.useContext(ToastBarContext);
 
-  const baseTheme = themeProp ?? slot?.theme ?? defaultTheme;
+  // The shape: a toast asking for 'auto' takes the preset's (a pill, or a
+  // Material snackbar), and each shape lays its own tokens and motion over the
+  // Toaster's theme.
+  const preset = presetProp ?? slot?.preset ?? resolvePreset('auto');
+  const variant = resolveVariant(toast.variant, preset);
+  const toasterTheme = themeProp ?? slot?.theme ?? defaultTheme;
+  const baseTheme = React.useMemo(() => {
+    const tokens = variantTheme(variant);
+    const motion = variantMotion(variant);
+    return tokens || motion ? mergeTheme(toasterTheme, { ...tokens, motion }) : toasterTheme;
+  }, [toasterTheme, variant]);
+  const icons = iconsProp ?? slot?.icons;
+  const paused = slot?.paused ?? false;
+  const edgeInset = slot?.edgeInset ?? 0;
+  const unstyled = toast.unstyled === true;
+  const boldText = useBoldText();
   // `richColors` recolours success and error toasts by outcome: the surface,
   // its border and the text take the outcome palette, and glass takes a tint.
   const rich =
-    toast.richColors && (toast.type === 'success' || toast.type === 'error')
+    toast.richColors &&
+    (toast.type === 'success' || toast.type === 'error' || toast.type === 'info' || toast.type === 'warning')
       ? baseTheme.rich[toast.type]
       : undefined;
   const theme = React.useMemo(
@@ -155,10 +196,14 @@ export const ToastBar = React.memo(function ToastBar({
     [baseTheme, rich],
   );
   const glassConfig = typeof toast.glass === 'object' ? toast.glass : undefined;
+  // The island is black in either appearance, like the Dynamic Island, so it
+  // never draws glass.
   const glass =
-    rich && toast.glass !== false
-      ? { ...glassConfig, tintColor: glassConfig?.tintColor ?? rich.tint }
-      : toast.glass;
+    variant === 'island'
+      ? false
+      : rich && toast.glass !== false
+        ? { ...glassConfig, tintColor: glassConfig?.tintColor ?? rich.tint }
+        : toast.glass;
   const reduceTransparency = reduceTransparencyProp ?? slot?.reduceTransparency ?? false;
   // Liquid Glass cannot fade: UIKit drops the effect at an opacity near zero
   // and never puts it back, so it dematerializes instead. Every other surface,
@@ -207,18 +252,24 @@ export const ToastBar = React.memo(function ToastBar({
   const stackY = useSharedValue(stackShift);
   const stackS = useSharedValue(stackScale);
 
-  // Which horizontal direction dismisses. Either works, but only one should
-  // count as "let go of me" — the other is a push-back.
+  // Toward the anchored edge: up for a top toast, down for a bottom one.
   //
-  // Declared before the gesture chain on purpose. The Reanimated Babel plugin
-  // captures each callback's closure at the `.onUpdate()` call site, and
-  // block-scoping lowers this `const` to a `var`; read after that point it is
-  // `undefined`, every comparison becomes NaN, and the elastic-resistance branch
-  // silently never runs.
-  const dismissalSign = 1;
-  // The vertical equivalent: toward the anchored edge. Declared here for the
-  // same closure reason as `dismissalSign`.
+  // Declared before the gesture chain on purpose, as are the flags below. The
+  // Reanimated Babel plugin captures each callback's closure at the
+  // `.onUpdate()` call site, and block-scoping lowers these `const`s to `var`s;
+  // read after that point they are `undefined`, every comparison becomes NaN,
+  // and the elastic-resistance branch silently never runs.
   const edgeSign = atTop ? -1 : 1;
+  // Which way a swipe may dismiss. By default: sideways toward the reading
+  // end (right, or left in a right-to-left layout), and toward the toast's own
+  // edge. Same closure reason again for declaring them here.
+  const dismissible = toast.dismissible !== false;
+  const directions: SwipeDirection[] =
+    toast.swipeDirections ?? [I18nManager.isRTL ? 'left' : 'right', atTop ? 'up' : 'down'];
+  const allowRight = directions.includes('right');
+  const allowLeft = directions.includes('left');
+  const allowEdge = directions.includes(atTop ? 'up' : 'down');
+  const allowAway = directions.includes(atTop ? 'down' : 'up');
 
   // Travel always points away from the stack's anchor: a top-anchored toast
   // enters from above, a bottom-anchored one rises from below. rht does this
@@ -382,7 +433,7 @@ export const ToastBar = React.memo(function ToastBar({
   const pan = React.useMemo(
     () =>
       Gesture.Pan()
-        .enabled(panThreshold > 0)
+        .enabled(panThreshold > 0 && dismissible)
         .activeOffsetX([-12, 12])
         .activeOffsetY([-12, 12])
         .onStart(() => {
@@ -395,24 +446,25 @@ export const ToastBar = React.memo(function ToastBar({
             dragAxis.value = Math.abs(event.translationX) >= Math.abs(event.translationY) ? 1 : 2;
           }
           if (dragAxis.value === 1) {
-            dragX.value = resistWrongWay(event.translationX, dismissalSign);
+            dragX.value = resistUnless(event.translationX, allowRight, allowLeft);
           } else {
-            dragY.value = resistWrongWay(event.translationY, edgeSign);
+            dragY.value = resistUnless(event.translationY, edgeSign > 0 ? allowEdge : allowAway, edgeSign > 0 ? allowAway : allowEdge);
           }
         })
         .onEnd((event) => {
           if (dragAxis.value === 2) {
             // A toast is short, so the vertical distance is shorter too: about
-            // two thirds of its own height, or a flick toward the edge.
-            const travel = resistWrongWay(event.translationY, edgeSign);
+            // two thirds of its own height, or a flick in an allowed direction.
+            const travel = resistUnless(event.translationY, edgeSign > 0 ? allowEdge : allowAway, edgeSign > 0 ? allowAway : allowEdge);
             dragY.value = travel;
-            const towardEdge = travel * edgeSign > 0;
-            const farEnough = towardEdge && Math.abs(travel) > Math.min(panThreshold, 44);
-            const fastEnough = event.velocityY * edgeSign > 600;
+            const sign = Math.sign(travel || event.velocityY);
+            const allowed = sign === edgeSign ? allowEdge : allowAway;
+            const farEnough = allowed && Math.abs(travel) > Math.min(panThreshold, 44);
+            const fastEnough = allowed && event.velocityY * sign > 600;
             fling.value = Math.abs(event.velocityY);
             if (farEnough || fastEnough) {
               const speed = Math.min(Math.abs(event.velocityY) / 1800, 1);
-              dragY.value = withTiming(travel + edgeSign * (height.value + 160), {
+              dragY.value = withTiming(travel + sign * (height.value + 160), {
                 duration: exitMs * (1 - 0.25 * speed),
                 easing: exitEasing,
               });
@@ -427,10 +479,12 @@ export const ToastBar = React.memo(function ToastBar({
           // update's. A quick swipe can deliver only a few updates before the
           // finger lifts (on Android, three updates reached 18px of a 135px
           // swipe), and reading `dragX` dismissed nothing and snapped it back.
-          const travel = resistWrongWay(event.translationX, dismissalSign);
+          const travel = resistUnless(event.translationX, allowRight, allowLeft);
           dragX.value = travel;
-          const farEnough = Math.abs(travel) > panThreshold;
-          const fastEnough = Math.abs(event.velocityX) > 900;
+          const sign = Math.sign(travel || event.velocityX);
+          const allowed = sign > 0 ? allowRight : allowLeft;
+          const farEnough = allowed && Math.abs(travel) > panThreshold;
+          const fastEnough = allowed && Math.abs(event.velocityX) > 900 && Math.sign(event.velocityX) === sign;
 
           fling.value = Math.abs(event.velocityX);
 
@@ -440,7 +494,7 @@ export const ToastBar = React.memo(function ToastBar({
             // a swiped toast teleported instead of leaving.
             const speed = Math.min(Math.abs(event.velocityX) / 1800, 1);
             dragX.value = withTiming(
-              event.translationX + Math.sign(event.translationX || 1) * 500,
+              travel + (sign || 1) * 500,
               { duration: exitMs * (1 - 0.25 * speed), easing: exitEasing },
             );
             // Gesture callbacks run on the UI thread; the dismissal lives in
@@ -450,7 +504,7 @@ export const ToastBar = React.memo(function ToastBar({
             dragX.value = withTiming(0, { duration: 200, easing: enterEasing });
           }
         }),
-    [panThreshold, dragX, dragY, dragAxis, edgeSign, height, fling, exitMs, exitEasing, enterEasing, swipeAway],
+    [panThreshold, dismissible, allowRight, allowLeft, allowEdge, allowAway, dragX, dragY, dragAxis, edgeSign, height, fling, exitMs, exitEasing, enterEasing, swipeAway],
   );
 
   // A per-toast `style.borderRadius` wins over the token, same as for the
@@ -467,37 +521,91 @@ export const ToastBar = React.memo(function ToastBar({
       .join('. ') || undefined;
   const iconKind = toast.type as ToastIconKind;
 
+  // Per-part styles and class names. A class name rides on `className`, which
+  // NativeWind and Uniwind read on React Native components; without one of
+  // them it is ignored.
+  const slotStyle = (part: ToastSlot): StyleProp<ViewStyle & TextStyle> => toast.styles?.[part];
+  const slotClass = (part: ToastSlot): object | null => {
+    const className = toast.classNames?.[part];
+    return className ? { className } : null;
+  };
+
+  // Text weight follows Bold Text, as system text does.
+  const titleWeight = boldText ? bolder(theme.fontWeight) : theme.fontWeight;
+  const actionWeight = boldText ? '800' : '600';
+
   // A function icon receives the resolved toast, same as a function message.
   // Resolving only the message and passing the raw icon through would render
   // an invalid element type the moment anyone passed a function.
   const resolvedIcon =
     toast.icon === undefined ? undefined : resolveValue(toast.icon, toast);
+  // The Toaster's icon set stands in for the built-in glyph of its type.
+  const setIcon = toast.type === 'custom' ? undefined : icons?.[toast.type];
+
+  // Progress: the toast's own value is written to the shared value the bar and
+  // ring read; `toast.progress()` writes to it directly and skips React.
+  const hasProgress = toast.progress !== undefined;
+  const progress = hasProgress ? progressValue(toast.id) : undefined;
+  const ownProgress = toast.progress;
+  React.useEffect(() => {
+    if (ownProgress !== undefined) setProgress(toastId, ownProgress);
+  }, [ownProgress, toastId]);
+  const ring = hasProgress && toast.progressStyle === 'ring';
 
   // A blank toast with no icon draws no icon slot at all. An empty slot still
   // took the row gap, so plain toasts sat off-centre in their pill.
   const hasGlyph =
-    iconKind === 'success' || iconKind === 'error' || iconKind === 'loading';
+    iconKind === 'success' ||
+    iconKind === 'error' ||
+    iconKind === 'loading' ||
+    iconKind === 'info' ||
+    iconKind === 'warning';
+  // A progress bar says "working" already; a spinner beside it would repeat it.
+  const hideSpinner = hasProgress && !ring && iconKind === 'loading';
+  const iconSize = theme.iconSize;
+  const glyph =
+    resolvedIcon ??
+    setIcon ??
+    (hideSpinner ? null : (
+      <ToastIcon
+        kind={iconKind}
+        size={iconSize}
+        theme={theme}
+        iconTheme={toast.iconTheme}
+        reduceMotion={reduceMotion}
+      />
+    ));
+  const accent = toast.iconTheme?.primary ?? (rich ? rich.color : theme.actionColor);
   // `icon: null` hides the icon, glyph included, as in react-hot-toast.
-  const defaultIcon = toast.icon === null || (resolvedIcon == null && !hasGlyph) ? null : (
-    <Animated.View style={[styles.icon, toast.iconStyle, iconSettled ? null : iconPopStyle]}>
-      {resolvedIcon ?? (
-        <ToastIcon
-          kind={iconKind}
-          size={theme.iconSize}
-          theme={theme}
-          iconTheme={toast.iconTheme}
-          reduceMotion={reduceMotion}
-        />
-      )}
+  const showIcon = !(toast.icon === null || (resolvedIcon == null && setIcon == null && (!hasGlyph || hideSpinner)));
+  const defaultIcon = toast.avatar !== undefined ? (
+    <Avatar avatar={toast.avatar} size={variant === 'card' ? 40 : 28} style={slotStyle('avatar') as StyleProp<ViewStyle>} />
+  ) : ring ? (
+    <ProgressRing
+      progress={progress!}
+      size={iconSize + 4}
+      color={accent}
+      trackColor={withAlpha(theme.color, 0.16)}
+      reduceMotion={reduceMotion}
+    />
+  ) : !showIcon ? null : (
+    <Animated.View
+      style={[styles.icon, toast.iconStyle, slotStyle('icon') as StyleProp<ViewStyle>, iconSettled ? null : iconPopStyle]}
+      {...slotClass('icon')}
+    >
+      {glyph}
     </Animated.View>
   );
 
-  const tapToDismiss = toast.dismissOnTap ?? Platform.OS === 'android';
-  const closeable = toast.closeButton ?? toast.closeable ?? false;
-  const hasButtons = closeable || toast.action !== undefined;
+  const tapToDismiss = dismissible && (toast.dismissOnTap ?? Platform.OS === 'android');
+  const closeable = dismissible && (toast.closeButton ?? toast.closeable ?? false);
+  const expandable = toast.expandable;
+  const [expanded, setExpanded] = React.useState(expandable?.defaultExpanded ?? false);
+  const hasButtons = closeable || toast.action !== undefined || toast.cancel !== undefined || expandable !== undefined;
   // Errors interrupt; everything else queues politely. This is the one place
   // the flag actually reaches Android, which has real live regions.
   const assertive = toast.important ?? toast.type === 'error';
+  const hud = variant === 'hud';
 
   const messageText = (
     <Text
@@ -507,11 +615,15 @@ export const ToastBar = React.memo(function ToastBar({
           color: theme.color,
           fontSize: theme.fontSize,
           lineHeight: theme.lineHeight,
-          fontWeight: theme.fontWeight,
+          fontWeight: titleWeight,
+          fontFamily: theme.fontFamily,
         },
+        hud && styles.centered,
         toast.textStyle,
+        slotStyle('title') as StyleProp<TextStyle>,
       ]}
-      numberOfLines={3}
+      {...slotClass('title')}
+      numberOfLines={theme.maxLines}
       // Ungrouped toasts read the message on its own, so a custom label
       // belongs here instead of on the container.
       accessibilityLabel={hasButtons ? toast.accessibilityLabel : undefined}
@@ -521,91 +633,248 @@ export const ToastBar = React.memo(function ToastBar({
     </Text>
   );
 
-  const content = children ? (
-    children({ icon: defaultIcon, message, description })
-  ) : (
-    <View style={styles.row}>
-      {defaultIcon}
-      {description == null ? (
-        messageText
-      ) : (
-        <View style={styles.texts}>
-          {messageText}
-          {typeof description === 'string' || typeof description === 'number' ? (
-            <Text
-              style={{
-                color: theme.descriptionColor,
-                fontSize: theme.descriptionFontSize,
-                lineHeight: theme.descriptionLineHeight,
-              }}
-              numberOfLines={3}
-              maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
-            >
-              {description}
-            </Text>
-          ) : (
-            description
-          )}
-        </View>
-      )}
-      {closeable ? (
-        <Pressable
-          onPress={() => onDismiss(toast.id, 'close')}
-          // 28pt is the smallest comfortable target; below that the button is
-          // technically hittable and practically unusable.
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss"
-          style={({ pressed }) => [
-            styles.close,
-            // A backdrop is what makes a 14pt glyph legible on a moving,
-            // translucent material; without it the cross reads as a smudge.
-            { backgroundColor: theme.closeButtonBackground },
-            pressed && styles.closePressed,
-          ]}
-        >
-          <CloseIcon
-            size={15}
-            color={toast.closeButtonColor ?? theme.color}
+  const muted = withAlpha(theme.color, 0.55);
+  // The title line: the message, a repeat count, and a time or step label.
+  const titleLine =
+    (toast.count ?? 1) > 1 || toast.timestamp !== undefined || hasProgress ? (
+      <View style={[styles.titleLine, hud && styles.centeredRow]}>
+        {messageText}
+        {(toast.count ?? 1) > 1 ? (
+          <CountBadge
+            count={toast.count!}
+            color={theme.color}
+            background={withAlpha(theme.color, 0.12)}
+            style={slotStyle('badge') as StyleProp<ViewStyle>}
           />
-        </Pressable>
-      ) : null}
-      {toast.action ? (
-        <Pressable
-          onPress={() => {
-            toast.action!.onPress();
-            // Dismiss after the handler, not before: an Undo that reverses state
-            // should leave before the toast does, so the queue never shows a
-            // message describing something that no longer happened.
-            onDismiss(toast.id, 'action' as DismissReason);
-          }}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityLabel={toast.action.label}
-          style={({ pressed }) => [
-            styles.action,
-            { paddingHorizontal: theme.actionPaddingHorizontal },
-            pressed && styles.actionPressed,
-          ]}
-        >
+        ) : null}
+        {toast.timestamp !== undefined ? (
           <Text
+            style={[styles.timestamp, { color: muted, fontFamily: theme.descriptionFontFamily ?? theme.fontFamily }, slotStyle('timestamp') as StyleProp<TextStyle>]}
+            {...slotClass('timestamp')}
             maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
-            style={[
-              styles.actionLabel as TextStyle,
-              {
-                color: toast.action.color ?? theme.actionColor,
-                fontSize: theme.fontSize,
-                fontWeight: '600',
-              },
-            ]}
           >
-            {toast.action.label}
+            {toast.timestamp}
           </Text>
-        </Pressable>
-      ) : null}
+        ) : null}
+        {hasProgress && !hud ? (
+          <ProgressPercent progress={progress!} style={[styles.timestamp, { color: muted, fontSize: theme.descriptionFontSize }]} />
+        ) : null}
+      </View>
+    ) : (
+      messageText
+    );
+
+  const descriptionNode =
+    description == null ? null : typeof description === 'string' || typeof description === 'number' ? (
+      <Text
+        style={[
+          {
+            color: theme.descriptionColor,
+            fontSize: theme.descriptionFontSize,
+            lineHeight: theme.descriptionLineHeight,
+            fontFamily: theme.descriptionFontFamily ?? theme.fontFamily,
+          },
+          hud && styles.centered,
+          slotStyle('description') as StyleProp<TextStyle>,
+        ]}
+        {...slotClass('description')}
+        numberOfLines={theme.descriptionMaxLines}
+        maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
+      >
+        {description}
+      </Text>
+    ) : (
+      description
+    );
+
+  const texts =
+    descriptionNode == null && titleLine === messageText ? (
+      messageText
+    ) : (
+      <View style={[styles.texts, hud && styles.centeredColumn]}>
+        {titleLine}
+        {descriptionNode}
+      </View>
+    );
+
+  const button = (
+    kind: 'action' | 'cancel',
+    spec: NonNullable<Toast['action']>,
+  ) => (
+    <Pressable
+      key={kind}
+      onPress={() => {
+        spec.onPress();
+        // Dismiss after the handler, not before: an Undo that reverses state
+        // should leave before the toast does, so the queue never shows a
+        // message describing something that no longer happened.
+        onDismiss(toast.id, 'action' as DismissReason);
+      }}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityLabel={spec.label}
+      style={({ pressed }) => [
+        styles.action,
+        { paddingHorizontal: theme.actionPaddingHorizontal },
+        kind === 'cancel' && { backgroundColor: withAlpha(theme.color, 0.08) },
+        pressed && styles.actionPressed,
+        slotStyle(kind) as StyleProp<ViewStyle>,
+      ]}
+      {...slotClass(kind)}
+    >
+      <View style={styles.actionInner}>
+        {kind === 'action' && spec.countdown && Number.isFinite(toast.duration) ? (
+          <CountdownRing
+            remaining={Math.max((toast.duration ?? 0) + toast.pauseDuration - (Date.now() - toast.createdAt), 0)}
+            total={toast.duration ?? 0}
+            paused={paused}
+            size={16}
+            color={spec.color ?? theme.actionColor}
+          />
+        ) : null}
+        <Text
+          maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
+          style={[
+            styles.actionLabel as TextStyle,
+            {
+              color: kind === 'cancel' ? theme.color : (spec.color ?? theme.actionColor),
+              fontSize: theme.fontSize,
+              fontWeight: kind === 'cancel' ? titleWeight : actionWeight,
+              fontFamily: theme.actionFontFamily ?? theme.fontFamily,
+            },
+            slotStyle(kind === 'cancel' ? 'cancelLabel' : 'actionLabel') as StyleProp<TextStyle>,
+          ]}
+          {...slotClass(kind === 'cancel' ? 'cancelLabel' : 'actionLabel')}
+        >
+          {spec.label}
+        </Text>
+      </View>
+    </Pressable>
+  );
+
+  const toggle = expandable ? (
+    <Pressable
+      key="expand"
+      onPress={() => {
+        // An open toast holds the queue, so the details stay as long as they
+        // are being read; closing it lets the timers run again.
+        if (expanded) onPressOut();
+        else onPressIn();
+        setExpanded((open) => !open);
+      }}
+      hitSlop={10}
+      accessibilityRole="button"
+      accessibilityState={{ expanded }}
+      accessibilityLabel={expandable.label ?? (expanded ? 'Hide details' : 'Show details')}
+      style={({ pressed }) => [styles.close, { backgroundColor: theme.closeButtonBackground }, pressed && styles.closePressed]}
+    >
+      <Chevron open={expanded} color={theme.color} />
+    </Pressable>
+  ) : null;
+
+  const close = closeable ? (
+    <Pressable
+      key="close"
+      onPress={() => onDismiss(toast.id, 'close')}
+      // 28pt is the smallest comfortable target; below that the button is
+      // technically hittable and practically unusable.
+      hitSlop={10}
+      accessibilityRole="button"
+      accessibilityLabel="Dismiss"
+      style={({ pressed }) => [
+        styles.close,
+        // A backdrop is what makes a 14pt glyph legible on a moving,
+        // translucent material; without it the cross reads as a smudge.
+        { backgroundColor: theme.closeButtonBackground },
+        pressed && styles.closePressed,
+        slotStyle('closeButton') as StyleProp<ViewStyle>,
+      ]}
+      {...slotClass('closeButton')}
+    >
+      {icons?.close ?? <CloseIcon size={15} color={toast.closeButtonColor ?? theme.color} />}
+    </Pressable>
+  ) : null;
+
+  const buttons = [
+    toggle,
+    toast.cancel ? button('cancel', toast.cancel) : null,
+    toast.action ? button('action', toast.action) : null,
+    close,
+  ];
+
+  const row = hud ? (
+    // A HUD stacks: the icon above the text, and any buttons under both.
+    <View style={[styles.hud, slotStyle('content') as StyleProp<ViewStyle>]} {...slotClass('content')}>
+      {defaultIcon}
+      {texts}
+      {buttons.some(Boolean) ? <View style={styles.hudButtons}>{buttons}</View> : null}
+    </View>
+  ) : (
+    <View style={[styles.row, slotStyle('content') as StyleProp<ViewStyle>]} {...slotClass('content')}>
+      {defaultIcon}
+      {texts}
+      {buttons}
     </View>
   );
 
+  const expandedContent =
+    expandable && expanded ? (
+      <Animated.View
+        entering={reduceMotion ? undefined : FadeIn.duration(220)}
+        exiting={reduceMotion ? undefined : FadeOut.duration(160)}
+        style={[styles.expanded, { borderTopColor: withAlpha(theme.color, 0.12) }, slotStyle('expanded') as StyleProp<ViewStyle>]}
+        {...slotClass('expanded')}
+      >
+        {typeof expandable.content === 'string' ? (
+          <Text
+            style={{ color: theme.descriptionColor, fontSize: theme.descriptionFontSize, lineHeight: theme.descriptionLineHeight, fontFamily: theme.descriptionFontFamily ?? theme.fontFamily }}
+            maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
+          >
+            {expandable.content}
+          </Text>
+        ) : (
+          expandable.content
+        )}
+      </Animated.View>
+    ) : null;
+
+  const builtIn = expandable ? (
+    <View style={styles.column}>
+      {row}
+      {expandedContent}
+    </View>
+  ) : (
+    row
+  );
+
+  const content = children ? children({ icon: defaultIcon, message, description }) : builtIn;
+
+  const progressBar =
+    hasProgress && !ring && !hud ? (
+      <ProgressBar
+        progress={progress!}
+        color={accent}
+        trackColor={withAlpha(theme.color, 0.12)}
+        segments={toast.progressSegments}
+        reduceMotion={reduceMotion}
+        style={[
+          // Inset from the rounded corners, so the bar sits inside the shape.
+          { left: Math.min(theme.radius * 0.6, 18), right: Math.min(theme.radius * 0.6, 18), bottom: 6, borderRadius: 2 },
+          slotStyle('progressTrack') as StyleProp<ViewStyle>,
+        ]}
+        barStyle={slotStyle('progressBar') as StyleProp<ViewStyle>}
+      />
+    ) : hasProgress && hud && !ring ? (
+      <ProgressBar
+        progress={progress!}
+        color={accent}
+        trackColor={withAlpha(theme.color, 0.12)}
+        segments={toast.progressSegments}
+        reduceMotion={reduceMotion}
+        style={[{ left: 26, right: 26, bottom: 14, borderRadius: 2 }, slotStyle('progressTrack') as StyleProp<ViewStyle>]}
+        barStyle={slotStyle('progressBar') as StyleProp<ViewStyle>}
+      />
+    ) : null;
 
   const surface = (
     <GlassSurface
@@ -659,9 +928,15 @@ export const ToastBar = React.memo(function ToastBar({
             onPressIn={onPressIn}
             onPressOut={onPressOut}
             onPress={
-              tapToDismiss
-                ? () => onDismiss(toast.id, 'tap')
-                : undefined
+              toast.onPress
+                ? () => {
+                    // A notification that opens something leaves once it has.
+                    toast.onPress!();
+                    onDismiss(toast.id, 'tap');
+                  }
+                : tapToDismiss
+                  ? () => onDismiss(toast.id, 'tap')
+                  : undefined
             }
             accessibilityLiveRegion={assertive ? 'assertive' : 'polite'}
             // One accessibility element reads the toast as a single alert, but
@@ -673,7 +948,9 @@ export const ToastBar = React.memo(function ToastBar({
             accessibilityLabel={
               hasButtons ? undefined : (toast.accessibilityLabel ?? spokenText)
             }
-            accessibilityHint={tapToDismiss && !hasButtons ? 'Double tap to dismiss' : undefined}
+            accessibilityHint={
+              toast.onPress ? 'Double tap to open' : tapToDismiss && !hasButtons ? 'Double tap to dismiss' : undefined
+            }
             style={[styles.pressable, { alignItems: align }]}
             onLayout={(event) => {
               height.value = event.nativeEvent.layout.height;
@@ -694,12 +971,21 @@ export const ToastBar = React.memo(function ToastBar({
                   maxWidth: theme.maxWidth,
                   gap: theme.gap,
                 },
+                // A snackbar, banner or card stretches to the stack's width.
+                theme.fill && styles.fill,
+                // Room under a progress bar, so it never sits on the text.
+                hasProgress && !ring && { paddingBottom: theme.paddingVertical + 6 },
+                // A banner reaches under the status bar or home indicator.
+                edgeInset > 0 && (atTop ? { paddingTop: theme.paddingVertical + edgeInset } : { paddingBottom: theme.paddingVertical + edgeInset }),
+                unstyled && styles.unstyled,
                 // Applied last so a consumer's `style` can override any token,
                 // which is the precedence the store's merge already assumes.
                 toast.style,
+                slotStyle('toast') as StyleProp<ViewStyle>,
               ]}
+              {...slotClass('toast')}
             >
-              {onLiquidGlass ? (
+              {unstyled ? null : onLiquidGlass ? (
                 surface
               ) : (
                 // Off Liquid Glass, the surface takes the content's fade, handed
@@ -718,6 +1004,7 @@ export const ToastBar = React.memo(function ToastBar({
               >
                 {content}
               </Animated.View>
+              {progressBar}
             </View>
           </Pressable>
         </Animated.View>
@@ -727,13 +1014,13 @@ export const ToastBar = React.memo(function ToastBar({
 });
 
 /**
- * Drag offset for a raw horizontal translation. Dragging against the dismissal
- * direction resists elastically, so a push back never travels far enough to
- * dismiss.
+ * Drag offset for a raw translation on one axis. A drag toward a direction
+ * that does not dismiss resists elastically, so it never travels far enough to.
  */
-function resistWrongWay(raw: number, dismissalSign: number): number {
+function resistUnless(raw: number, allowPositive: boolean, allowNegative: boolean): number {
   'worklet';
-  return raw * dismissalSign < 0 ? raw * 0.35 * (1 / (1 + Math.abs(raw) * 0.02)) : raw;
+  const allowed = raw >= 0 ? allowPositive : allowNegative;
+  return allowed ? raw : raw * 0.35 * (1 / (1 + Math.abs(raw) * 0.02));
 }
 
 /**
@@ -778,6 +1065,15 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  fill: {
+    width: '100%',
+  },
+  // No padding or corner: the parts are styled by the consumer.
+  unstyled: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    borderRadius: 0,
   },
   row: {
     flexDirection: 'row',
@@ -837,5 +1133,50 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     fontWeight: '600',
+  },
+  actionInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  // The message with its count, time or percentage on one line.
+  titleLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+    gap: 6,
+  },
+  timestamp: {
+    fontSize: 13,
+    flexShrink: 0,
+  },
+  centered: {
+    textAlign: 'center',
+  },
+  centeredRow: {
+    justifyContent: 'center',
+  },
+  centeredColumn: {
+    alignItems: 'center',
+  },
+  // The HUD's column: icon, text, buttons, centred.
+  hud: {
+    alignItems: 'center',
+    gap: 10,
+    flexShrink: 1,
+  },
+  hudButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  column: {
+    flexShrink: 1,
+  },
+  // The expandable toast's details, under a hairline.
+  expanded: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
 });

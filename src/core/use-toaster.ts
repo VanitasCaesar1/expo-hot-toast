@@ -67,6 +67,8 @@ export interface UseToasterResult {
    * `const { toasts, handlers } = useToaster()` compiles unchanged.
    */
   handlers: { startPause: () => void; endPause: () => void };
+  /** True while the timers are paused: by a press, or the `paused` option. */
+  paused: boolean;
 }
 
 export function useToaster({
@@ -365,7 +367,7 @@ export function useToaster({
   // Memoized so `handlers` is as stable as the functions it wraps.
   const handlers = useMemo(() => ({ startPause, endPause }), [startPause, endPause]);
 
-  return { toasts: visible, pending, startPause, endPause, handlers };
+  return { toasts: visible, pending, startPause, endPause, handlers, paused: pausedAt !== undefined };
 }
 
 /**

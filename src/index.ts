@@ -2,7 +2,7 @@
 export { Toaster } from './components/toaster';
 export type { ToasterProps } from './components/toaster';
 export { ToastBar } from './components/toast-bar';
-export type { ToastBarProps } from './components/toast-bar';
+export type { ToastBarProps, ToastIcons } from './components/toast-bar';
 export { ToastIcon, CloseIcon, TOAST_ICON_ACCENTS } from './components/icons';
 export type { ToastIconKind, ToastIconProps } from './components/icons';
 export {
@@ -18,7 +18,22 @@ export type {
 
 /* Imperative API */
 export { toast, default } from './core/toast';
-export type { ToastAPI, ToastHandler, PromiseMessages } from './core/toast';
+export type {
+  ToastAPI,
+  ToastHandler,
+  PromiseMessages,
+  ToastUpdate,
+  ProgressController,
+  StepsController,
+  TrackMessages,
+  ShapedOptions,
+  NotifyOptions,
+} from './core/toast';
+export { themeFromColors, fromNavigationTheme } from './theme/adapters';
+export type { ColorTokens, NavigationThemeLike } from './theme/adapters';
+export { materialTheme, animationMotion, resolvePreset } from './core/presets';
+export type { ToasterPreset, ToastAnimation } from './core/presets';
+export { withAlpha } from './utils/color';
 
 /* Headless hooks, for building a custom renderer */
 export {
@@ -77,7 +92,7 @@ export {
 export type { GlassMode } from './utils/a11y';
 
 /* Haptics */
-export { triggerToastHaptic } from './utils/haptics';
+export { triggerToastHaptic, DEFAULT_HAPTICS } from './utils/haptics';
 
 /* Types */
 export type {
@@ -96,6 +111,14 @@ export type {
   ToastAction,
   ToastOptions,
   ToastPosition,
+  ToastSlot,
+  ToastStyles,
+  ToastClassNames,
+  ToastVariant,
+  ToastExpandable,
+  ToastAvatar,
+  SwipeDirection,
+  ToastHaptic,
   ToastTheme,
   ToastThemeOverride,
   ToastType,

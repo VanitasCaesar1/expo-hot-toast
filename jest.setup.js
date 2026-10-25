@@ -7,6 +7,13 @@
  * filled here rather than worked around in each test.
  */
 const ReactNative = require('react-native');
+// The same mock has no I18nManager, which the toast reads for right-to-left
+// swipe directions.
+if (!ReactNative.I18nManager) {
+  ReactNative.I18nManager = { isRTL: false, allowRTL: () => {}, forceRTL: () => {}, swapLeftAndRightInRTL: () => {} };
+}
+// Nor TextInput, which the progress percentage writes its number into.
+if (!ReactNative.TextInput) ReactNative.TextInput = 'TextInput';
 if (typeof ReactNative.StyleSheet.flatten !== 'function') {
   ReactNative.StyleSheet.flatten = (style) => {
     if (!style) return undefined;
@@ -84,7 +91,10 @@ jest.mock('react-native-reanimated', () => {
     bezier: () => (t) => t,
     linear: (t) => t,
     ease: (t) => t,
-    inOut: (t) => t,
+    quad: (t) => t,
+    in: (fn) => fn,
+    out: (fn) => fn,
+    inOut: (fn) => (typeof fn === 'function' ? fn : (t) => t),
   };
 
   // Plain host views rather than RN's Animated.View. Every animation hook is
@@ -119,6 +129,9 @@ jest.mock('react-native-reanimated', () => {
     exiting: noopBuilder(),
     layout: noopBuilder(),
     useSharedValue,
+    // Outside a component: the progress registry's boxes.
+    makeMutable: (initial) => ({ value: initial }),
+    cancelAnimation: () => undefined,
     useAnimatedStyle,
     useAnimatedProps,
     useDerivedValue: (factory) => ({ value: factory() }),

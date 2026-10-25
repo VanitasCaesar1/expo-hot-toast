@@ -11,6 +11,8 @@ import {
   recordDedupe,
   resolveValue,
 } from './store';
+import { resolveDuration } from './defaults';
+import { setProgress } from './progress';
 import type {
   DefaultToastOptions,
   DismissReason,
@@ -33,12 +35,95 @@ export interface ToastHandler {
   (message: Message, options?: ToastOptions): string;
 }
 
+/** What `toast.update` can change. */
+export type ToastUpdate = Partial<Omit<ToastOptions, 'id' | 'toasterId'>> & {
+  message?: Message;
+  type?: ToastType;
+};
+
+/** Drives a progress toast. Returned by `toast.progress()`. */
+export interface ProgressController {
+  readonly id: string;
+  /**
+   * Set the progress, from 0 to 1, or `'indeterminate'`. Written straight to
+   * the UI thread: call it as often as you like, the toast does not re-render.
+   */
+  set(progress: number | 'indeterminate'): void;
+  /** Change the message, description or any other field. */
+  update(changes: ToastUpdate): void;
+  /** Finish: the same toast becomes a success toast. */
+  success(message: Message, options?: ToastOptions): void;
+  /** Fail: the same toast becomes an error toast. */
+  error(message: Message, options?: ToastOptions): void;
+  dismiss(): void;
+}
+
+/** Drives a step-by-step toast. Returned by `toast.steps()`. */
+export interface StepsController extends Omit<ProgressController, 'set'> {
+  /** The current step, from 0. */
+  readonly step: number;
+  /** Move to the next step: its label, and one more segment filled. */
+  next(): void;
+  /** Move to step `index`, from 0. */
+  go(index: number): void;
+}
+
+export interface TrackMessages<T> {
+  loading: Renderable;
+  success?: Renderable | ((value: T) => Renderable);
+  error?: Renderable | ((error: unknown) => Renderable);
+}
+
+/** The shape-specific calls take a type, which sets the icon, and options. */
+export type ShapedOptions = ToastOptions & { type?: Exclude<ToastType, 'custom'> };
+
+/** A notification-style toast, as `toast.notify()` takes it. */
+export interface NotifyOptions extends Omit<ToastOptions, 'description'> {
+  title: Renderable;
+  body?: Renderable;
+  type?: Exclude<ToastType, 'custom'>;
+}
+
 export interface ToastAPI {
   (message: Message, options?: ToastOptions): string;
   error: ToastHandler;
   success: ToastHandler;
   loading: ToastHandler;
+  info: ToastHandler;
+  warning: ToastHandler;
   custom: ToastHandler;
+  /**
+   * Change some of a showing toast's fields, keeping the rest and its place in
+   * the queue: `toast.update(id, { message: 'Almost there' })`. Unlike calling
+   * `toast(…, { id })`, which replaces the toast, this keeps its timer too,
+   * unless `duration` is part of the update.
+   */
+  update(id: string, changes: ToastUpdate): void;
+  /**
+   * A toast with a progress bar, for uploads, downloads and long work:
+   * `const upload = toast.progress('Uploading photo')`, then `upload.set(0.4)`
+   * as it goes, and `upload.success('Photo uploaded')` at the end.
+   */
+  progress(message: Message, options?: ToastOptions): ProgressController;
+  /**
+   * A toast that walks through named steps, with a segmented bar:
+   * `const job = toast.steps(['Compressing', 'Uploading', 'Processing'])`,
+   * `job.next()` after each, `job.success('Done')` at the end.
+   */
+  steps(labels: string[], options?: ToastOptions): StepsController;
+  /**
+   * Runs `task` with a progress toast. `task` receives a function to report
+   * progress with, and the toast follows its promise to success or error.
+   */
+  track<T>(task: (report: (progress: number) => void) => Promise<T>, messages: TrackMessages<T>, options?: ToastOptions): Promise<T>;
+  /** A large confirmation in the middle of the screen, icon above text. Default type success. */
+  hud(message: Message, options?: ShapedOptions): string;
+  /** A full-width bar against the top (or bottom) edge, for states like being offline. Default type info. */
+  banner(message: Message, options?: ShapedOptions): string;
+  /** A notification: title, body, avatar and time, which `onPress` can open. */
+  notify(options: NotifyOptions): string;
+  /** A black capsule growing out of the Dynamic Island, for short or ongoing news. */
+  island(message: Message, options?: ShapedOptions): string;
   promise<T>(
     promise: Promise<T> | (() => Promise<T>),
     messages: PromiseMessages<T>,
@@ -130,8 +215,14 @@ function dedupe(opts: ToastOptions | undefined): string | null {
   // id of one that was already dismissed or removed would swallow the new
   // message: the caller gets an id, and nothing is shown.
   if (hit === null) return null;
-  const live = getState(toasterId).toasts.some((t) => t.id === hit && !t.dismissed);
-  return live ? hit : null;
+  const live = getState(toasterId).toasts.find((t) => t.id === hit && !t.dismissed);
+  if (!live) return null;
+  // The repeat is counted on the toast already showing, which draws the count.
+  dispatch(
+    { type: ActionType.UPDATE_TOAST, toast: { id: hit, count: (live.count ?? 1) + 1 } },
+    toasterId,
+  );
+  return hit;
 }
 
 const createHandler =
@@ -157,6 +248,8 @@ function createToastAPI(): ToastAPI {
   api.error = createHandler('error');
   api.success = createHandler('success');
   api.loading = createHandler('loading');
+  api.info = createHandler('info');
+  api.warning = createHandler('warning');
   api.custom = createHandler('custom');
 
   api.dismiss = (toastId?: string, toasterId?: string, reason?: DismissReason) => {
@@ -181,6 +274,21 @@ function createToastAPI(): ToastAPI {
   };
 
   api.removeAll = (toasterId?: string) => api.remove(undefined, toasterId);
+
+  api.update = (id: string, changes: ToastUpdate) => {
+    const toasterId = findToasterIdFor(id);
+    if (toasterId === undefined) return;
+    const { duration, ...rest } = changes;
+    const patch: Partial<Toast> & { id: string } = { ...(rest as Partial<Toast>), id };
+    if (duration !== undefined) {
+      patch.duration = typeof duration === 'number' ? duration : resolveDuration(duration, Infinity);
+      patch.durationPreset = typeof duration === 'string' ? duration : undefined;
+      // A new duration counts from now.
+      patch.createdAt = Date.now();
+      patch.pauseDuration = 0;
+    }
+    dispatch({ type: ActionType.UPDATE_TOAST, toast: patch }, toasterId);
+  };
 
   api.promise = <T,>(
     promise: Promise<T> | (() => Promise<T>),
@@ -241,6 +349,94 @@ function createToastAPI(): ToastAPI {
     // `await toast.promise(...)` still rejects for the caller.
     return settled;
   };
+
+  api.progress = (message: Message, options?: ToastOptions): ProgressController => {
+    const id = api.loading(message, { duration: Infinity, ...options, progress: options?.progress ?? 0 });
+    // Ending a progress toast clears what made it one, so the success or
+    // error toast that replaces it under the same id draws no bar.
+    const ended = { progress: undefined, progressSegments: undefined, timestamp: undefined } as ToastOptions;
+    return {
+      id,
+      set: (progress) => setProgress(id, progress),
+      update: (changes) => api.update(id, changes),
+      success: (msg, opts) => {
+        api.success(msg, { ...ended, ...opts, id });
+      },
+      error: (msg, opts) => {
+        api.error(msg, { ...ended, ...opts, id });
+      },
+      dismiss: () => api.dismiss(id),
+    };
+  };
+
+  api.steps = (labels: string[], options?: ToastOptions): StepsController => {
+    const total = Math.max(labels.length, 1);
+    const label = (index: number) => `${index + 1}/${total}`;
+    const controller = api.progress(labels[0] ?? '', {
+      ...options,
+      progressSegments: total,
+      timestamp: label(0),
+    });
+    let step = 0;
+    const go = (index: number) => {
+      step = Math.min(Math.max(index, 0), total - 1);
+      // The bar fills the steps already done, plus half of the current one.
+      setProgress(controller.id, (step + 0.5) / total);
+      api.update(controller.id, { message: labels[step], timestamp: label(step) });
+    };
+    setProgress(controller.id, 0.5 / total);
+    return {
+      id: controller.id,
+      get step() {
+        return step;
+      },
+      next: () => go(step + 1),
+      go,
+      update: controller.update,
+      success: controller.success,
+      error: controller.error,
+      dismiss: controller.dismiss,
+    };
+  };
+
+  api.track = <T,>(
+    task: (report: (progress: number) => void) => Promise<T>,
+    messages: TrackMessages<T>,
+    options?: ToastOptions,
+  ): Promise<T> => {
+    const controller = api.progress(messages.loading, options);
+    let run: Promise<T>;
+    try {
+      run = task(controller.set);
+    } catch (cause) {
+      run = Promise.reject(cause);
+    }
+    run.then(
+      (value) => {
+        const message = messages.success ? resolveValue(messages.success, value) : undefined;
+        if (message) controller.success(message);
+        else controller.dismiss();
+      },
+      (cause: unknown) => {
+        const message = messages.error ? resolveValue(messages.error, cause) : undefined;
+        if (message) controller.error(message);
+        else controller.dismiss();
+      },
+    );
+    return run;
+  };
+
+  const shaped =
+    (variant: NonNullable<ToastOptions['variant']>, fallback: Exclude<ToastType, 'custom'>) =>
+    (message: Message, options?: ShapedOptions): string => {
+      const { type = fallback, ...rest } = options ?? {};
+      return createHandler(type)(message, { ...rest, variant });
+    };
+  api.hud = shaped('hud', 'success');
+  api.banner = shaped('banner', 'info');
+  api.island = shaped('island', 'blank');
+  api.notify = ({ title, body, type = 'blank', ...options }: NotifyOptions) =>
+    createHandler(type)(title, { ...options, description: body, variant: options.variant ?? 'card' });
 
   return api;
 }

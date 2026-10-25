@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Platform } from 'react-native';
+import type { TextStyle } from 'react-native';
 
 /**
  * Accessibility settings are read once per app and cached at module scope.
@@ -67,12 +68,15 @@ const queryReduceTransparency = (): Promise<boolean> => {
   return AccessibilityInfo.isReduceTransparencyEnabled();
 };
 const SCREEN_READER_KEY = 'screenReader';
+const BOLD_TEXT_KEY = 'boldText';
+// iOS only; elsewhere the query is absent, which counts as off.
+const queryBoldText = () => AccessibilityInfo.isBoldTextEnabled();
 const queryScreenReader = () => AccessibilityInfo.isScreenReaderEnabled();
 
 function useAccessibilityFlag(
   key: string,
   query: () => Promise<boolean>,
-  event: 'reduceMotionChanged' | 'reduceTransparencyChanged' | 'screenReaderChanged',
+  event: 'reduceMotionChanged' | 'reduceTransparencyChanged' | 'screenReaderChanged' | 'boldTextChanged',
 ): boolean {
   // Seeded synchronously from the cache, so an app that has already resolved
   // this setting renders correctly on the very first frame.
@@ -131,6 +135,21 @@ export function useReduceTransparency(): boolean {
     queryReduceTransparency,
     'reduceTransparencyChanged',
   );
+}
+
+/**
+ * True when the user has Bold Text on (iOS). Toast text takes a heavier
+ * weight then, as system text does.
+ */
+export function useBoldText(): boolean {
+  return useAccessibilityFlag(BOLD_TEXT_KEY, queryBoldText, 'boldTextChanged');
+}
+
+/** One step heavier, for Bold Text: 400 -> 600, 500 -> 700, and so on. */
+export function bolder(weight: TextStyle['fontWeight'] | undefined): TextStyle['fontWeight'] {
+  const n = weight === 'bold' ? 700 : weight === 'normal' || weight === undefined ? 400 : Number(weight);
+  if (Number.isNaN(n)) return weight;
+  return String(Math.min(n + 200, 900)) as TextStyle['fontWeight'];
 }
 
 /** Test-only. Clears the resolved accessibility cache. */

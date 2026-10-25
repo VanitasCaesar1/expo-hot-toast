@@ -432,6 +432,37 @@ export function resolveToast(
   pick('iconTheme');
   pick('theme');
   pick('onDismiss');
+  pick('cancel');
+  pick('dismissible');
+  pick('swipeDirections');
+  pick('unstyled');
+  pick('variant');
+  pick('progressStyle');
+  // Slot styles and class names merge per slot, low to high, so a default
+  // `styles.title` survives a toast that only sets `styles.description`.
+  const mergeSlots = (key: 'styles' | 'classNames'): void => {
+    const levels = [toastOptions[key], typeOptions[key], toast[key]].filter(Boolean) as Record<string, unknown>[];
+    if (levels.length === 0) return;
+    if (levels.length === 1) {
+      put(draft, key, levels[0] as Toast[typeof key]);
+      return;
+    }
+    const merged: Record<string, unknown> = {};
+    for (const level of levels) {
+      for (const [slot, value] of Object.entries(level)) {
+        const previous = merged[slot];
+        merged[slot] =
+          key === 'classNames'
+            ? [previous, value].filter(Boolean).join(' ')
+            : previous === undefined
+              ? value
+              : [previous, value];
+      }
+    }
+    put(draft, key, merged as Toast[typeof key]);
+  };
+  mergeSlots('styles');
+  mergeSlots('classNames');
 
   // Style props merge into an array; React Native flattens it itself and later
   // entries win. A single remaining entry is unwrapped so `StyleProp` stays a

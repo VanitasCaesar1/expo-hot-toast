@@ -21,7 +21,7 @@ import type { IconTheme, ToastTheme } from '../core/types';
  * far worse failure than a missing dependency is.
  */
 
-export type ToastIconKind = 'success' | 'error' | 'loading' | 'blank';
+export type ToastIconKind = 'success' | 'error' | 'loading' | 'info' | 'warning' | 'blank';
 
 export interface ToastIconProps {
   kind: ToastIconKind;
@@ -73,6 +73,8 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 const ACCENTS: Record<ToastIconKind, string> = {
   success: '#34C759',
   error: '#FF3B30',
+  info: '#0A84FF',
+  warning: '#FF9F0A',
   loading: '#8E8E93',
   blank: '#8E8E93',
 };
@@ -88,7 +90,8 @@ export function ToastIcon({
   // `toast.type` straight to this union, so a `custom` toast routed through a
   // bar previously fell through to the error branch and drew a red-less error
   // circle with an undefined stroke.
-  if (kind !== 'success' && kind !== 'error' && kind !== 'loading') return null;
+  // Only these kinds have a glyph; any other (blank, custom) draws nothing.
+  if (kind !== 'success' && kind !== 'error' && kind !== 'loading' && kind !== 'info' && kind !== 'warning') return null;
 
   if (kind === 'loading') {
     return (
@@ -103,15 +106,52 @@ export function ToastIcon({
   // Separate components so each owns its own shared value: the hooks cannot sit
   // in `ToastIcon` itself, which returns early above, and a type change in place
   // (loading -> success) must mount a fresh glyph so its draw-in replays.
-  return kind === 'success' ? (
-    <SuccessGlyph size={size} color={accent} reduceMotion={reduceMotion} />
-  ) : (
-    <ErrorGlyph
-      size={size}
-      color={accent}
-      reduceMotion={reduceMotion}
-      markDelay={theme.motion.iconPopDelay + ERROR_MARK_LAG}
-    />
+  if (kind === 'success') return <SuccessGlyph size={size} color={accent} reduceMotion={reduceMotion} />;
+  const markDelay = theme.motion.iconPopDelay + ERROR_MARK_LAG;
+  if (kind === 'info') return <InfoGlyph size={size} color={accent} reduceMotion={reduceMotion} markDelay={markDelay} />;
+  if (kind === 'warning') return <WarningGlyph size={size} color={accent} reduceMotion={reduceMotion} markDelay={markDelay} />;
+  return <ErrorGlyph size={size} color={accent} reduceMotion={reduceMotion} markDelay={markDelay} />;
+}
+
+/** The mark inside a glyph fades in after the outline, as the error mark does. */
+function useMark(reduceMotion: boolean, markDelay: number) {
+  const mark = useSharedValue(reduceMotion ? 1 : 0);
+  React.useEffect(() => {
+    if (reduceMotion) {
+      mark.value = 1;
+      return;
+    }
+    mark.value = 0;
+    mark.value = withDelay(markDelay, withTiming(1, { duration: ERROR_MARK_DURATION, easing: DRAW_EASING }));
+  }, [reduceMotion, markDelay, mark]);
+  return useAnimatedProps(() => ({ opacity: mark.value }));
+}
+
+/** A circle with an i: the dot above the stem, the reverse of the error mark. */
+function InfoGlyph({ size, color, reduceMotion, markDelay }: GlyphProps & { markDelay: number }) {
+  const animatedProps = useMark(reduceMotion, markDelay);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="9.2" stroke={color} strokeWidth={2.2} fill="none" />
+      <AnimatedPath d="M12 11.2v5.2M12 7.9h.01" stroke={color} strokeWidth={2.4} strokeLinecap="round" animatedProps={animatedProps} />
+    </Svg>
+  );
+}
+
+/** A rounded triangle with an exclamation mark. */
+function WarningGlyph({ size, color, reduceMotion, markDelay }: GlyphProps & { markDelay: number }) {
+  const animatedProps = useMark(reduceMotion, markDelay);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M10.3 4.3a2 2 0 0 1 3.4 0l7.6 13.2a2 2 0 0 1-1.7 3H4.4a2 2 0 0 1-1.7-3Z"
+        stroke={color}
+        strokeWidth={2.1}
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <AnimatedPath d="M12 9.4v4.4M12 16.9h.01" stroke={color} strokeWidth={2.4} strokeLinecap="round" animatedProps={animatedProps} />
+    </Svg>
   );
 }
 

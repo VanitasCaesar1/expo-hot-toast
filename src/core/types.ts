@@ -3,7 +3,7 @@ import type { StyleProp, ViewStyle, TextStyle } from 'react-native';
 import type { WithTimingConfig } from 'react-native-reanimated';
 import type { GlassStyle } from 'expo-glass-effect';
 
-export type ToastType = 'blank' | 'error' | 'success' | 'loading' | 'custom';
+export type ToastType = 'blank' | 'error' | 'success' | 'loading' | 'info' | 'warning' | 'custom';
 
 export type ToastPosition =
   | 'top-left'
@@ -75,10 +75,11 @@ export interface ToastOptions {
    */
   richColors?: boolean;
   /**
-   * Play the success or error haptic when this toast appears. Default true;
-   * `<Toaster haptics={false}>` turns it off for a whole Toaster.
+   * The haptic this toast plays when it appears: `true` for its type's default
+   * (success, error and warning have one), `false` for none, or a named
+   * haptic. `<Toaster haptics>` sets the defaults for a whole Toaster.
    */
-  haptics?: boolean;
+  haptics?: boolean | ToastHaptic;
 
   /** iOS announcement string. Defaults to the rendered message. */
   accessibilityLabel?: string;
@@ -120,7 +121,123 @@ export interface ToastOptions {
 
   /** Trailing action, e.g. Undo. */
   action?: ToastAction;
+  /**
+   * A second, quieter button before the action, e.g. Cancel. It dismisses the
+   * toast after its `onPress`, like the action.
+   */
+  cancel?: ToastAction;
+  /**
+   * Whether the user can dismiss it: by swipe, tap or the close button. Default
+   * true. A toast that must stay until code dismisses it (an upload in
+   * progress) sets false.
+   */
+  dismissible?: boolean;
+  /**
+   * The directions a swipe dismisses toward. Default: sideways to the right,
+   * and toward the toast's own edge (up for a top toast, down for a bottom one).
+   */
+  swipeDirections?: SwipeDirection[];
+
+  /** Styles for each part of the built-in toast. Applied after the tokens. */
+  styles?: ToastStyles;
+  /**
+   * Class names for each part, for NativeWind, Uniwind or any library that
+   * reads `className` on React Native components. Ignored without one.
+   */
+  classNames?: ToastClassNames;
+  /**
+   * Drop the built-in surface and look: no material, fill, border, shadow or
+   * padding, only the layout. For styling every part yourself, through
+   * `styles` or `classNames`.
+   */
+  unstyled?: boolean;
+  /**
+   * The toast's shape. Default `'auto'`: the Toaster's preset decides (a pill
+   * on iOS and the web, a Material snackbar on Android).
+   */
+  variant?: ToastVariant;
+
+  /**
+   * A progress bar, from 0 to 1, or `'indeterminate'`. Usually driven through
+   * `toast.progress()`, which updates it without re-rendering the toast.
+   */
+  progress?: number | 'indeterminate';
+  /** Where the progress shows: a bar along the bottom edge, or a ring round the icon. */
+  progressStyle?: 'bar' | 'ring';
+  /** Divides the progress bar into this many steps, for `toast.steps()`. */
+  progressSegments?: number;
+
+  /**
+   * Content revealed under the message when the toast is expanded, with a
+   * chevron to open and close it: error details, a list of failed files.
+   */
+  expandable?: ToastExpandable;
+  /**
+   * An avatar or thumbnail at the start, for notification-style toasts. An
+   * image source, or an element.
+   */
+  avatar?: ToastAvatar;
+  /** A short time label at the end of the title line, e.g. 'now' or '2m'. */
+  timestamp?: string;
+  /** Runs when the toast is tapped, for notification-style toasts that open something. */
+  onPress?: () => void;
 }
+
+export type SwipeDirection = 'left' | 'right' | 'up' | 'down';
+
+/**
+ * A toast's haptic: an impact of some weight, or one of the system's
+ * notification patterns. `false` plays nothing.
+ */
+export type ToastHaptic = 'light' | 'medium' | 'heavy' | 'rigid' | 'soft' | 'success' | 'warning' | 'error' | false;
+
+/**
+ * - `pill`: hugs its content, rounded; the default on iOS and the web.
+ * - `snackbar`: Material 3, full width less a margin, near-square corners;
+ *   the default on Android.
+ * - `card`: a notification: avatar, title, body, timestamp.
+ * - `banner`: full width against the screen edge, for persistent states like
+ *   being offline.
+ * - `hud`: a large centred confirmation with the icon above the text.
+ * - `island`: a black capsule at the top that grows out of the Dynamic Island.
+ */
+export type ToastVariant = 'auto' | 'pill' | 'snackbar' | 'card' | 'banner' | 'hud' | 'island';
+
+export interface ToastExpandable {
+  /** What the expanded toast shows. A string renders as text. */
+  content: Renderable;
+  /** Start open. Default false. */
+  defaultExpanded?: boolean;
+  /** Accessible name for the toggle. Default 'Show details'. */
+  label?: string;
+}
+
+export type ToastAvatar =
+  | { uri: string }
+  | number
+  | Renderable;
+
+/** The built-in toast's parts, for `styles` and `classNames`. */
+export type ToastSlot =
+  | 'toast'
+  | 'content'
+  | 'icon'
+  | 'title'
+  | 'description'
+  | 'action'
+  | 'actionLabel'
+  | 'cancel'
+  | 'cancelLabel'
+  | 'closeButton'
+  | 'progressTrack'
+  | 'progressBar'
+  | 'avatar'
+  | 'timestamp'
+  | 'badge'
+  | 'expanded';
+
+export type ToastStyles = Partial<Record<ToastSlot, StyleProp<ViewStyle & TextStyle>>>;
+export type ToastClassNames = Partial<Record<ToastSlot, string>>;
 
 /**
  * Colours for a toast's icon, as in react-hot-toast.
@@ -149,6 +266,11 @@ export interface ToastAction {
   onPress: () => void;
   /** Overrides the theme's action colour. */
   color?: string;
+  /**
+   * Draw a ring beside the label that drains over the time the toast has
+   * left, so an Undo shows how long it stays possible. Pauses with the toast.
+   */
+  countdown?: boolean;
 }
 
 export type DurationPreset = 'short' | 'long' | 'infinite';
@@ -159,55 +281,39 @@ export type DefaultToastOptions = ToastOptions & {
   error?: ToastOptions;
   loading?: ToastOptions;
   success?: ToastOptions;
+  info?: ToastOptions;
+  warning?: ToastOptions;
 };
 
-export interface Toast {
+/**
+ * A toast in the store: its options, resolved, plus what the store tracks.
+ * Every option a toast accepts is carried as given, so a new option needs
+ * declaring once, on `ToastOptions`.
+ */
+export interface Toast extends Omit<ToastOptions, 'duration' | 'id' | 'icon'> {
   type: ToastType;
   id: string;
-  toasterId?: string;
   message: ValueOrFunction<Renderable, Toast>;
   /** An element, or a function of the toast that returns one. `null` hides the icon. */
   icon?: ValueOrFunction<Renderable, Toast>;
-  description?: Renderable;
 
   duration?: number;
   /** Original symbolic request, kept for the settings/Toaster layers. */
   durationPreset?: DurationPreset;
-  position?: ToastPosition;
   /** Accumulated milliseconds spent paused. Timers re-derive from this. */
   pauseDuration: number;
   /** Effective position once the Toaster default has been applied. */
   resolvedPosition: ToastPosition;
   /** Index within its position stack, front of the stack being 0. */
   depth: number;
-  action?: ToastAction;
-  dedupeKey?: string;
   createdAt: number;
+  /** How many identical calls (by `dedupeKey`) this toast stands for. */
+  count?: number;
 
   visible: boolean;
   dismissed: boolean;
   /** Why it left the screen. First cause wins; it is the informative one. */
   dismissReason?: DismissReason;
-
-  style?: StyleProp<ViewStyle>;
-  textStyle?: StyleProp<TextStyle>;
-  iconStyle?: StyleProp<ViewStyle>;
-  iconTheme?: IconTheme;
-  theme?: ToastThemeOverride;
-  glass?: boolean | GlassConfig;
-  richColors?: boolean;
-  haptics?: boolean;
-  accessibilityLabel?: string;
-  dismissOnTap?: boolean;
-  closeButton?: boolean;
-  /** @deprecated Renamed to `closeButton`. */
-  closeable?: boolean;
-  closeButtonColor?: string;
-  important?: boolean;
-  onDismiss?: (id: string, reason: DismissReason) => void;
-
-  /** See `ToastOptions.removeDelay`. */
-  removeDelay?: number;
 }
 
 /**
@@ -315,6 +421,24 @@ export interface ToastTheme {
   fontSize: number;
   lineHeight: number;
   fontWeight: TextStyle['fontWeight'];
+  /**
+   * The message's font. Undefined uses the system font. On Android, where a
+   * custom font is a family per weight, give the family for `fontWeight`.
+   */
+  fontFamily?: string;
+  /** The description's font. Defaults to `fontFamily`. */
+  descriptionFontFamily?: string;
+  /** The action and cancel buttons' font. Defaults to `fontFamily`. */
+  actionFontFamily?: string;
+  /** Lines the message may take before it is cut off. Default 3. */
+  maxLines: number;
+  /** Lines the description may take. Default 3. */
+  descriptionMaxLines: number;
+  /**
+   * Stretch to the stack's width (less `offset`) instead of hugging the
+   * content. On for the Material snackbar and the banner.
+   */
+  fill: boolean;
   /** The `description` line under the message. */
   descriptionColor: string;
   descriptionFontSize: number;
@@ -350,11 +474,13 @@ export interface RichColors {
 export interface RichPalette {
   success: RichColors;
   error: RichColors;
+  info: RichColors;
+  warning: RichColors;
 }
 
 export interface ToastThemeOverride extends Partial<Omit<ToastTheme, 'motion' | 'rich'>> {
   motion?: Partial<MotionConfig>;
-  rich?: { success?: Partial<RichColors>; error?: Partial<RichColors> };
+  rich?: { [K in keyof RichPalette]?: Partial<RichColors> };
 }
 
 export type ResolvedTheme = ToastTheme;

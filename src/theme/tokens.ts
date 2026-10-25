@@ -31,6 +31,8 @@ export const darkTheme: ToastTheme = {
   rich: {
     success: { background: '#032313', border: '#0B4425', color: '#5FE39A', tint: 'rgba(48,209,88,0.26)' },
     error: { background: '#2E0809', border: '#561317', color: '#FF8F92', tint: 'rgba(255,69,58,0.26)' },
+    info: { background: '#06203D', border: '#0E3A6B', color: '#7DB9FF', tint: 'rgba(10,132,255,0.26)' },
+    warning: { background: '#2B1B02', border: '#4D3205', color: '#FFC56B', tint: 'rgba(255,159,10,0.28)' },
   },
 };
 
