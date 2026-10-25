@@ -32,6 +32,14 @@
   background: url('/expo-hot-toast/media/ribbon.svg') center / cover no-repeat;
   opacity: 0.9;
 }
+/* The same ribbon, turned differently in each section. */
+.live-stage.mirrored::before {
+  transform: scaleX(-1);
+}
+.live-stage.low::before {
+  transform: scale(-1.15, -1);
+  background-position: 30% 40%;
+}
 .live-stage::after {
   /* Darkens the ribbon under the code, which has to stay readable. */
   content: '';
