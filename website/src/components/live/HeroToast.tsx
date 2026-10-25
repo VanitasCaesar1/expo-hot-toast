@@ -2,6 +2,7 @@ import './live.css';
 import { useEffect, useRef } from 'react';
 import { GlassButton } from '../glassyui/glass-button';
 import { live, withToast } from '../../lib/live';
+import { getScheme, onScheme } from '../../lib/theme';
 
 type Toast = Parameters<Parameters<typeof withToast>[0]>[0];
 type Fire = (toast: Toast) => void;
@@ -12,7 +13,6 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
 /** The hero's stage Toaster: bigger toasts, so the glass reads at a glance. */
 const STAGE_TOASTER = {
   position: 'top-center' as const,
-  colorScheme: 'dark' as const,
   offset: 28,
   gap: 12,
   theme: {
@@ -80,6 +80,7 @@ export default function HeroToast() {
     let hovering = false;
     let step = 0;
     let timer = 0;
+    let stopTheme = () => {};
 
     const tick = () => {
       if (visible && !hovering && !document.hidden && Date.now() > holdUntil.current) {
@@ -92,7 +93,8 @@ export default function HeroToast() {
     const start = () =>
       void live().then(
         (api) => {
-          api.configureStage(STAGE_TOASTER);
+          api.configureStage({ ...STAGE_TOASTER, colorScheme: getScheme() });
+        stopTheme = onScheme((colorScheme) => api.configureStage({ colorScheme }));
           timer = window.setTimeout(tick, 300);
         },
         () => {},
@@ -115,6 +117,7 @@ export default function HeroToast() {
       if (hasIdle) window.cancelIdleCallback(idle as number);
       else clearTimeout(idle);
       clearTimeout(timer);
+      stopTheme();
       seen.disconnect();
       stage.removeEventListener('pointerenter', enter);
       stage.removeEventListener('pointerleave', leave);

@@ -1,0 +1,88 @@
+---
+/**
+ * The docs footer, after Clerk's: the wordmark, link columns, and the theme
+ * switch (system, light, dark) beside the copyright.
+ */
+import Icon from '../Icon.astro';
+import { url, REPO_URL } from '../../lib/url';
+
+const columns = [
+  {
+    title: 'Docs',
+    links: [
+      { label: 'Quick start', href: url('docs/quick-start') },
+      { label: 'toast()', href: url('docs/toast-api') },
+      { label: 'Toaster props', href: url('docs/toaster-props') },
+      { label: 'Theming', href: url('docs/theming') },
+    ],
+  },
+  {
+    title: 'Project',
+    links: [
+      { label: 'GitHub', href: REPO_URL },
+      { label: 'Changelog', href: `${REPO_URL}/blob/main/CHANGELOG.md` },
+      { label: 'Issues', href: `${REPO_URL}/issues` },
+      { label: 'Design notes', href: `${REPO_URL}/blob/main/docs/design.md` },
+    ],
+  },
+  {
+    title: 'For AI tools',
+    links: [
+      { label: 'llms.txt', href: url('llms.txt') },
+      { label: 'llms-full.txt', href: url('llms-full.txt') },
+      { label: 'Setup prompt', href: url('#start') },
+    ],
+  },
+  {
+    title: 'Built on',
+    links: [
+      { label: 'expo-glass-effect', href: 'https://docs.expo.dev/versions/latest/sdk/glass-effect/' },
+      { label: 'Reanimated', href: 'https://docs.swmansion.com/react-native-reanimated/' },
+      { label: 'react-hot-toast', href: 'https://react-hot-toast.com' },
+    ],
+  },
+];
+const year = new Date().getFullYear();
+---
+
+<footer class="docs-footer">
+  <div class="df-top">
+    <a class="df-brand" href={url()}>
+      <img src={url('mark.svg')} alt="" width="24" height="24" />
+      expo-hot-toast
+    </a>
+    {
+      columns.map((c) => (
+        <nav aria-label={c.title}>
+          <p>{c.title}</p>
+          <ul>
+            {c.links.map((l) => (
+              <li>
+                <a href={l.href}>{l.label}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ))
+    }
+  </div>
+  <div class="df-bottom">
+    <p>© {year} expo-hot-toast · MIT licensed</p>
+    <div class="theme-switch" role="radiogroup" aria-label="Theme">
+      <button type="button" role="radio" data-theme-to="system" aria-label="System theme"><Icon name="monitor" /></button>
+      <button type="button" role="radio" data-theme-to="light" aria-label="Light theme"><Icon name="sun" /></button>
+      <button type="button" role="radio" data-theme-to="dark" aria-label="Dark theme"><Icon name="moon" /></button>
+    </div>
+  </div>
+</footer>
+
+<script>
+  import { getPref, onScheme, setPref } from '../../lib/theme';
+  import type { ThemePref } from '../../lib/theme';
+
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>('[data-theme-to]')];
+  const mark = () => buttons.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.themeTo === getPref())));
+  buttons.forEach((b) => b.addEventListener('click', () => setPref(b.dataset.themeTo as ThemePref)));
+  onScheme(mark);
+  mark();
+</script>

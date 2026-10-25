@@ -1,0 +1,100 @@
+---
+/**
+ * The docs sidebar, after Clerk's: the wordmark with a Docs badge and the
+ * version, the Guides and Reference tabs, and the selected tab's groups,
+ * each folding open around the page you are on.
+ */
+import Icon from '../Icon.astro';
+import { url } from '../../lib/url';
+import { TABS, tabOf } from '../../lib/docs';
+import type { DocGroup } from '../../lib/docs';
+import pkg from '../../../../package.json';
+
+interface Props {
+  pages: { slug: string; title: string; group: DocGroup }[];
+  /** The current page's slug; undefined on the docs home. */
+  current?: string;
+}
+
+const { pages, current } = Astro.props;
+const currentPage = pages.find((p) => p.slug === current);
+const activeTab = currentPage ? tabOf(currentPage.group) : 'guides';
+const tab = TABS.find((t) => t.id === activeTab)!;
+const icons = { guides: 'book-open', reference: 'code' } as const;
+const version = pkg.version.split('.').slice(0, 2).join('.');
+---
+
+<div class="sidebar-inner">
+  <div class="brand-row">
+    <a class="brand" href={url()}>
+      <img src={url('mark.svg')} alt="" width="26" height="26" />
+      <span>expo-hot-toast</span>
+    </a>
+    <a class="pill" href={url('docs')}>Docs</a>
+    <a class="pill version" href="https://github.com/VanitasCaesar1/expo-hot-toast/blob/main/CHANGELOG.md" title="Changelog">v{version}</a>
+  </div>
+
+  <nav class="tabs" aria-label="Docs sections">
+    {
+      TABS.map((t) => {
+        const first = pages.find((p) => t.groups.includes(p.group));
+        const href = t.id === 'guides' ? url('docs') : url(`docs/${first?.slug}`);
+        return (
+          <a class="tab" href={href} aria-current={t.id === activeTab ? 'true' : undefined}>
+            <Icon name={icons[t.id]} />
+            {t.label}
+          </a>
+        );
+      })
+    }
+  </nav>
+
+  <hr />
+
+  <nav class="groups" aria-label={tab.label}>
+    {
+      activeTab === 'guides' && (
+        <a class="item top" href={url('docs')} aria-current={current === undefined ? 'page' : undefined}>
+          Overview
+        </a>
+      )
+    }
+    {
+      tab.groups.map((group, i) => {
+        const items = pages.filter((p) => p.group === group);
+        const open = items.some((p) => p.slug === current) || (current === undefined && i === 0);
+        // A tab with one group of the same name lists its pages directly.
+        if (tab.groups.length === 1 && group === tab.label) {
+          return (
+            <ul class="flat">
+              {items.map((p) => (
+                <li>
+                  <a class="item" href={url(`docs/${p.slug}`)} aria-current={p.slug === current ? 'page' : undefined}>
+                    {p.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        return (
+          <details class="group" open={open}>
+            <summary>
+              {group}
+              <Icon name="caret-right" />
+            </summary>
+            <ul>
+              {items.map((p) => (
+                <li>
+                  <a class="item" href={url(`docs/${p.slug}`)} aria-current={p.slug === current ? 'page' : undefined}>
+                    {p.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </details>
+        );
+      })
+    }
+  </nav>
+</div>

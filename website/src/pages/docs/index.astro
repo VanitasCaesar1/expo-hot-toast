@@ -1,0 +1,144 @@
+---
+/**
+ * The docs home, after Clerk's: a welcome and a prompt for your agent, four
+ * ways in, then every guide by feature, by platform, and beyond the basics.
+ */
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import Feedback from '../../components/docs/Feedback.astro';
+import Icon from '../../components/Icon.astro';
+import { url, REPO_URL } from '../../lib/url';
+import { SETUP_PROMPT, SITE } from '../../lib/ai';
+import type { IconName } from '../../components/Icon.astro';
+
+const start: { icon: IconName; title: string; body: string; href: string }[] = [
+  { icon: 'play-circle', title: 'Quick start', body: 'Install it, mount one Toaster, and show your first toast in a few minutes.', href: url('docs/quick-start') },
+  { icon: 'code', title: 'API reference', body: 'Every function on toast, every option, every Toaster prop, with types and defaults.', href: url('docs/toast-api') },
+  { icon: 'palette', title: 'Theming', body: 'Colours, shape, type and motion, in light and dark, and the glass settings.', href: url('docs/theming') },
+  { icon: 'swap', title: 'From react-hot-toast', body: 'Know it from the web? What carries over, and the few things that differ.', href: url('docs/coming-from-react-hot-toast') },
+];
+
+const features: { icon: IconName; title: string; body: string; href: string }[] = [
+  { icon: 'bell', title: 'Toast types', body: 'Plain, success, error, loading and custom toasts, their icons, and updating one in place.', href: url('docs/toast-types') },
+  { icon: 'timer', title: 'Promises', body: 'One toast that follows a promise from loading to its outcome.', href: url('docs/promises') },
+  { icon: 'hand-tap', title: 'Actions and dismissing', body: 'Undo buttons, the close button, and tap, swipe and press-and-hold.', href: url('docs/actions') },
+  { icon: 'arrows-out-cardinal', title: 'Positions', body: 'Six positions, spacing, several Toasters, and toasts above modals.', href: url('docs/positions') },
+  { icon: 'stack', title: 'Timing and the queue', body: 'Durations, the visible limit, what happens to extra toasts, and deduplication.', href: url('docs/timing-and-queue') },
+  { icon: 'squares-four', title: 'Custom rendering', body: 'Change what a toast contains, draw it yourself, or build your own Toaster.', href: url('docs/custom-rendering') },
+  { icon: 'eye', title: 'Accessibility', body: 'What screen readers hear, and how toasts follow Reduce Motion and Reduce Transparency.', href: url('docs/accessibility') },
+  { icon: 'palette', title: 'Theme tokens', body: 'Every token, with its light and dark default.', href: url('docs/theme-tokens') },
+];
+
+const platforms: { icon: IconName; title: string; body: string; href: string }[] = [
+  { icon: 'apple', title: 'iOS 26', body: "Apple's Liquid Glass, through expo-glass-effect.", href: url('docs/platform-support') },
+  { icon: 'android', title: 'Android', body: 'A designed opaque surface, in light and dark.', href: url('docs/platform-support') },
+  { icon: 'globe', title: 'Web', body: 'Frosted glass on React Native Web, as on this site.', href: url('docs/platform-support') },
+  { icon: 'expo', title: 'Expo', body: 'SDK 55 or later; tested on 57, with Expo Router.', href: url('docs/installation') },
+  { icon: 'react', title: 'React Native', body: 'Without Expo too: one Babel plugin to add.', href: url('docs/installation') },
+  { icon: 'device-mobile', title: 'Older iOS', body: 'The opaque surface, before iOS 26 and with Reduce Transparency.', href: url('docs/platform-support') },
+];
+
+const beyond: { icon: IconName; title: string; body: string; href: string }[] = [
+  { icon: 'device-mobile', title: 'Platform support', body: 'What has been tested where, on which versions, and the known limitations.', href: url('docs/platform-support') },
+  { icon: 'file-text', title: 'Design notes', body: 'Why the queue, the timing and the glass work the way they do.', href: `${REPO_URL}/blob/main/docs/design.md` },
+  { icon: 'robot', title: 'For AI tools', body: 'The docs as plain text: llms.txt for an index, llms-full.txt for everything.', href: url('llms.txt') },
+  { icon: 'lightning', title: 'Changelog', body: 'What changed in each release, and what is coming.', href: `${REPO_URL}/blob/main/CHANGELOG.md` },
+];
+
+const pill = `Add expo-hot-toast to my app: ${SITE.replace('https://', '')}/llms-full.txt`;
+---
+
+<DocsLayout title="expo-hot-toast docs" description="Toasts for Expo and React Native, with the react-hot-toast API: guides and API reference." wide>
+  <section class="welcome">
+    <h1>Welcome to the expo-hot-toast docs</h1>
+    <p>
+      The react-hot-toast API for Expo and React Native, drawn in Apple's Liquid Glass on iOS 26, frosted glass on the web
+      and a designed surface on Android. Have your agent set it up, or start with the guides below.
+    </p>
+    <button type="button" class="agent-pill" data-copy={SETUP_PROMPT} title="Copy the setup prompt for your agent">
+      <span class="agent-icons" aria-hidden="true"><Icon name="robot" /></span>
+      <code>{pill}</code>
+      <span class="copy-idle"><Icon name="copy" /></span>
+      <span class="copy-done"><Icon name="check" /></span>
+    </button>
+  </section>
+
+  <div class="start-cards">
+    {
+      start.map((c) => (
+        <a class="start-card" href={c.href}>
+          <Icon name={c.icon} />
+          <h2>{c.title}</h2>
+          <p>{c.body}</p>
+        </a>
+      ))
+    }
+  </div>
+
+  <section class="explore">
+    <h2>Explore by feature</h2>
+    <div class="explore-grid two">
+      {
+        features.map((f) => (
+          <a class="explore-item" href={f.href}>
+            <Icon name={f.icon} />
+            <span>
+              <strong>{f.title}</strong>
+              {f.body}
+            </span>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="explore">
+    <h2>Explore by platform</h2>
+    <div class="explore-grid three">
+      {
+        platforms.map((f) => (
+          <a class="explore-item brand" href={f.href}>
+            <Icon name={f.icon} />
+            <span>
+              <strong>{f.title}</strong>
+              {f.body}
+            </span>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="explore">
+    <h2>Beyond the basics</h2>
+    <div class="explore-grid two">
+      {
+        beyond.map((f) => (
+          <a class="explore-item" href={f.href}>
+            <Icon name={f.icon} />
+            <span>
+              <strong>{f.title}</strong>
+              {f.body}
+            </span>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="community">
+    <a href={`${REPO_URL}/issues`} target="_blank" rel="noopener">
+      <Icon name="chats" />
+      <strong>Questions or ideas?</strong>
+      <span>Open an issue on GitHub; every one gets an answer.</span>
+      <em>Open an issue <Icon name="arrow-right" /></em>
+    </a>
+    <a href={REPO_URL} target="_blank" rel="noopener">
+      <Icon name="github" />
+      <strong>Star it on GitHub</strong>
+      <span>Stars are how other Expo developers find it.</span>
+      <em>Go to GitHub <Icon name="arrow-right" /></em>
+    </a>
+  </section>
+
+  <Feedback title="Docs home" slug="" />
+</DocsLayout>

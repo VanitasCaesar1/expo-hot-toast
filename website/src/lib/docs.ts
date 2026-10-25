@@ -5,14 +5,28 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { unified } from '@astrojs/markdown-remark';
+import type { ShikiConfig } from '@astrojs/markdown-remark';
 import { relativeLinksToGitHub } from './remark-github-links.mjs';
+import { rehypeDocs, rehypeSteps, remarkCodeTitles } from './rehype-docs.mjs';
 
 const ROOT = path.resolve(process.cwd(), '..');
 const GUIDE = 'docs/guide';
 
 export const GROUPS = ['Getting started', 'Guides', 'Reference', 'More'] as const;
 export type DocGroup = (typeof GROUPS)[number];
+
+/** The sidebar's two tabs, as in Clerk's docs: guides, and the API reference. */
+export const TABS = [
+  { id: 'guides', label: 'Guides', groups: ['Getting started', 'Guides', 'More'] as DocGroup[] },
+  { id: 'reference', label: 'Reference', groups: ['Reference'] as DocGroup[] },
+] as const;
+export type DocTab = (typeof TABS)[number]['id'];
+
+export function tabOf(group: DocGroup): DocTab {
+  return TABS.find((t) => t.groups.includes(group))!.id;
+}
 
 export interface DocPage {
   slug: string;
@@ -23,6 +37,19 @@ export interface DocPage {
   /** Repository path, for "Edit on GitHub". */
   source: string;
   markdown: string;
+  /** Each `##` section is a numbered step (frontmatter `steps: true`). */
+  steps: boolean;
+  /** When the file last changed, from git (YYYY-MM-DD), if known. */
+  updated?: string;
+}
+
+/** The last commit that touched `file`. CI checks out full history for this. */
+function lastChanged(file: string): string | undefined {
+  try {
+    return execFileSync('git', ['log', '-1', '--format=%cs', '--', file], { cwd: ROOT, encoding: 'utf8' }).trim() || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** The small frontmatter these files use: `key: value` lines between `---`. */
@@ -54,6 +81,8 @@ export function loadDocs(): DocPage[] {
         order: Number(data.order ?? 99),
         source: `${GUIDE}/${file}`,
         markdown: body.trim(),
+        steps: data.steps === 'true',
+        updated: lastChanged(`${GUIDE}/${file}`),
       };
     });
   return pages.sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group) || a.order - b.order);
@@ -74,13 +103,15 @@ function guideLinks(slugs: Set<string>, base: string) {
 }
 
 export async function renderDocs(pages: DocPage[], base: string) {
-  const renderer = await unified({
-    remarkPlugins: [guideLinks(new Set(pages.map((p) => p.slug)), base), relativeLinksToGitHub],
-  }).createRenderer({ shikiConfig: { theme: 'github-dark-dimmed' } });
+  const remarkPlugins = [guideLinks(new Set(pages.map((p) => p.slug)), base), relativeLinksToGitHub, remarkCodeTitles];
+  // Both themes, as CSS variables; the page's theme picks one.
+  const shikiConfig: Partial<ShikiConfig> = { themes: { light: 'github-light', dark: 'github-dark-dimmed' }, defaultColor: false };
+  const plain = await unified({ remarkPlugins, rehypePlugins: [rehypeDocs] }).createRenderer({ shikiConfig });
+  const stepped = await unified({ remarkPlugins, rehypePlugins: [rehypeDocs, rehypeSteps] }).createRenderer({ shikiConfig });
   return Promise.all(
     pages.map(async (p) => {
-      const { code, metadata } = await renderer.render(p.markdown);
-      return { ...p, html: code, headings: metadata.headings.filter((h) => h.depth === 2) };
+      const { code, metadata } = await (p.steps ? stepped : plain).render(p.markdown);
+      return { ...p, html: code, headings: metadata.headings.filter((h) => h.depth === 2 || h.depth === 3) };
     }),
   );
 }

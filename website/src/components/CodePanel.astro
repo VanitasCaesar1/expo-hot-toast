@@ -19,7 +19,7 @@ const copyable = lang === 'diff' ? code.split('\n').filter((l) => l.startsWith('
     <span class="label">{file ?? lang}</span>
     <CopyButton text={copyable} label={`Copy ${file ?? 'code'}`} iconOnly variant="ghost" size="sm" />
   </div>
-  <Code code={code} lang={lang} theme="github-dark-dimmed" />
+  <Code code={code} lang={lang} themes={{ light: 'github-light', dark: 'github-dark-dimmed' }} defaultColor={false} />
 </GlassPanel>
 
 <style>
@@ -33,7 +33,7 @@ const copyable = lang === 'diff' ? code.split('\n').filter((l) => l.startsWith('
     justify-content: space-between;
     height: 44px;
     padding: 0 8px 0 18px;
-    border-bottom: 1px solid rgb(255 255 255 / 0.08);
+    border-bottom: 1px solid var(--hairline);
     color: var(--faint);
   }
 </style>

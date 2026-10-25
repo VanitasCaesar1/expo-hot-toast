@@ -1,0 +1,49 @@
+---
+import '../styles/global.css';
+import { url } from '../lib/url';
+import { THEME_SCRIPT } from '../lib/theme';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL(url('media/og.png'), Astro.site);
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+<link rel="icon" href={url('favicon.svg')} type="image/svg+xml" />
+<!-- Light or dark, before first paint (lib/theme.ts). -->
+<script is:inline set:html={THEME_SCRIPT} />
+<meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#faf8f5" media="(prefers-color-scheme: light)" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={ogImage} />
+<meta name="twitter:card" content="summary_large_image" />
+<!-- Reveal-on-scroll only hides content once JS is known to be running. -->
+<script is:inline>document.documentElement.classList.add('js');</script>
+
+<script>
+  // Copy buttons anywhere on the site, delegated, so static buttons need no
+  // JavaScript of their own: [data-copy] copies, then sets data-copied.
+  document.addEventListener('click', async (event) => {
+    const button = (event.target as Element | null)?.closest<HTMLElement>('[data-copy]');
+    if (!button) return;
+    try {
+      await navigator.clipboard.writeText(button.dataset.copy ?? '');
+      button.dataset.copied = 'true';
+      setTimeout(() => delete button.dataset.copied, 1600);
+    } catch {
+      // Clipboard unavailable (insecure context); the text stays selectable.
+    }
+  });
+</script>

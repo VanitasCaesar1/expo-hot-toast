@@ -49,11 +49,23 @@ declare global {
   }
 }
 
-let config: LiveConfig = { position: 'top-center', colorScheme: 'dark' };
+import { getScheme, onScheme } from './theme';
+
+let config: LiveConfig = { position: 'top-center' };
+let followingTheme = false;
+
+/** The page's toasts take the site's theme, and keep following it. */
+function followTheme(): void {
+  if (followingTheme) return;
+  followingTheme = true;
+  config = { ...config, colorScheme: getScheme() };
+  onScheme((scheme) => configure({ colorScheme: scheme }));
+}
 const listeners = new Set<() => void>();
 let loading: Promise<LiveApi> | undefined;
 
 export function getConfig(): LiveConfig {
+  if (typeof window !== 'undefined') followTheme();
   return config;
 }
 
@@ -71,6 +83,7 @@ export function configure(next: LiveConfig): void {
 /** Loads the library once; resolves when its Toaster is mounted. */
 export function live(): Promise<LiveApi> {
   if (window.expoHotToast) return Promise.resolve(window.expoHotToast);
+  followTheme();
   loading ??= new Promise<LiveApi>((resolve, reject) => {
     const root = document.getElementById('root');
     const src = root?.dataset.src;

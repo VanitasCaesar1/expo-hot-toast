@@ -1,0 +1,77 @@
+---
+/**
+ * The docs shell, after Clerk's docs: a full-height sidebar, a top bar with
+ * search and Ask AI, the page, and On this page beside it. Light and dark,
+ * like the rest of the site.
+ */
+import Head from '../components/Head.astro';
+import Sidebar from '../components/docs/Sidebar.astro';
+import Topbar from '../components/docs/Topbar.astro';
+import DocsFooter from '../components/docs/DocsFooter.astro';
+import AskAI from '../components/docs/AskAI';
+import SiteSearch from '../components/glass/SiteSearch';
+import { loadDocs } from '../lib/docs';
+import { url } from '../lib/url';
+import { toasterScript } from '../lib/toaster-script';
+import '../components/docs/docs.css';
+
+interface Props {
+  title: string;
+  description: string;
+  /** The current page's slug; undefined on the docs home. */
+  current?: string;
+  /** No On this page column: the docs home. */
+  wide?: boolean;
+}
+
+const { title, description, current, wide = false } = Astro.props;
+const pages = loadDocs().map(({ slug, title, group }) => ({ slug, title, group }));
+const searchPages = loadDocs().map((p) => ({ title: p.title, group: p.group, url: url(`docs/${p.slug}`) }));
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark" data-lg-theme="dark" data-lg-mode="clear" data-lg-quality="medium">
+  <head>
+    <Head title={title} description={description} />
+  </head>
+  <body class="docs-body">
+    <a class="skip" href="#content">Skip to content</a>
+    <aside class="docs-sidebar">
+      <Sidebar pages={pages} current={current} />
+    </aside>
+
+    <dialog class="docs-drawer" data-docs-drawer aria-label="Docs menu">
+      <button type="button" class="drawer-close" data-docs-drawer-close aria-label="Close the docs menu">×</button>
+      <Sidebar pages={pages} current={current} />
+    </dialog>
+
+    <div class="docs-main">
+      <Topbar />
+      <div class:list={['docs-content', { wide }]}>
+        <main id="content" class="docs-article" data-pagefind-body>
+          <slot />
+        </main>
+        {!wide && <aside class="docs-aside"><slot name="aside" /></aside>}
+      </div>
+      <DocsFooter />
+    </div>
+
+    <AskAI client:idle />
+    <SiteSearch client:idle base={url('pagefind/')} pages={searchPages} />
+    <div id="root" class="live-root" data-src={toasterScript()}></div>
+
+    <script>
+      // The phone's menu: the sidebar in a drawer.
+      const drawer = document.querySelector<HTMLDialogElement>('[data-docs-drawer]');
+      document.querySelector('[data-docs-menu]')?.addEventListener('click', () => drawer?.showModal());
+      document.querySelector('[data-docs-drawer-close]')?.addEventListener('click', () => drawer?.close());
+      drawer?.addEventListener('click', (event) => {
+        if (event.target === drawer) drawer.close();
+      });
+      // The current page's sidebar link starts in view, without moving the page.
+      const sidebar = document.querySelector<HTMLElement>('.docs-sidebar');
+      const active = sidebar?.querySelector<HTMLElement>('.item[aria-current="page"]');
+      if (sidebar && active) sidebar.scrollTop = active.offsetTop - sidebar.clientHeight / 2;
+    </script>
+  </body>
+</html>

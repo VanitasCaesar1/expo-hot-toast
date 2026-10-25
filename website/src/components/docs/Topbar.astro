@@ -1,0 +1,71 @@
+---
+/**
+ * The docs top bar, after Clerk's: a search field that opens the command
+ * palette, Ask AI, and on the right the theme, the GitHub stars and the
+ * quick start. On a phone it leads with the menu button for the sidebar.
+ */
+import Icon from '../Icon.astro';
+import { url, REPO_URL } from '../../lib/url';
+import { buildStars, formatStars } from '../../lib/stars';
+
+const stars = await buildStars();
+---
+
+<header class="topbar">
+  <button type="button" class="tb-icon menu-button" data-docs-menu aria-label="Open the docs menu">
+    <Icon name="list" />
+  </button>
+  <a class="tb-brand" href={url('docs')} aria-label="expo-hot-toast docs">
+    <img src={url('mark.svg')} alt="" width="26" height="26" />
+  </a>
+
+  <button type="button" class="search-field" data-open-search aria-label="Search documentation">
+    <Icon name="search" />
+    <span class="search-placeholder">Search documentation</span>
+    <kbd>⌘K</kbd>
+  </button>
+  <button type="button" class="tb-icon search-icon" data-open-search aria-label="Search documentation">
+    <Icon name="search" />
+  </button>
+  <button type="button" class="ask-button" data-ask-ai>
+    <Icon name="sparkle" />
+    <span>Ask AI</span>
+  </button>
+
+  <div class="tb-end">
+    <button type="button" class="tb-icon" data-theme-cycle aria-label="Change theme">
+      <span class="when-system"><Icon name="monitor" /></span>
+      <span class="when-light"><Icon name="sun" /></span>
+      <span class="when-dark"><Icon name="moon" /></span>
+    </button>
+    <a class="tb-button star" href={REPO_URL} target="_blank" rel="noopener">
+      <Icon name="github" />
+      <span class="tb-label">Star</span>
+      {typeof stars === 'number' && stars > 0 && <span class="count">{formatStars(stars)}</span>}
+    </a>
+    <a class="tb-button dark" href={url('docs/quick-start')}>
+      Quick start
+      <Icon name="arrow-right" />
+    </a>
+  </div>
+</header>
+
+<script>
+  import { getPref, setPref, watchSystem } from '../../lib/theme';
+  import type { ThemePref } from '../../lib/theme';
+
+  // Search: the header field opens the site's command palette (SiteSearch).
+  for (const button of document.querySelectorAll('[data-open-search]')) {
+    button.addEventListener('click', () => window.dispatchEvent(new Event('site:search')));
+  }
+  // Ask AI opens the panel (AskAI.tsx).
+  for (const button of document.querySelectorAll('[data-ask-ai]')) {
+    button.addEventListener('click', () => window.dispatchEvent(new Event('docs:ask')));
+  }
+  // Theme: system, light, dark, in turn.
+  watchSystem();
+  const order: ThemePref[] = ['system', 'light', 'dark'];
+  document.querySelector('[data-theme-cycle]')?.addEventListener('click', () => {
+    setPref(order[(order.indexOf(getPref()) + 1) % order.length]!);
+  });
+</script>

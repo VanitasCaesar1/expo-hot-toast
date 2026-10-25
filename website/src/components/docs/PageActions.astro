@@ -1,0 +1,70 @@
+---
+/**
+ * Clerk's page actions: copy the page as Markdown, or open it in an AI chat,
+ * with a menu of chats and the plain-text versions. No JavaScript beyond
+ * closing the menu: links, and the site's delegated [data-copy] handler.
+ */
+import Icon from '../Icon.astro';
+import { url } from '../../lib/url';
+import { SITE } from '../../lib/ai';
+
+interface Props {
+  slug: string;
+  title: string;
+  markdown: string;
+}
+
+const { slug, title, markdown } = Astro.props;
+const mdUrl = `${SITE}/docs/md/${slug}.md`;
+const prompt = encodeURIComponent(`Read ${mdUrl}, the expo-hot-toast docs page "${title}", so I can ask you questions about it.`);
+const chats = [
+  { name: 'ChatGPT', href: `https://chatgpt.com/?hints=search&q=${prompt}` },
+  { name: 'Claude', href: `https://claude.ai/new?q=${prompt}` },
+  { name: 'T3 Chat', href: `https://t3.chat/new?q=${prompt}` },
+  { name: 'Perplexity', href: `https://www.perplexity.ai/search/new?q=${prompt}` },
+  { name: 'Grok', href: `https://grok.com/?q=${prompt}` },
+];
+---
+
+<div class="page-actions">
+  <button type="button" class="pa-button" data-copy={markdown}>
+    <span class="copy-idle"><Icon name="markdown-logo" /> Copy as markdown</span>
+    <span class="copy-done"><Icon name="check" /> Copied</span>
+  </button>
+  <div class="split">
+    <a class="pa-button" href={chats[0]!.href} target="_blank" rel="noopener">
+      <Icon name="sparkle" /> Open in ChatGPT
+    </a>
+    <details class="pa-menu" data-menu>
+      <summary class="pa-button" aria-label="More ways to read this page"><Icon name="caret-down" /></summary>
+      <div class="menu">
+        <p class="menu-label">AI chats</p>
+        {
+          chats.map((c) => (
+            <a href={c.href} target="_blank" rel="noopener">
+              Open in {c.name}
+              <Icon name="arrow-up-right" />
+            </a>
+          ))
+        }
+        <p class="menu-label">Plain text</p>
+        <a href={url(`docs/md/${slug}.md`)}>View as Markdown <Icon name="arrow-up-right" /></a>
+        <a href={url('llms.txt')}>llms.txt <Icon name="arrow-up-right" /></a>
+        <a href={url('llms-full.txt')}>llms-full.txt <Icon name="arrow-up-right" /></a>
+      </div>
+    </details>
+  </div>
+</div>
+
+<script>
+  // One menu open at a time, closed by a click elsewhere or Escape.
+  document.addEventListener('click', (event) => {
+    for (const menu of document.querySelectorAll<HTMLDetailsElement>('details[data-menu][open]')) {
+      if (!menu.contains(event.target as Node)) menu.open = false;
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll<HTMLDetailsElement>('details[data-menu][open]').forEach((m) => (m.open = false));
+  });
+</script>

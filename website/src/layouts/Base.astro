@@ -1,13 +1,12 @@
 ---
-import '../styles/global.css';
+import Head from '../components/Head.astro';
 import SiteHeader from '../components/glass/SiteHeader';
 import SiteSearch from '../components/glass/SiteSearch';
 import Footer from '../components/Footer.astro';
 import { url, REPO_URL } from '../lib/url';
 import { loadDocs } from '../lib/docs';
 import { buildStars } from '../lib/stars';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { toasterScript } from '../lib/toaster-script';
 
 interface Props {
   title: string;
@@ -16,46 +15,17 @@ interface Props {
   live?: boolean;
 }
 
-// The library's web build, exported by CI into public/playground. Its script
-// tag names the hashed bundle, which the live demos load (see lib/live.ts).
-function toasterScript(): string | undefined {
-  try {
-    // From the project root: at build time this module runs from a bundled
-    // chunk, so a path relative to it points into the build output.
-    const html = readFileSync(join(process.cwd(), 'public/playground/index.html'), 'utf8');
-    return html.match(/<script src="([^"]+)"/)?.[1];
-  } catch {
-    return undefined;
-  }
-}
-
 const { title, description, live = false } = Astro.props;
 const toasterSrc = live ? toasterScript() : undefined;
 const inDocs = Astro.url.pathname.includes('/docs');
 const stars = await buildStars();
 const searchPages = loadDocs().map((p) => ({ title: p.title, group: p.group, url: url(`docs/${p.slug}`) }));
-const canonical = new URL(Astro.url.pathname, Astro.site);
-const ogImage = new URL(url('media/og.png'), Astro.site);
 ---
 
 <!doctype html>
-<html lang="en" data-lg-theme="dark" data-lg-mode="clear" data-lg-quality="medium">
+<html lang="en" data-theme="dark" data-lg-theme="dark" data-lg-mode="clear" data-lg-quality="medium">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
-    <link rel="icon" href={url('favicon.svg')} type="image/svg+xml" />
-    <meta name="theme-color" content="#121211" />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
-    <meta property="og:image" content={ogImage} />
-    <meta name="twitter:card" content="summary_large_image" />
-    <!-- Reveal-on-scroll only hides content once JS is known to be running. -->
-    <script is:inline>document.documentElement.classList.add('js');</script>
+    <Head title={title} description={description} />
   </head>
   <body id="top">
     <SiteHeader
@@ -75,20 +45,6 @@ const ogImage = new URL(url('media/og.png'), Astro.site);
     <SiteSearch client:idle base={url('pagefind/')} pages={searchPages} />
     {live && <div id="root" class="live-root" data-src={toasterSrc}></div>}
     <script>
-      // Copy buttons anywhere on the page, delegated, so the static Glassy UI
-      // buttons need no JavaScript of their own.
-      document.addEventListener('click', async (event) => {
-        const button = (event.target as Element | null)?.closest<HTMLElement>('[data-copy]');
-        if (!button) return;
-        try {
-          await navigator.clipboard.writeText(button.dataset.copy ?? '');
-          button.dataset.copied = 'true';
-          setTimeout(() => delete button.dataset.copied, 1600);
-        } catch {
-          // Clipboard unavailable (insecure context); the text stays selectable.
-        }
-      });
-
       // Sections settle into place as they arrive, once.
       const reveal = new IntersectionObserver(
         (entries) => {

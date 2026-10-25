@@ -18,6 +18,20 @@
   --lg-muted-foreground: rgb(243 241 236 / 0.62);
 }
 
+:root[data-lg-theme='light'] {
+  --lg-accent: #d97706;
+  --lg-switch-on: #f59e0b;
+  --lg-focus-ring: #d97706;
+  /* Amber glass in the light theme too, a shade deeper so white text holds. */
+  --lg-prominent-fill: #c25e00;
+  --lg-prominent-tint: grayscale(1) contrast(0.5) brightness(0.5) sepia(1) hue-rotate(-14deg) saturate(7)
+    brightness(1.05);
+  --lg-prominent-glow: 255 200 140;
+  --lg-prominent-shade: 90 40 0;
+  --lg-foreground: #1b1a17;
+  --lg-muted-foreground: rgb(27 26 23 / 0.66);
+}
+
 .glyph {
   display: inline-flex;
 }
@@ -86,7 +100,7 @@
 }
 .search-excerpt mark {
   background: none;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* FAQ: one glass card, a hairline between questions. */
@@ -94,7 +108,7 @@
   padding: 6px 8px;
 }
 .faq-item + .faq-item {
-  border-top: 1px solid rgb(255 255 255 / 0.07);
+  border-top: 1px solid var(--hairline);
 }
 .faq-heading {
   margin: 0;
@@ -116,7 +130,7 @@
   transition: background 160ms;
 }
 .faq-trigger:hover {
-  background: rgb(255 255 255 / 0.04);
+  background: var(--hover);
 }
 .faq-chevron {
   flex: none;
@@ -127,7 +141,7 @@
 }
 .faq-trigger[data-state='open'] .faq-chevron {
   transform: rotate(180deg);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 .faq-answer {
   overflow: hidden;
@@ -177,7 +191,7 @@
   color: var(--text);
 }
 .command-box .prompt {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* The command palette's field is the focus; the site's outline ring would box it. */
@@ -187,13 +201,13 @@
 
 /* Star buttons: an amber star, and the count in its own chip. */
 .star-button .glyph {
-  color: #ffc56b;
+  color: var(--star);
 }
 .star-count {
   margin-left: 2px;
   padding: 1px 8px;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.1);
+  background: var(--press);
   font: 500 12px/1.5 var(--mono);
   font-variant-numeric: tabular-nums;
 }
@@ -211,5 +225,5 @@
 }
 .copy-button[data-copied] .copy-done {
   display: inline-flex;
-  color: var(--accent);
+  color: var(--accent-text);
 }

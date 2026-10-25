@@ -5,6 +5,7 @@ import { GlassButton } from '../glassyui/glass-button';
 import { GlassKbd } from '../glassyui/glass-kbd';
 import { Glyph } from './icons';
 import StarButton from './StarButton';
+import ThemeToggle from './ThemeToggle';
 
 interface Props {
   home: string;
@@ -44,6 +45,7 @@ export default function SiteHeader({ home, mark, docs, changelog, repo, inDocs, 
             <span className="button-label">Search</span>
             <GlassKbd>⌘K</GlassKbd>
           </GlassButton>
+          <ThemeToggle />
           <StarButton repo={repo} initial={stars} size="sm" className="site-github" compact />
         </>
       }

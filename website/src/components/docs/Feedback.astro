@@ -1,0 +1,50 @@
+---
+/**
+ * Clerk's "What did you think of this content?". There is no server to send a
+ * vote to, so a vote is thanked with a real toast, and anything worth saying
+ * goes to a GitHub issue that names the page.
+ */
+import Icon from '../Icon.astro';
+import { REPO_URL } from '../../lib/url';
+
+interface Props {
+  title: string;
+  slug: string;
+}
+
+const { title, slug } = Astro.props;
+const issue = `${REPO_URL}/issues/new?title=${encodeURIComponent(`Docs: ${title}`)}&body=${encodeURIComponent(`Page: https://vanitascaesar1.github.io/expo-hot-toast/docs/${slug}\n\nWhat was missing or unclear?\n`)}`;
+---
+
+<section class="feedback" data-feedback>
+  <p class="feedback-title">What did you think of this content?</p>
+  <div class="feedback-actions">
+    <button type="button" data-vote="up"><Icon name="thumbs-up" /> It was helpful</button>
+    <button type="button" data-vote="down"><Icon name="thumbs-down" /> It was not helpful</button>
+    <a href={issue} target="_blank" rel="noopener"><Icon name="chat-teardrop-text" /> I have feedback</a>
+  </div>
+  <p class="feedback-thanks" hidden>
+    Thank you. <a href={issue} target="_blank" rel="noopener">Tell us what was missing</a>, and we will fix the page.
+  </p>
+</section>
+
+<script>
+  import { configure, withToast } from '../../lib/live';
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-feedback]')) {
+    root.querySelectorAll<HTMLButtonElement>('[data-vote]').forEach((button) =>
+      button.addEventListener('click', () => {
+        const up = button.dataset.vote === 'up';
+        root.dataset.voted = button.dataset.vote;
+        root.querySelectorAll('[data-vote]').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+        const thanks = root.querySelector<HTMLElement>('.feedback-thanks');
+        if (thanks && !up) thanks.hidden = false;
+        // The library itself says thank you, from the bottom, clear of the top bar.
+        configure({ position: 'bottom-center' });
+        withToast((toast) =>
+          up ? toast.success('Thanks! Glad it helped.') : toast('Thanks for telling us.', { description: 'An issue on GitHub helps us fix the page.' }),
+        );
+      }),
+    );
+  }
+</script>

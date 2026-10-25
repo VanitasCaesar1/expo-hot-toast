@@ -1,0 +1,65 @@
+---
+/**
+ * On this page, after Clerk's: a rail with the section you are reading marked
+ * on it, h3s indented under their h2. Step-by-step pages number their steps.
+ */
+import { STEPS_END } from '../../lib/rehype-docs.mjs';
+
+interface Props {
+  headings: { depth: number; slug: string; text: string }[];
+  steps?: boolean;
+}
+
+const { headings, steps = false } = Astro.props;
+let step = 0;
+let stepsDone = false;
+---
+
+{
+  headings.length > 0 && (
+    <nav class="toc" aria-label="On this page" data-toc>
+      <p class="toc-title">On this page</p>
+      <ul class:list={[{ numbered: steps }]}>
+        {headings.map((h) => {
+          if (h.depth === 2 && STEPS_END.test(h.text)) stepsDone = true;
+          const numbered = steps && h.depth === 2 && !stepsDone;
+          if (numbered) step += 1;
+          return (
+            <li class:list={[`depth-${h.depth}`]}>
+              <a href={`#${h.slug}`} data-toc-link={h.slug}>
+                {numbered && <span class="toc-step">{step}</span>}
+                {h.text}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  )
+}
+
+<script>
+  // Marks the section being read: the last heading above a line a fifth of the
+  // way down the window.
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-toc-link]')];
+  const targets = links
+    .map((link) => document.getElementById(link.dataset.tocLink ?? ''))
+    .filter((el): el is HTMLElement => el !== null);
+  let frame = 0;
+  const mark = () => {
+    frame = 0;
+    const line = window.innerHeight * 0.2;
+    let current = targets[0];
+    for (const t of targets) if (t.getBoundingClientRect().top <= line) current = t;
+    // At the very bottom, the last section is the one being read.
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) current = targets[targets.length - 1];
+    for (const link of links) {
+      if (link.dataset.tocLink === current?.id) link.setAttribute('aria-current', 'true');
+      else link.removeAttribute('aria-current');
+    }
+  };
+  if (targets.length) {
+    window.addEventListener('scroll', () => (frame ||= requestAnimationFrame(mark)), { passive: true });
+    mark();
+  }
+</script>

@@ -58,7 +58,7 @@ export default function Customiser() {
   const setOptions = (next: Record<string, unknown>) => configure({ toastOptions: { ...options, ...next } });
   const setGlass = (on: boolean, tintColor = tint) => configure({ glass: on ? (tintColor ? { tintColor } : true) : false });
 
-  const props: string[] = [`  colorScheme="${config.colorScheme ?? 'dark'}"`];
+  const props: string[] = [`  colorScheme="${config.colorScheme ?? 'light'}"`];
   if (config.position && config.position !== 'top-center') props.push(`  position="${config.position}"`);
   if (config.stacked) props.push('  stacked');
   if (!glassOn) props.push('  glass={false}');
@@ -79,7 +79,7 @@ export default function Customiser() {
         <div className="control">
           <span className="control-label">Appearance</span>
           <GlassSegmentedControl
-            value={config.colorScheme ?? 'dark'}
+            value={config.colorScheme ?? 'light'}
             onValueChange={(value) => {
               configure({ colorScheme: value as 'light' | 'dark' });
               preview();

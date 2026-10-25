@@ -34,7 +34,7 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: radial-gradient(120% 90% at 50% 50%, transparent 30%, rgb(18 18 17 / 0.55) 100%);
+  background: radial-gradient(120% 90% at 50% 50%, transparent 30%, var(--vignette) 100%);
 }
 
 /* Examples: a grid of buttons beside the code for the last one pressed. */
@@ -72,14 +72,14 @@
     color 160ms;
 }
 .example-row:hover {
-  background: rgb(255 255 255 / 0.06);
+  background: var(--hover);
 }
 .example-row:active {
-  background: rgb(255 255 255 / 0.1);
+  background: var(--press);
 }
 .example-row[aria-pressed='true'] {
-  background: rgb(255 173 59 / 0.12);
-  box-shadow: inset 0 0 0 1px rgb(255 173 59 / 0.32);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-ring);
 }
 .example-name {
   font-size: 15.5px;
@@ -93,20 +93,20 @@
   white-space: nowrap;
 }
 .example-row[aria-pressed='true'] .example-api {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* Code written by the demos. */
 .live-code {
   min-width: 0;
-  border: 1px solid rgb(255 255 255 / 0.12);
+  border: 1px solid var(--hairline);
   border-radius: 18px;
-  background: rgb(14 14 13 / 0.78);
+  background: var(--code-panel);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   backdrop-filter: blur(18px) saturate(140%);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.08),
-    0 30px 60px -30px rgb(0 0 0 / 0.8);
+    inset 0 1px 0 var(--hairline),
+    0 30px 60px -30px var(--shadow);
   overflow: hidden;
 }
 .live-code-bar {
@@ -115,7 +115,7 @@
   justify-content: space-between;
   height: 40px;
   padding: 0 8px 0 16px;
-  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  border-bottom: 1px solid var(--hairline);
   color: var(--faint);
 }
 .live-code-bar button {
@@ -129,7 +129,7 @@
 }
 .live-code-bar button:hover {
   color: var(--text);
-  background: rgb(255 255 255 / 0.06);
+  background: var(--hover);
 }
 .live-code pre {
   margin: 0;
@@ -163,6 +163,31 @@
 }
 .tok-punct {
   color: #adbac7;
+}
+/* github-light, as the static code panels use in the light theme. */
+:root[data-theme='light'] .live-code pre,
+:root[data-theme='light'] .tok-punct {
+  color: #24292f;
+}
+:root[data-theme='light'] .tok-comment {
+  color: #6e7781;
+}
+:root[data-theme='light'] .tok-string {
+  color: #0a3069;
+}
+:root[data-theme='light'] .tok-tag {
+  color: #116329;
+}
+:root[data-theme='light'] .tok-keyword {
+  color: #cf222e;
+}
+:root[data-theme='light'] .tok-number,
+:root[data-theme='light'] .tok-prop,
+:root[data-theme='light'] .tok-key {
+  color: #0550ae;
+}
+:root[data-theme='light'] .tok-call {
+  color: #8250df;
 }
 
 /* Position. */
@@ -199,7 +224,7 @@
 }
 .switch-row code {
   margin-left: 6px;
-  color: var(--accent);
+  color: var(--accent-text);
   font: 13px var(--mono);
 }
 
@@ -216,10 +241,10 @@
   gap: 22px 28px;
   padding: 24px;
   border-radius: 24px;
-  background: rgb(14 14 13 / 0.5);
+  background: var(--panel-tint);
   -webkit-backdrop-filter: blur(22px) saturate(150%);
   backdrop-filter: blur(22px) saturate(150%);
-  border: 1px solid rgb(255 255 255 / 0.1);
+  border: 1px solid var(--press);
 }
 .control {
   display: grid;
@@ -245,10 +270,10 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  border: 1px solid rgb(255 255 255 / 0.25);
+  border: 1px solid var(--line);
   background:
     linear-gradient(var(--swatch), var(--swatch)),
-    repeating-conic-gradient(rgb(255 255 255 / 0.12) 0 25%, transparent 0 50%) 0 0 / 10px 10px;
+    repeating-conic-gradient(var(--hairline) 0 25%, transparent 0 50%) 0 0 / 10px 10px;
   cursor: pointer;
   transition: transform 160ms var(--ease-out);
 }
@@ -297,14 +322,4 @@
   .controls {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-
-/* The real library's page Toaster (lib/live.ts). It covers the viewport, but
-   its layers pass the pointer through, so only the toasts take it. */
-.live-root {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  display: flex;
-  pointer-events: none;
 }

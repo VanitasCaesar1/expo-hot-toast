@@ -3,6 +3,7 @@ title: Quick start
 description: Show a toast, update it in place, and follow a promise.
 group: Getting started
 order: 3
+steps: true
 ---
 
 This assumes `<Toaster />` is mounted at the root, as in
@@ -13,7 +14,7 @@ This assumes `<Toaster />` is mounted at the root, as in
 Import `toast` anywhere: a component, a hook, a data layer. It does not need a
 React context.
 
-```tsx
+```tsx title="SaveButton.tsx"
 import { Button } from 'react-native';
 import { toast } from 'expo-hot-toast';
 

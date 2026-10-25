@@ -3,11 +3,13 @@
 @import '@fontsource-variable/geist-mono';
 
 /*
- * One dark theme for the whole site, built from Glassy UI's glass components.
- * Glass needs colour behind it to bend, so the page sits on a warm ambient
- * light: the heat of the flame mark, low enough to keep text readable.
+ * Light and dark, following the system until a visitor picks one (lib/theme.ts
+ * sets data-theme on <html> before paint). The site is built from Glassy UI's
+ * glass components, and glass needs colour behind it to bend, so the page sits
+ * on a warm ambient light: the heat of the flame mark, low enough to read over.
  */
-:root {
+:root,
+:root[data-theme='dark'] {
   color-scheme: dark;
 
   --bg: #121211;
@@ -18,7 +20,67 @@
   --muted: rgb(243 241 236 / 0.62);
   --faint: rgb(243 241 236 / 0.4);
   --accent: #ffad3b;
+  /* The accent as text: links, labels, the selected call. */
+  --accent-text: #ffb54f;
   --accent-ink: #1a1206;
+  --accent-soft: rgb(255 173 59 / 0.12);
+  --accent-ring: rgb(255 173 59 / 0.35);
+  --hairline: rgb(255 255 255 / 0.08);
+  --hover: rgb(255 255 255 / 0.05);
+  --press: rgb(255 255 255 / 0.1);
+  --code-bg: rgb(14 14 13 / 0.62);
+  --glow-1: rgb(255 140 40 / 0.2);
+  --glow-2: rgb(214 45 74 / 0.12);
+  --glow-3: rgb(255 173 59 / 0.1);
+  --dot: rgb(243 241 236 / 0.16);
+  --panel-tint: rgb(14 14 13 / 0.5);
+  --code-panel: rgb(14 14 13 / 0.78);
+  --vignette: rgb(18 18 17 / 0.55);
+  --stage-base: #0d0a08;
+  --caption-bg: rgb(10 8 6 / 0.72);
+  --caption-text: rgb(243 241 236 / 0.78);
+  --wordmark-a: rgb(243 241 236 / 0.24);
+  --wordmark-b: rgb(243 241 236 / 0.07);
+  --star: #ffc56b;
+  --shadow: rgb(0 0 0 / 0.8);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #faf8f5;
+  --surface: #ffffff;
+  --surface-raised: #f3f0eb;
+  --line: #e6e1d9;
+  --text: #1b1a17;
+  --muted: rgb(27 26 23 / 0.66);
+  --faint: rgb(27 26 23 / 0.46);
+  --accent: #f59e0b;
+  --accent-text: #b45309;
+  --accent-ink: #ffffff;
+  --accent-soft: rgb(245 158 11 / 0.12);
+  --accent-ring: rgb(217 119 6 / 0.35);
+  --hairline: rgb(0 0 0 / 0.08);
+  --hover: rgb(0 0 0 / 0.04);
+  --press: rgb(0 0 0 / 0.07);
+  --code-bg: rgb(255 255 255 / 0.72);
+  --glow-1: rgb(255 150 60 / 0.22);
+  --glow-2: rgb(240 90 110 / 0.1);
+  --glow-3: rgb(255 190 90 / 0.16);
+  --dot: rgb(27 26 23 / 0.14);
+  --panel-tint: rgb(255 255 255 / 0.55);
+  --code-panel: rgb(255 255 255 / 0.82);
+  --vignette: rgb(250 248 245 / 0.45);
+  --stage-base: #fff3e6;
+  --caption-bg: rgb(255 255 255 / 0.78);
+  --caption-text: rgb(27 26 23 / 0.75);
+  --wordmark-a: rgb(27 26 23 / 0.2);
+  --wordmark-b: rgb(27 26 23 / 0.06);
+  --star: #f59e0b;
+  --shadow: rgb(120 80 40 / 0.25);
+}
+
+:root {
 
   --page: 1240px;
   --pad: clamp(20px, 4vw, 56px);
@@ -55,9 +117,9 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(55vw 45vh at 88% -8%, rgb(255 140 40 / 0.2), transparent 70%),
-    radial-gradient(45vw 55vh at -12% 38%, rgb(214 45 74 / 0.12), transparent 70%),
-    radial-gradient(55vw 55vh at 108% 92%, rgb(255 173 59 / 0.1), transparent 70%);
+    radial-gradient(55vw 45vh at 88% -8%, var(--glow-1), transparent 70%),
+    radial-gradient(45vw 55vh at -12% 38%, var(--glow-2), transparent 70%),
+    radial-gradient(55vw 55vh at 108% 92%, var(--glow-3), transparent 70%);
 }
 
 body {
@@ -128,11 +190,15 @@ main.frame {
   text-transform: uppercase;
 }
 
-/* Shiki: the dark tokens only; the site has one theme. */
+/* Shiki renders both themes into variables; the page's theme picks one. */
 .astro-code,
 .astro-code span {
   color: var(--shiki-dark);
   background-color: transparent !important;
+}
+:root[data-theme='light'] .astro-code,
+:root[data-theme='light'] .astro-code span {
+  color: var(--shiki-light);
 }
 
 .astro-code {
@@ -145,7 +211,7 @@ main.frame {
 
 /* A dotted field, the page's one texture. Fades out at its edges. */
 .dots {
-  background-image: radial-gradient(rgb(243 241 236 / 0.16) 1px, transparent 1.4px);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.4px);
   background-size: 14px 14px;
   mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
@@ -181,4 +247,14 @@ main.frame {
     opacity: 1;
     transform: none;
   }
+}
+
+/* The real library's page Toaster (lib/live.ts). It covers the viewport, but
+   its layers pass the pointer through, so only the toasts take it. */
+.live-root {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  pointer-events: none;
 }
