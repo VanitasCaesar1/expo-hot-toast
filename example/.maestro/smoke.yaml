@@ -143,6 +143,7 @@ appId: dev.expohottoast.example
     element:
       id: "row-burst-of-five"
     direction: DOWN
+    centerElement: true
 - tapOn:
     id: "row-burst-of-five"
     waitToSettleTimeoutMs: 300
@@ -166,7 +167,13 @@ appId: dev.expohottoast.example
     notVisible: "Item 1 added to cart"
     timeout: 5000
 
-# Three taps, one toast: dismissing it leaves nothing behind.
+# Three taps, one toast: dismissing it leaves nothing behind. Rows are
+# scrolled to the middle first, clear of Android's bottom snackbars.
+- scrollUntilVisible:
+    element:
+      id: "row-deduplicated"
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: "row-deduplicated"
     waitToSettleTimeoutMs: 300
@@ -182,6 +189,11 @@ appId: dev.expohottoast.example
     notVisible: "Saving draft…"
     timeout: 5000
 
+- scrollUntilVisible:
+    element:
+      id: "row-from-the-bottom"
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: "row-from-the-bottom"
     waitToSettleTimeoutMs: 300
@@ -197,14 +209,25 @@ appId: dev.expohottoast.example
     element:
       id: "row-stacked"
     direction: DOWN
+    centerElement: true
 - tapOn:
     id: "row-stacked"
     waitToSettleTimeoutMs: 300
+- scrollUntilVisible:
+    element:
+      id: "row-burst-of-five"
+    direction: UP
+    centerElement: true
 - tapOn:
     id: "row-burst-of-five"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Item 5 added to cart"
 - takeScreenshot: 08b-stacked
+- scrollUntilVisible:
+    element:
+      id: "row-stacked"
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: "row-stacked"
     waitToSettleTimeoutMs: 300
@@ -216,6 +239,7 @@ appId: dev.expohottoast.example
     element:
       id: "row-custom-element"
     direction: DOWN
+    centerElement: true
 
 - tapOn:
     id: "row-close-button"

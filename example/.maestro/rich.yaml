@@ -2,6 +2,9 @@
 # the same E2E build as smoke.yaml: toasts last 60 seconds, progress takes 20,
 # and a tap dismisses (or, for the notification, opens) a toast.
 #
+# Toast text is matched as a substring: on iOS a toast without buttons is one
+# accessibility element that reads its message and description together.
+#
 # Row taps cap Maestro's wait for the screen to settle: a filling bar keeps
 # the screen changing, and the default wait sat through the whole upload.
 appId: dev.expohottoast.example
@@ -29,7 +32,7 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-info"
     waitToSettleTimeoutMs: 300
-- assertVisible: "A new version is ready"
+- assertVisible: ".*A new version is ready.*"
 - scrollUntilVisible:
     element:
       id: "row-warning"
@@ -39,16 +42,16 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-warning"
     waitToSettleTimeoutMs: 300
-- assertVisible: "Storage almost full"
+- assertVisible: ".*Storage almost full.*"
 - takeScreenshot: 20-info-warning
 - tapOn:
-    text: "Storage almost full"
+    text: ".*Storage almost full.*"
     waitToSettleTimeoutMs: 300
 - tapOn:
-    text: "A new version is ready"
+    text: ".*A new version is ready.*"
     waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
-    notVisible: "A new version is ready"
+    notVisible: ".*A new version is ready.*"
     timeout: 5000
 
 # Progress: the bar fills while the toast stays put, then it becomes the success.
@@ -61,13 +64,13 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-upload-with-progress"
     waitToSettleTimeoutMs: 300
-- assertVisible: "Uploading 4 photos"
+- assertVisible: ".*Uploading 4 photos.*"
 - takeScreenshot: 21-progress
 - extendedWaitUntil:
-    visible: "4 photos uploaded"
+    visible: ".*4 photos uploaded.*"
     timeout: 60000
 - tapOn:
-    text: "4 photos uploaded"
+    text: ".*4 photos uploaded.*"
     waitToSettleTimeoutMs: 300
 
 # Steps: the label and the segment advance.
@@ -80,16 +83,16 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-steps"
     waitToSettleTimeoutMs: 300
-- assertVisible: "Compressing video"
+- assertVisible: ".*Compressing video.*"
 - extendedWaitUntil:
-    visible: "Uploading"
+    visible: ".*Uploading.*"
     timeout: 30000
 - takeScreenshot: 22-steps
 - extendedWaitUntil:
-    visible: "Video published"
+    visible: ".*Video published.*"
     timeout: 60000
 - tapOn:
-    text: "Video published"
+    text: ".*Video published.*"
     waitToSettleTimeoutMs: 300
 
 # Expandable: closed, then open with its details.
@@ -102,7 +105,7 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-expandable"
     waitToSettleTimeoutMs: 300
-- assertVisible: "3 photos failed to upload"
+- assertVisible: ".*3 photos failed to upload.*"
 - tapOn:
     text: "Show details"
     waitToSettleTimeoutMs: 300
@@ -112,10 +115,10 @@ appId: dev.expohottoast.example
     text: "Hide details"
     waitToSettleTimeoutMs: 300
 - tapOn:
-    text: "3 photos failed to upload"
+    text: ".*3 photos failed to upload.*"
     waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
-    notVisible: "3 photos failed to upload"
+    notVisible: ".*3 photos failed to upload.*"
     timeout: 5000
 
 # Undo with its countdown, and Undo works.
@@ -128,14 +131,14 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-undo-countdown"
     waitToSettleTimeoutMs: 300
-- assertVisible: "Conversation deleted"
+- assertVisible: ".*Conversation deleted.*"
 - takeScreenshot: 24-undo-countdown
 - tapOn:
     text: "Undo"
     waitToSettleTimeoutMs: 300
-- assertVisible: "Conversation restored"
+- assertVisible: ".*Conversation restored.*"
 - tapOn:
-    text: "Conversation restored"
+    text: ".*Conversation restored.*"
     waitToSettleTimeoutMs: 300
 
 # Cancel beside the confirming action.
@@ -148,13 +151,13 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-cancel-and-confirm"
     waitToSettleTimeoutMs: 300
-- assertVisible: "Delete 3 photos?"
+- assertVisible: ".*Delete 3 photos\\?.*"
 - takeScreenshot: 25-cancel-confirm
 - tapOn:
     text: "Cancel"
     waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
-    notVisible: "Delete 3 photos?"
+    notVisible: ".*Delete 3 photos\\?.*"
     timeout: 5000
 
 # A notification opens what it is about.
@@ -167,14 +170,14 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-notification"
     waitToSettleTimeoutMs: 300
-- assertVisible: "Maya Patel"
+- assertVisible: ".*Maya Patel.*"
 - takeScreenshot: 26-notification
 - tapOn:
-    text: "Maya Patel"
+    text: ".*Maya Patel.*"
     waitToSettleTimeoutMs: 300
-- assertVisible: "Opened the chat"
+- assertVisible: ".*Opened the chat.*"
 - tapOn:
-    text: "Opened the chat"
+    text: ".*Opened the chat.*"
     waitToSettleTimeoutMs: 300
 
 # A banner against the edge.
@@ -187,13 +190,13 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-banner"
     waitToSettleTimeoutMs: 300
-- assertVisible: "You're offline"
+- assertVisible: ".*You're offline.*"
 - takeScreenshot: 27-banner
 - tapOn:
-    text: "You're offline"
+    text: ".*You're offline.*"
     waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
-    notVisible: "You're offline"
+    notVisible: ".*You're offline.*"
     timeout: 5000
 
 # The HUD in the middle of the screen.
@@ -206,10 +209,10 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-hud"
     waitToSettleTimeoutMs: 300
-- assertVisible: "Added to Library"
+- assertVisible: ".*Added to Library.*"
 - takeScreenshot: 28-hud
 - tapOn:
-    text: "Added to Library"
+    text: ".*Added to Library.*"
     waitToSettleTimeoutMs: 300
 
 # The island at the top.
@@ -222,8 +225,8 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-island"
     waitToSettleTimeoutMs: 300
-- assertVisible: "AirPods Pro connected"
+- assertVisible: ".*AirPods Pro connected.*"
 - takeScreenshot: 29-island
 - tapOn:
-    text: "AirPods Pro connected"
+    text: ".*AirPods Pro connected.*"
     waitToSettleTimeoutMs: 300
