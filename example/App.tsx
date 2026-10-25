@@ -59,6 +59,39 @@ function settleAfter(ms: number, message?: string): Promise<void> {
   );
 }
 
+/** An upload that reports progress, over a few seconds (longer in automated runs). */
+function simulateUpload() {
+  const upload = toast.progress('Uploading 4 photos', { description: 'Trip to Lisbon' });
+  const total = E2E ? 20000 : 3200;
+  const started = Date.now();
+  const tick = setInterval(() => {
+    const done = Math.min((Date.now() - started) / total, 1);
+    upload.set(done);
+    if (done >= 1) {
+      clearInterval(tick);
+      upload.success('4 photos uploaded', { description: 'Trip to Lisbon' });
+    }
+  }, 50);
+}
+
+/** A job of three named steps. */
+function simulateSteps() {
+  const job = toast.steps(['Compressing video', 'Uploading', 'Processing']);
+  const step = E2E ? 7000 : 1300;
+  setTimeout(() => job.next(), step);
+  setTimeout(() => job.next(), step * 2);
+  setTimeout(() => job.success('Video published'), step * 3);
+}
+
+/** A round avatar of initials, for the notification. */
+function Initials({ name }: { name: string }) {
+  return (
+    <View style={{ flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FF9F0A' }}>
+      <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>{name}</Text>
+    </View>
+  );
+}
+
 /**
  * A scripted run of toasts, for recording demos at a natural pace. Started by a
  * long-press on the title (testID `play-demo`), so a recording depends on one
@@ -253,6 +286,97 @@ function Screen() {
             detail="richColors"
             last
             onPress={() => toast.success('Payment received', { richColors: true })}
+          />
+        </Section>
+
+        <Section
+          header="Rich toasts"
+          footer="Progress writes to the UI thread, so it never re-renders the toast."
+          colors={colors}
+        >
+          <Row
+            colors={colors}
+            title="Info"
+            detail="toast.info()"
+            onPress={() => toast.info('A new version is ready', { description: 'Restart the app to update.' })}
+          />
+          <Row
+            colors={colors}
+            title="Warning"
+            detail="toast.warning()"
+            onPress={() => toast.warning('Storage almost full', { description: '2% left on this device.' })}
+          />
+          <Row colors={colors} title="Upload with progress" detail="toast.progress()" onPress={simulateUpload} />
+          <Row colors={colors} title="Steps" detail="toast.steps()" onPress={simulateSteps} />
+          <Row
+            colors={colors}
+            title="Expandable"
+            detail="expandable"
+            onPress={() =>
+              toast.error('3 photos failed to upload', {
+                duration: E2E ? 60000 : 8000,
+                expandable: {
+                  content: 'IMG_2041.jpg, IMG_2042.jpg and IMG_2045.jpg are larger than 50 MB.',
+                },
+              })
+            }
+          />
+          <Row
+            colors={colors}
+            title="Undo countdown"
+            detail="action.countdown"
+            onPress={() =>
+              toast('Conversation deleted', {
+                duration: E2E ? 60000 : 6000,
+                action: { label: 'Undo', countdown: true, onPress: () => toast.success('Conversation restored') },
+              })
+            }
+          />
+          <Row
+            colors={colors}
+            title="Cancel and confirm"
+            detail="cancel"
+            onPress={() =>
+              toast('Delete 3 photos?', {
+                duration: E2E ? 60000 : 8000,
+                cancel: { label: 'Cancel', onPress: () => undefined },
+                action: { label: 'Delete', color: '#FF3B30', onPress: () => toast.success('3 photos deleted') },
+              })
+            }
+          />
+          <Row
+            colors={colors}
+            title="Notification"
+            detail="toast.notify()"
+            onPress={() =>
+              toast.notify({
+                title: 'Maya Patel',
+                body: 'Sent you 4 photos from the trip',
+                timestamp: 'now',
+                avatar: <Initials name="MP" />,
+                onPress: () => toast.success('Opened the chat'),
+              })
+            }
+          />
+          <Row
+            colors={colors}
+            title="Banner"
+            detail="toast.banner()"
+            onPress={() =>
+              toast.banner("You're offline", {
+                type: 'warning',
+                description: 'Changes will sync when you reconnect.',
+                duration: E2E ? 60000 : 6000,
+              })
+            }
+          />
+          <Row colors={colors} title="HUD" detail="toast.hud()" onPress={() => toast.hud('Added to Library')} />
+          <Row
+            colors={colors}
+            title="Island"
+            detail="toast.island()"
+            last
+            onPress={() => toast.island('AirPods Pro connected', { type: 'success' })}
           />
         </Section>
 

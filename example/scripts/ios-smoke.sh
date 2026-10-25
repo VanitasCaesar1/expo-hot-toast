@@ -35,6 +35,7 @@ xcrun simctl install "$UDID" "$APP"
 
 status=0
 (cd "$OUT" && maestro --device "$UDID" test ../../example/.maestro/smoke.yaml) || status=$?
+(cd "$OUT" && maestro --device "$UDID" test ../../example/.maestro/rich.yaml) || status=$?
 xcrun simctl ui "$UDID" appearance dark
 (cd "$OUT" && maestro --device "$UDID" test ../../example/.maestro/dark.yaml) || status=$?
 

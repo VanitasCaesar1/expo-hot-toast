@@ -23,6 +23,7 @@ adb shell screenrecord --time-limit 170 /sdcard/smoke.mp4 &
 
 status=0
 (cd "$OUT" && maestro test ../../example/.maestro/smoke.yaml) || status=$?
+(cd "$OUT" && maestro test ../../example/.maestro/rich.yaml) || status=$?
 
 adb shell cmd uimode night yes
 (cd "$OUT" && maestro test ../../example/.maestro/dark.yaml) || status=$?

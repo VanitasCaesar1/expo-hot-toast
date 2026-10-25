@@ -1,0 +1,138 @@
+# Drives every row of the "Rich toasts" section and screenshots each one, on
+# the same E2E build as smoke.yaml: toasts last 60 seconds, progress takes 20,
+# and a tap dismisses (or, for the notification, opens) a toast.
+appId: dev.expohottoast.example
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible: ".*isn't responding.*"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "row-success"
+    timeout: 120000
+
+# Info and warning, each with its own glyph.
+- scrollUntilVisible:
+    element:
+      id: "row-info"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "row-info"
+- assertVisible: "A new version is ready"
+- tapOn:
+    id: "row-warning"
+- assertVisible: "Storage almost full"
+- takeScreenshot: 20-info-warning
+- tapOn: "Storage almost full"
+- tapOn: "A new version is ready"
+- extendedWaitUntil:
+    notVisible: "A new version is ready"
+    timeout: 5000
+
+# Progress: the bar fills while the toast stays put, then it becomes the success.
+- tapOn:
+    id: "row-upload-with-progress"
+- assertVisible: "Uploading 4 photos"
+- takeScreenshot: 21-progress
+- extendedWaitUntil:
+    visible: "4 photos uploaded"
+    timeout: 60000
+- tapOn: "4 photos uploaded"
+
+# Steps: the label and the segment advance.
+- tapOn:
+    id: "row-steps"
+- assertVisible: "Compressing video"
+- extendedWaitUntil:
+    visible: "Uploading"
+    timeout: 30000
+- takeScreenshot: 22-steps
+- extendedWaitUntil:
+    visible: "Video published"
+    timeout: 60000
+- tapOn: "Video published"
+
+# Expandable: closed, then open with its details.
+- scrollUntilVisible:
+    element:
+      id: "row-expandable"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "row-expandable"
+- assertVisible: "3 photos failed to upload"
+- tapOn: "Show details"
+- assertVisible: ".*larger than 50 MB.*"
+- takeScreenshot: 23-expandable
+- tapOn: "Hide details"
+- tapOn: "3 photos failed to upload"
+- extendedWaitUntil:
+    notVisible: "3 photos failed to upload"
+    timeout: 5000
+
+# Undo with its countdown, and Undo works.
+- tapOn:
+    id: "row-undo-countdown"
+- assertVisible: "Conversation deleted"
+- takeScreenshot: 24-undo-countdown
+- tapOn: "Undo"
+- assertVisible: "Conversation restored"
+- tapOn: "Conversation restored"
+
+# Cancel beside the confirming action.
+- tapOn:
+    id: "row-cancel-and-confirm"
+- assertVisible: "Delete 3 photos?"
+- takeScreenshot: 25-cancel-confirm
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    notVisible: "Delete 3 photos?"
+    timeout: 5000
+
+# A notification opens what it is about.
+- scrollUntilVisible:
+    element:
+      id: "row-notification"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "row-notification"
+- assertVisible: "Maya Patel"
+- takeScreenshot: 26-notification
+- tapOn: "Maya Patel"
+- assertVisible: "Opened the chat"
+- tapOn: "Opened the chat"
+
+# A banner against the edge.
+- tapOn:
+    id: "row-banner"
+- assertVisible: "You're offline"
+- takeScreenshot: 27-banner
+- tapOn: "You're offline"
+- extendedWaitUntil:
+    notVisible: "You're offline"
+    timeout: 5000
+
+# The HUD in the middle of the screen.
+- scrollUntilVisible:
+    element:
+      id: "row-hud"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "row-hud"
+- assertVisible: "Added to Library"
+- takeScreenshot: 28-hud
+- tapOn: "Added to Library"
+
+# The island at the top.
+- tapOn:
+    id: "row-island"
+- assertVisible: "AirPods Pro connected"
+- takeScreenshot: 29-island
+- tapOn: "AirPods Pro connected"
