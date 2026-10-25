@@ -1,7 +1,13 @@
 ---
-import LinkButton from './glass/LinkButton';
+import StarButton from './glass/StarButton';
 import { GlassPanel } from './glassyui/glass-panel';
 import { url, REPO_URL } from '../lib/url';
+
+interface Props {
+  /** Star count at build time. */
+  stars?: number;
+}
+const { stars } = Astro.props;
 
 const columns = [
   {
@@ -41,7 +47,7 @@ const columns = [
     <div class="sign">
       <a class="brand" href={url()}><img class="mark" src={url('mark.svg')} alt="" width="36" height="36" />expo-hot-toast</a>
       <p>Toasts for Expo and React Native. Apple's own Liquid Glass on iOS 26, frosted glass on the web, a designed surface everywhere else.</p>
-      <LinkButton client:visible href={REPO_URL} label="Star on GitHub" icon="github" variant="soft" />
+      <StarButton client:visible repo={REPO_URL} initial={stars} label="Star on GitHub" />
     </div>
     {
       columns.map((c) => (

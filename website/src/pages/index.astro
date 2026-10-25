@@ -10,12 +10,16 @@ import LinkButton from '../components/glass/LinkButton';
 import CopyButton from '../components/glass/CopyButton';
 import CommandBox from '../components/glass/CommandBox';
 import Faq from '../components/glass/Faq';
+import StarButton from '../components/glass/StarButton';
+import { buildStars } from '../lib/stars';
 import { GlassPanel } from '../components/glassyui/glass-panel';
 import { GlassBadge } from '../components/glassyui/glass-badge';
 import Icon from '../components/Icon.astro';
 import CodePanel from '../components/CodePanel.astro';
-import { url, INSTALL } from '../lib/url';
+import { url, INSTALL, REPO_URL } from '../lib/url';
 import { SETUP_PROMPT } from '../lib/ai';
+
+const stars = await buildStars();
 
 const migrate = `- import toast, { Toaster } from 'react-hot-toast';
 + import toast, { Toaster } from 'expo-hot-toast';`;
@@ -219,6 +223,18 @@ const faq = [
         </div>
       </div>
     </div>
+  </section>
+  <section class="star inset" aria-labelledby="star">
+    <GlassPanel variant="card" className="star-card">
+      <div>
+        <h2 id="star" class="display">Like it? Give it a star.</h2>
+        <p>It is free and MIT licensed. Stars are how other Expo developers find it, and the best way to say it saved you an afternoon.</p>
+      </div>
+      <div class="star-actions">
+        <StarButton client:visible repo={REPO_URL} initial={stars} label="Star on GitHub" variant="prominent" size="lg" />
+        <LinkButton client:visible href={`${REPO_URL}/issues`} label="Report an issue" variant="soft" size="lg" />
+      </div>
+    </GlassPanel>
   </section>
 </Base>
 
@@ -515,6 +531,26 @@ const faq = [
     display: inline-flex;
     color: var(--accent);
   }
+  .star :global(.star-card) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 28px 48px;
+    align-items: center;
+    padding: clamp(28px, 4vw, 48px);
+  }
+  .star h2 {
+    font-size: clamp(28px, 3vw, 40px);
+  }
+  .star p {
+    margin: 12px 0 0;
+    max-width: 52ch;
+    color: var(--muted);
+  }
+  .star-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
   .huge {
     font-size: clamp(52px, 8.6vw, 124px);
     max-width: 12ch;
@@ -534,7 +570,8 @@ const faq = [
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .migrate,
-    .start-grid {
+    .start-grid,
+    .star :global(.star-card) {
       grid-template-columns: minmax(0, 1fr);
     }
   }

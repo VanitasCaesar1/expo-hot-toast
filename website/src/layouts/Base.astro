@@ -5,6 +5,7 @@ import SiteSearch from '../components/glass/SiteSearch';
 import Footer from '../components/Footer.astro';
 import { url, REPO_URL } from '../lib/url';
 import { loadDocs } from '../lib/docs';
+import { buildStars } from '../lib/stars';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -31,6 +32,7 @@ function toasterScript(): string | undefined {
 const { title, description, live = false } = Astro.props;
 const toasterSrc = live ? toasterScript() : undefined;
 const inDocs = Astro.url.pathname.includes('/docs');
+const stars = await buildStars();
 const searchPages = loadDocs().map((p) => ({ title: p.title, group: p.group, url: url(`docs/${p.slug}`) }));
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(url('media/og.png'), Astro.site);
@@ -64,11 +66,12 @@ const ogImage = new URL(url('media/og.png'), Astro.site);
       changelog={`${REPO_URL}/blob/main/CHANGELOG.md`}
       repo={REPO_URL}
       inDocs={inDocs}
+      stars={stars}
     />
     <main class="frame">
       <slot />
     </main>
-    <Footer />
+    <Footer stars={stars} />
     <SiteSearch client:idle base={url('pagefind/')} pages={searchPages} />
     {live && <div id="root" class="live-root" data-src={toasterSrc}></div>}
     <script>

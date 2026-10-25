@@ -134,3 +134,16 @@
 [cmdk-input]:focus-visible {
   outline: none;
 }
+
+/* Star buttons: an amber star, and the count in its own chip. */
+.star-button .glyph {
+  color: #ffc56b;
+}
+.star-count {
+  margin-left: 2px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.1);
+  font: 500 12px/1.5 var(--mono);
+  font-variant-numeric: tabular-nums;
+}

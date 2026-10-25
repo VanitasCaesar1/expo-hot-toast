@@ -4,6 +4,7 @@ import { GlassHeader } from '../glassyui/glass-header';
 import { GlassButton } from '../glassyui/glass-button';
 import { GlassKbd } from '../glassyui/glass-kbd';
 import { Glyph } from './icons';
+import StarButton from './StarButton';
 
 interface Props {
   home: string;
@@ -12,10 +13,12 @@ interface Props {
   changelog: string;
   repo: string;
   inDocs: boolean;
+  /** Star count at build time. */
+  stars?: number;
 }
 
 /** The site header: Glassy UI's floating capsule, which condenses as the page scrolls. */
-export default function SiteHeader({ home, mark, docs, changelog, repo, inDocs }: Props) {
+export default function SiteHeader({ home, mark, docs, changelog, repo, inDocs, stars }: Props) {
   return (
     <GlassHeader
       condenseOnScroll
@@ -39,12 +42,7 @@ export default function SiteHeader({ home, mark, docs, changelog, repo, inDocs }
             <span className="button-label">Search</span>
             <GlassKbd>⌘K</GlassKbd>
           </GlassButton>
-          <GlassButton asChild variant="soft" size="sm" className="site-github">
-            <a href={repo} aria-label="GitHub">
-              <Glyph name="github" />
-              <span className="button-label">GitHub</span>
-            </a>
-          </GlassButton>
+          <StarButton repo={repo} initial={stars} size="sm" className="site-github" compact />
         </>
       }
     >
