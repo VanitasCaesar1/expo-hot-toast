@@ -443,6 +443,9 @@ describe('expandable and countdown', () => {
     const undo = screen.getByLabelText('Undo');
     // The ring is an SVG drawn before the label, inside the button.
     expect(undo.findAll((n) => String(n.type).includes('Svg') || String(n.type).includes('RNSVG')).length).toBeGreaterThan(0);
+    // The ring takes up its own room beside the label, rather than a zero-size
+    // box it overflows onto the text from.
+    expect(undo.findAll((n) => typeof n.type === 'string' && flat(n.props.style).width === 16 && flat(n.props.style).height === 16).length).toBeGreaterThan(0);
   });
 });
 

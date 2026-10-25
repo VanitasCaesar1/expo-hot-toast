@@ -236,8 +236,9 @@ export function CountdownRing({
   const circumference = 2 * Math.PI * r;
   const arc = useAnimatedProps(() => ({ strokeDashoffset: circumference * (1 - left.value) }));
   return (
-    <View style={styles.countdown}>
+    <View style={[styles.countdown, { width: size, height: size }]}>
       <Svg width={size} height={size} style={styles.countdownRing}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeOpacity={0.22} strokeWidth={2} fill="none" />
         <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
