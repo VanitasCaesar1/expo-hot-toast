@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from '@testing-library/react-native';
+import { render, screen, fireEvent, act, renderHook } from '@testing-library/react-native';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Toaster } from '../src/components/toaster';
 import { toast } from '../src/core/toast';
@@ -231,8 +231,8 @@ describe('colour scheme', () => {
   });
 
   it('accepts the override on the theme hook', () => {
-    const light = useToastTheme(undefined, 'light');
-    const dark = useToastTheme(undefined, 'dark');
+    const light = renderHook(() => useToastTheme(undefined, 'light')).result.current;
+    const dark = renderHook(() => useToastTheme(undefined, 'dark')).result.current;
 
     expect(light.color).toBe(defaultTheme.color);
     expect(dark.color).toBe(darkTheme.color);

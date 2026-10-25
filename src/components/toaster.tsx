@@ -19,7 +19,7 @@ import { useToastTheme, mergeTheme } from '../theme/tokens';
 import { useReduceMotion, useReduceTransparency, useScreenReaderEnabled, announce } from '../utils/a11y';
 import { triggerToastHaptic } from '../utils/haptics';
 import { ToastBar, ToastBarContext } from './toast-bar';
-import type { ToastBarContextValue } from './toast-bar';
+import type { StackPlacement, ToastBarContextValue } from './toast-bar';
 import { resolveValue } from '../core/store';
 import Animated, {
   LinearTransition,
@@ -314,6 +314,36 @@ export function Toaster({
     });
   }, [toasts]);
 
+  // Everything handed to a toast is kept stable, so ToastSlot's memo holds and
+  // one toast's update re-renders that toast alone. Per-toast themes are cached
+  // by the toast's own override object; the stack placement by its numbers.
+  const themeFor = React.useMemo(() => {
+    const cache = new WeakMap<ToastThemeOverride, ToastBarContextValue['theme']>();
+    return (override: ToastThemeOverride | undefined) => {
+      if (!override) return effectiveTheme;
+      let merged = cache.get(override);
+      if (!merged) {
+        merged = mergeTheme(effectiveTheme, override);
+        cache.set(override, merged);
+      }
+      return merged;
+    };
+  }, [effectiveTheme]);
+  const placements = React.useRef(new Map<string, StackPlacement>()).current;
+  const placementFor = (depth: number, shift: number, scale: number, hidden: boolean): StackPlacement => {
+    const key = `${depth}|${shift}|${scale}|${hidden}`;
+    let placement = placements.get(key);
+    if (!placement) {
+      placement = { depth, shift, scale, hidden };
+      placements.set(key, placement);
+    }
+    return placement;
+  };
+  const handleDismiss = React.useCallback(
+    (id: string, reason: DismissReason) => dismiss(id, toasterId, reason),
+    [toasterId],
+  );
+
   const grouped = React.useMemo(() => {
     const map = new Map<ToastPosition, Toast[]>();
     for (const candidate of POSITIONS) map.set(candidate, []);
@@ -372,12 +402,26 @@ export function Toaster({
           : undefined;
 
         return (
-          <Stack
+          <View
             key={candidate}
+            pointerEvents="box-none"
+            // Positions the stack. When the keyboard lifts it, only this view
+            // changes: the toasts inside keep their props and do not re-render.
+            style={[
+              styles.stack,
+              {
+                paddingLeft: insets.left + offset,
+                paddingRight: insets.right + offset,
+              },
+              anchoredTop
+                ? { top: insets.top + offset }
+                : { bottom: bottomInset + offset },
+            ]}
+          >
+          <Stack
             {...(containerized ? { spacing: containerSpacing } : null)}
             pointerEvents="box-none"
             style={[
-              styles.stack,
               {
                 gap: resolvedGap,
                 alignItems: isCenter(candidate)
@@ -391,14 +435,6 @@ export function Toaster({
                 flexDirection:
                   anchoredTop === !reverseOrder ? 'column' : 'column-reverse',
               },
-              {
-                paddingLeft: insets.left + offset,
-                paddingRight: insets.right + offset,
-              },
-              anchoredTop
-                ? { top: insets.top + offset }
-                : { bottom: bottomInset + offset },
-              !anchoredTop && { paddingBottom: 0 },
             ]}
           >
             {bucket.map((t, depth) => (
@@ -414,21 +450,19 @@ export function Toaster({
                 // Per-toast tokens win over the Toaster's. `useToastTheme` has
                 // already folded in the light/dark base, so this only has to
                 // layer the two override bags.
-                theme={mergeTheme(effectiveTheme, t.theme)}
+                theme={themeFor(t.theme)}
                 panThreshold={panThreshold}
-                onDismiss={(id, reason) =>
-                  dismiss(t.id, t.toasterId ?? toasterId, reason)
-                }
+                onDismiss={handleDismiss}
                 onPressIn={handlePressIn}
                 onPressOut={handlePressOut}
                 stack={
                   stacked
-                    ? {
+                    ? placementFor(
                         depth,
-                        shift: shifts?.[depth] ?? 0,
-                        scale: collapsed ? 1 - Math.min(depth, 3) * STACK_SCALE_STEP : 1,
-                        hidden: collapsed && depth > 0,
-                      }
+                        shifts?.[depth] ?? 0,
+                        collapsed ? 1 - Math.min(depth, 3) * STACK_SCALE_STEP : 1,
+                        collapsed && depth > 0,
+                      )
                     : undefined
                 }
                 onMeasure={stacked ? handleMeasure : undefined}
@@ -437,6 +471,7 @@ export function Toaster({
               </ToastSlot>
             ))}
           </Stack>
+          </View>
         );
       })}
     </View>
@@ -461,7 +496,15 @@ interface ToastSlotProps extends ToastBarContextValue {
 }
 
 /** Picks the renderer for one toast: custom element, render prop, or the bar. */
-function ToastSlot({ toast, glass, children, ...bar }: ToastSlotProps) {
+const ToastSlot = React.memo(function ToastSlot({ toast, glass: toasterGlass, children, ...bar }: ToastSlotProps) {
+  // Merged per render would be a new object whenever both levels set one, which
+  // would hand the bar a new toast every time and defeat its memo.
+  const glass = React.useMemo(() => toasterGlass, [glassKey(toasterGlass)]);
+  const resolved = React.useMemo(
+    () => (glass === toast.glass ? toast : { ...toast, glass }),
+    [toast, glass],
+  );
+  const context = React.useMemo(() => bar, Object.values(bar));
   // `toast.custom` renders the caller's element as-is, with no bar, icon or
   // material — the react-hot-toast contract. It previously went through the
   // default bar like any other type, so a custom element was drawn inside a
@@ -470,21 +513,25 @@ function ToastSlot({ toast, glass, children, ...bar }: ToastSlotProps) {
     return <CustomToast toast={toast} motion={bar.theme.motion} />;
   }
 
-  // The Toaster-level `glass` setting is folded into the toast here. The bar
-  // reads `toast.glass`, so without this `<Toaster glass={false} />` changed
-  // nothing at all: every toast still rendered on glass.
-  const resolved = glass === toast.glass ? toast : { ...toast, glass };
-
+  // The Toaster-level `glass` setting is folded into the toast here (`resolved`
+  // above). The bar reads `toast.glass`, so without this `<Toaster glass={false} />`
+  // changed nothing at all: every toast still rendered on glass.
+  //
   // `bar` is the one source of truth for what the Toaster resolves per toast.
   // The built-in bar takes it as props; a `<ToastBar>` rendered from the render
   // prop reads the same object from context, so it matches without being told.
   return children ? (
-    <ToastBarContext.Provider value={bar}>
+    <ToastBarContext.Provider value={context}>
       {children({ toast: resolved, theme: bar.theme })}
     </ToastBarContext.Provider>
   ) : (
     <ToastBar toast={resolved} {...bar} />
   );
+});
+
+/** A value-based key for a glass setting, so an equal object counts as unchanged. */
+function glassKey(glass: boolean | GlassConfig): string {
+  return typeof glass === 'object' ? JSON.stringify(glass) : String(glass);
 }
 
 /**

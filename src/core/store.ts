@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useRef, useSyncExternalStore } from 'react';
 import type {
   DefaultToastOptions,
   DismissReason,
@@ -289,7 +289,66 @@ export function useToasterStore(
   // The per-type buckets (`success`, `error`, …) are passed through whole:
   // `resolveToast` reads only the bucket matching the toast's type, and no
   // top-level option shares a name with a toast type.
-  return { ...state, toasts: state.toasts.map((t) => resolveToast(t, toastOptions)) };
+  //
+  // Resolved toasts are cached per source toast, so a toast the store did not
+  // touch keeps its identity across renders. Re-resolving every toast on every
+  // render handed every ToastBar a new object, which defeated its memo: one
+  // toast's update re-rendered all of them.
+  const options = useStableOptions(toastOptions);
+  const cache = useRef({ options, resolved: new WeakMap<Toast, Toast>(), state, toasts: [] as Toast[] });
+  const memo = cache.current;
+  if (memo.options !== options) {
+    memo.options = options;
+    memo.resolved = new WeakMap();
+    memo.state = undefined as unknown as ToasterState;
+  }
+  if (memo.state !== state) {
+    memo.state = state;
+    memo.toasts = state.toasts.map((t) => {
+      let out = memo.resolved.get(t);
+      if (!out) {
+        out = resolveToast(t, options);
+        memo.resolved.set(t, out);
+      }
+      return out;
+    });
+  }
+  return { ...state, toasts: memo.toasts };
+}
+
+/**
+ * `toastOptions` is usually written inline, a new object on every render. This
+ * keeps the previous object while its contents (two levels deep: the options
+ * and each per-type bucket) are unchanged, so the cache above survives.
+ */
+function useStableOptions(options: DefaultToastOptions): DefaultToastOptions {
+  const last = useRef(options);
+  if (last.current !== options && !sameOptions(last.current, options)) last.current = options;
+  return last.current;
+}
+
+function sameOptions(a: DefaultToastOptions, b: DefaultToastOptions): boolean {
+  const ka = Object.keys(a);
+  const kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  for (const key of ka) {
+    const va = (a as Record<string, unknown>)[key];
+    const vb = (b as Record<string, unknown>)[key];
+    if (va === vb) continue;
+    if (isPlainObject(va) && isPlainObject(vb) && shallowEqual(va, vb)) continue;
+    return false;
+  }
+  return true;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && Object.getPrototypeOf(value) === Object.prototype;
+}
+
+function shallowEqual(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  const ka = Object.keys(a);
+  if (ka.length !== Object.keys(b).length) return false;
+  return ka.every((key) => a[key] === b[key]);
 }
 
 /**

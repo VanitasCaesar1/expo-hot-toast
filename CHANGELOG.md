@@ -34,6 +34,13 @@ Initial release. Not yet published to npm; `main` previously pointed at
 - **Swipe toward the edge to dismiss**, as well as sideways.
 - **`haptics`** on the Toaster and per toast, to turn the success and error
   haptics off.
+- **A toast re-renders only when it changes.** Untouched toasts keep their
+  identity through the store, the queue and the Toaster, and the Toaster's
+  callbacks and themes are stable, so one toast's update, a new toast, a press
+  that pauses the queue, the keyboard, or an equal inline `toastOptions` or
+  `theme` re-renders no other toast. Tested in `render-isolation.test.tsx`.
+- **Requires Reanimated 4** and `react-native-worklets`, which the code already
+  needed; the peer ranges now say so.
 - **Surfaces fade with their content** everywhere but Liquid Glass, which
   cannot fade and dematerializes instead. Before, the text left first and an
   empty frosted or opaque pill shrank away for the rest of the exit.

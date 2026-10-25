@@ -105,14 +105,29 @@ export function useToaster({
   // `createToast`'s 'top-center' placeholder. Without this a bottom-anchored
   // Toaster counted its toasts against the top-center bucket, so the visible cap
   // and the stagger depth were computed for a stack that is not on screen.
+  // Copies are cached by source toast, for the same reason as in the store:
+  // an untouched toast must keep its identity.
+  const placed = useRef({ position: defaultPosition, map: new WeakMap<Toast, Toast>() }).current;
+  if (placed.position !== defaultPosition) {
+    placed.position = defaultPosition;
+    placed.map = new WeakMap();
+  }
   const toasts = useMemo(
     () =>
       state.toasts.map((t) => {
         const resolved = t.position ?? defaultPosition;
-        return t.resolvedPosition === resolved ? t : { ...t, resolvedPosition: resolved };
+        if (t.resolvedPosition === resolved) return t;
+        let out = placed.map.get(t);
+        if (!out) {
+          out = { ...t, resolvedPosition: resolved };
+          placed.map.set(t, out);
+        }
+        return out;
       }),
-    [state.toasts, defaultPosition],
+    [state.toasts, defaultPosition, placed],
   );
+  // The same for the depth stamped on each visible toast below.
+  const deep = useRef(new WeakMap<Toast, Map<number, Toast>>()).current;
 
   const { pausedAt } = state;
 
@@ -132,14 +147,19 @@ export function useToaster({
     dispatch({ type: ActionType.START_PAUSE, time: Date.now() }, toasterId);
   }, [toasterId]);
 
+  // Read through a ref, so `endPause` keeps its identity while a press pauses
+  // the queue. Depending on `pausedAt` made it a new function on every pause,
+  // which re-rendered every toast the moment one was touched.
+  const pausedAtRef = useRef(pausedAt);
+  pausedAtRef.current = pausedAt;
   const endPause = useCallback(() => {
     // Explicit `!== undefined` rather than a truthiness check, so a pause
     // recorded at timestamp 0 still dispatches END_PAUSE and the paused span
     // is banked into pauseDuration.
-    if (pausedAt !== undefined) {
+    if (pausedAtRef.current !== undefined) {
       dispatch({ type: ActionType.END_PAUSE, time: Date.now() }, toasterId);
     }
-  }, [pausedAt, toasterId]);
+  }, [toasterId]);
 
   // Explicit `paused` prop is authoritative and overrides press-and-hold state.
   useEffect(() => {
@@ -244,7 +264,17 @@ export function useToaster({
 
       filled.set(toast.resolvedPosition, depth + 1);
       if (!visibleSince.has(toast.id)) visibleSince.set(toast.id, Date.now());
-      vis.push({ ...toast, depth });
+      let byDepth = deep.get(toast);
+      if (!byDepth) {
+        byDepth = new Map();
+        deep.set(toast, byDepth);
+      }
+      let stamped = toast.depth === depth ? toast : byDepth.get(depth);
+      if (!stamped) {
+        stamped = { ...toast, depth };
+        byDepth.set(depth, stamped);
+      }
+      vis.push(stamped);
     }
 
     // Prune ids that have left the store, or this grows forever.
@@ -256,7 +286,7 @@ export function useToaster({
     }
 
     return { visible: vis, pending: pen };
-  }, [toasts, state.settings.visibleToasts, visibleSince]);
+  }, [toasts, state.settings.visibleToasts, visibleSince, deep]);
 
   /**
    * Background recovery. On iOS and Android a suspended app freezes timers but

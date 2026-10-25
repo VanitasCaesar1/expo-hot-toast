@@ -75,6 +75,7 @@ Render `<Toaster />` once, after the rest of the app, so toasts draw on top.
 | Expo SDK | 55 or later (tested on 57) |
 | React Native | 0.80 or later (tested on 0.86) |
 | React | 19 |
+| Reanimated | 4 or later, with `react-native-worklets` |
 | Liquid Glass | An app built with the iOS 26 SDK (Xcode 26 or later), running on iOS 26 |
 
 Everything else falls back to the opaque surface, so the same build runs on

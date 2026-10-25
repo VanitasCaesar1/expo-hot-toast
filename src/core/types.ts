@@ -28,7 +28,8 @@ export type ValueOrFunction<T, P> = T | ValueFunction<T, P>;
  */
 export interface ToastOptions {
   id?: string;
-  icon?: Renderable;
+  /** An element, or a function of the toast that returns one. `null` hides the icon. */
+  icon?: ValueOrFunction<Renderable, Toast>;
   /**
    * A second, quieter line under the message, for detail the message does not
    * need: 'Upload failed' / 'Check your connection and try again'.
@@ -165,7 +166,8 @@ export interface Toast {
   id: string;
   toasterId?: string;
   message: ValueOrFunction<Renderable, Toast>;
-  icon?: Renderable;
+  /** An element, or a function of the toast that returns one. `null` hides the icon. */
+  icon?: ValueOrFunction<Renderable, Toast>;
   description?: Renderable;
 
   duration?: number;
