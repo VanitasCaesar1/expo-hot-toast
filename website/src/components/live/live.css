@@ -386,3 +386,9 @@
   font-weight: 700;
   letter-spacing: 0.01em;
 }
+
+/* Over the ribbon, translucent glass picked up its orange and an unselected
+   position could look selected. Unselected ones sit on the page colour. */
+.position-grid .lg-button[aria-checked='false'] {
+  background: color-mix(in srgb, var(--bg) 86%, transparent) !important;
+}
