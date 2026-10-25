@@ -76,6 +76,9 @@ await toast.promise(upload(photo), {
   thread, named steps, expandable details, Undo with a countdown, cancel and
   confirm, notifications with an avatar, banners, a HUD and a Dynamic Island
   capsule. See [Rich toasts](./docs/guide/rich-toasts.md).
+- **Plain React web apps too**: `expo-hot-toast/web` is the same API in
+  Next.js or Vite, drawn with DOM and CSS in the same frosted glass, with no
+  React Native. See [Web apps](./docs/guide/web.md).
 - **Native by default, yours if you want**: a Material 3 snackbar on Android and
   the glass pill on iOS, or one everywhere; your own icons; a style or
   NativeWind class for every part; or no built-in look at all. Themes from React

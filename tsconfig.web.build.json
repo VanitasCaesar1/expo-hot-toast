@@ -1,0 +1,17 @@
+{
+  // Declarations for the DOM build (lib/web/types). The core's React Native,
+  // Reanimated and expo-glass-effect type imports resolve to the web shims,
+  // and scripts/web-types.mjs points the emitted imports at them, so web apps
+  // get exact types with no React Native installed.
+  "extends": "./tsconfig.web.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "src",
+    "outDir": "lib/web/types",
+    "types": []
+  },
+  "include": ["src/web/**/*"],
+  "exclude": ["__tests__"]
+}

@@ -16,5 +16,8 @@
     "noEmit": true,
     "types": ["vitest/globals"]
   },
-  "include": ["src", "__tests__"]
+  "include": ["src", "__tests__"],
+  // The DOM build and its tests typecheck against the web shims instead
+  // (`npm run typecheck:web`).
+  "exclude": ["src/web", "__tests__/web"]
 }

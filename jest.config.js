@@ -21,6 +21,8 @@ module.exports = {
   resolver: 'react-native-worklets/jest/resolver.js',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testMatch: ['<rootDir>/__tests__/**/*.test.tsx'],
+  // The DOM build has its own suite (vitest.web.config.ts, jsdom).
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/__tests__/web/'],
   transformIgnorePatterns: [
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|react-native-reanimated|react-native-gesture-handler|react-native-safe-area-context)',
   ],

@@ -14,5 +14,7 @@
     // published build require a devDependency it does not otherwise need.
     "types": []
   },
-  "include": ["src"]
+  "include": ["src"],
+  // The DOM build has its own bundle and declarations (`npm run build:web`).
+  "exclude": ["src/web"]
 }

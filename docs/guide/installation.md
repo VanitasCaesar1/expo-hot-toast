@@ -18,6 +18,10 @@ npm install github:VanitasCaesar1/expo-hot-toast
 
 ## Install the peer dependencies
 
+> [!TIP]
+> Building a React web app without React Native (Next.js, Vite)? Skip this
+> step and follow [Web apps](./web.md) instead.
+
 ```sh
 npx expo install expo-glass-effect expo-haptics react-native-reanimated \
   react-native-worklets react-native-gesture-handler \

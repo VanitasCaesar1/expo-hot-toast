@@ -67,6 +67,11 @@ Initial release. Not yet published to npm; `main` previously pointed at
 - **Theme adapters**: `themeFromColors()` derives a theme from a few semantic
   colours, and `fromNavigationTheme()` from a React Navigation theme.
 - **Bold Text** (iOS) steps every weight in the toast up one notch.
+- **`expo-hot-toast/web`**: the same toast API, store, queue, presets, rich
+  toasts and theme tokens for React DOM apps (Next.js, Vite), drawn with DOM
+  and CSS in the same frosted glass. No React Native, React Native Web or
+  Reanimated; about 16 KB gzipped. The React Native peers are now optional, so
+  a web app installs none of them.
 - **`<Toaster blur>`**: pass a blur view (such as expo-blur's `BlurView`, with
   its props) and Android and iOS before 26 draw toasts on a blur instead of the
   opaque surface. No new dependency.

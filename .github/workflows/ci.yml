@@ -36,6 +36,23 @@ jobs:
       - run: npm ci
       - run: npm run test:components
 
+  web:
+    name: Web build (React DOM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck:web
+      - run: npm run test:web
+      - run: npm run build:web
+      # A React app with no React Native installed must typecheck against the
+      # built `expo-hot-toast/web`, under bundler and node16 resolution.
+      - run: node scripts/verify-web-consumer.mjs
+
   example:
     name: Example typecheck
     runs-on: ubuntu-latest

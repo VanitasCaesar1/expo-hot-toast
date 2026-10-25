@@ -12,7 +12,8 @@ order: 2
 | iOS 26 | Liquid Glass | The example app runs on an iOS 26.5 simulator in CI, driven by Maestro |
 | Android | Material 3 snackbar, opaque | The example app runs on an Android 15 (API 35) emulator in CI, driven by Maestro |
 | iOS before 26 | Opaque | Not yet run |
-| Web | Frosted glass | The example app is built for the web in CI, and every toast on the [home page](https://vanitascaesar1.github.io/expo-hot-toast/) runs on that build |
+| Web (React DOM, `expo-hot-toast/web`) | Frosted glass | Driven in Chromium through a Vite app, and tested in jsdom in CI; not yet tried inside a Next.js app |
+| Web (React Native Web, as in Expo web) | Frosted glass | The example app is built for the web in CI, and every toast on the [home page](https://vanitascaesar1.github.io/expo-hot-toast/) runs on that build |
 
 "Driven by Maestro" means a script taps every row of the example app in light
 mode and checks what appears, then repeats a shorter pass in dark mode. The recordings on the
