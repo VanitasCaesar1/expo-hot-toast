@@ -671,6 +671,12 @@ export const ToastBar = React.memo(function ToastBar({
               fontFamily: theme.fontFamily,
             },
         hud && styles.centered,
+        // A HUD's box is sized to its text's measured width, and Android's
+        // pixel rounding can leave the text a fraction narrower than it needs,
+        // so its last word wrapped onto a line the height had no room for
+        // ("Added to"). In a HUD the text keeps its width, and wraps only at
+        // the HUD's own limit.
+        hud && { flexShrink: 0, maxWidth: theme.maxWidth - theme.paddingHorizontal * 2 },
         toast.textStyle,
         slotStyle('title') as StyleProp<TextStyle>,
       ]}

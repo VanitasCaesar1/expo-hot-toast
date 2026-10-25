@@ -194,9 +194,10 @@ appId: dev.expohottoast.example
     id: "row-deduplicated"
     waitToSettleTimeoutMs: 300
 - takeScreenshot: 07-dedupe
-- tapOn: "Saving draft…"
+# Matched as a substring: the toast reads its repeat count too ("3 times").
+- tapOn: ".*Saving draft….*"
 - extendedWaitUntil:
-    notVisible: "Saving draft…"
+    notVisible: ".*Saving draft….*"
     timeout: 5000
 
 - scrollUntilVisible:
