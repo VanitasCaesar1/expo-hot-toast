@@ -369,9 +369,12 @@ const faq = [
     color: var(--muted);
     max-width: 58ch;
   }
+  /* Explicit tracks: the phones' column is 380px at most. As an auto track
+     holding a percentage width it grew to the whole row in Chromium and
+     squeezed the heading to one word a line. */
   .head-split {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
     gap: 32px 56px;
     align-items: center;
   }
