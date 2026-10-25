@@ -1,13 +1,16 @@
 ---
 /**
- * Ship your first toast: one card, two ways in. By hand is three numbered
- * steps, the install command in your package manager; with an agent is one
- * prompt, previewed so nobody pastes what they have not read (after Clerk's
- * quickstart). Tabs are radio inputs, so the card needs no JavaScript.
+ * Ship your first toast: two ways in, picked beside the steps. By hand is four
+ * steps, each a code block in the docs' style; the install command in your
+ * package manager, and the last one runs, firing the real library on this
+ * page. With an agent is one prompt, previewed so nobody pastes what they have
+ * not read (after Clerk's quickstart). The switches are radio inputs, read
+ * with :has(), so the section needs no JavaScript beyond Run.
  */
-import CodePanel from '../CodePanel.astro';
+import { Code } from 'astro:components';
+import CodeBlock from '../CodeBlock.astro';
 import Icon from '../Icon.astro';
-import { GlassPanel } from '../glassyui/glass-panel';
+import { ICONS, COPY, CHECK } from '../../lib/rehype-docs.mjs';
 import { url, REPO_URL } from '../../lib/url';
 import { SETUP_PROMPT } from '../../lib/ai';
 
@@ -19,389 +22,432 @@ const managers = [
 ];
 const peers = `npx expo install expo-glass-effect expo-haptics \\
   react-native-reanimated react-native-worklets \\
-  react-native-gesture-handler react-native-safe-area-context react-native-svg`;
-const app = `import { Toaster, toast } from 'expo-hot-toast';
+  react-native-gesture-handler react-native-safe-area-context \\
+  react-native-svg`;
+const layout = `import { Stack } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Toaster } from 'expo-hot-toast';
 
-export default function App() {
+export default function RootLayout() {
   return (
-    <>
-      <Home />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack />
       <Toaster />
-    </>
+    </GestureHandlerRootView>
   );
-}
-
-toast.success('Changes saved');`;
+}`;
+const call = `toast.success('Changes saved');`;
+const themes = { light: 'github-light', dark: 'github-dark-dimmed' } as const;
 ---
 
-<div class="start-shell inset">
-  <header class="start-head">
+<div class="start inset">
+  <div class="intro" data-reveal>
     <h2 id="start" class="display">Ship your first toast.</h2>
-    <p>Three steps by hand, or one prompt for your agent. Either way, a toast in a few minutes.</p>
-  </header>
-
-  <GlassPanel variant="card" className="start-card">
-    <input type="radio" name="start-way" id="way-hand" class="visually-hidden" checked />
-    <input type="radio" name="start-way" id="way-agent" class="visually-hidden" />
-    <div class="ways" role="presentation">
-      <label for="way-hand"><Icon name="terminal" /> By hand</label>
-      <label for="way-agent"><Icon name="robot" /> With an AI agent</label>
+    <p>Four steps by hand, or one prompt for your coding agent. Either way it takes a few minutes.</p>
+    <div class="ways" role="radiogroup" aria-label="How to set it up">
+      <label><input type="radio" name="start-way" value="hand" class="visually-hidden" checked /><Icon name="terminal" /> By hand</label>
+      <label><input type="radio" name="start-way" value="agent" class="visually-hidden" /><Icon name="robot" /> With an AI agent</label>
     </div>
+    <ul class="links">
+      <li><a class="text-link" href={url('docs/installation')}>Installation guide <Icon name="arrow-right" /></a></li>
+      <li><a class="text-link" href={url('docs/quick-start')}>Quick start <Icon name="arrow-right" /></a></li>
+    </ul>
+    <p class="web-note">
+      <Icon name="globe" />
+      <span>A React web app without React Native? Import <code>expo-hot-toast/web</code>, which needs none of the peers.{' '}<a href={url('docs/web')}>Web apps</a></span>
+    </p>
+  </div>
 
-    <div class="way way-hand">
-      <ol class="install-steps">
-        <li>
-          <h3>Install the package</h3>
-          <p>Not on npm yet, so it installs from GitHub; it builds after cloning.</p>
-          <div class="managers">
-            {managers.map((m, i) => <input type="radio" name="manager" id={`pm-${m.id}`} class="visually-hidden" checked={i === 0} />)}
-            <div class="manager-tabs">
-              {managers.map((m) => <label for={`pm-${m.id}`}>{m.id}</label>)}
-            </div>
+  <div class="way way-hand" data-reveal>
+    <ol class="steps">
+      <li>
+        <h3>Install the package</h3>
+        <p>It is not on npm yet, so it installs from GitHub and builds after cloning.</p>
+        <figure class="code-block install" data-language="sh">
+          <figcaption class="code-head">
+            <span class="code-title pm" role="radiogroup" aria-label="Package manager">
+              <span class="code-icon" set:html={ICONS.sh} />
+              {
+                managers.map((m, i) => (
+                  <label>
+                    <input type="radio" name="manager" value={m.id} class="visually-hidden" checked={i === 0} />
+                    {m.id}
+                  </label>
+                ))
+              }
+            </span>
             {
               managers.map((m) => (
-                <div class:list={['command', `cmd-${m.id}`]}>
-                  <code>
-                    <span class="prompt">$</span> {m.command}
-                  </code>
-                  <button type="button" class="copy-cmd" data-copy={m.command} aria-label={`Copy the ${m.id} command`}>
-                    <span class="copy-idle"><Icon name="copy" /></span>
-                    <span class="copy-done"><Icon name="check" /></span>
-                  </button>
-                </div>
+                <button type="button" class:list={['code-copy', `for-${m.id}`]} data-copy={m.command} aria-label={`Copy the ${m.id} command`}>
+                  <span class="copy-idle"><Fragment set:html={COPY} />Copy</span>
+                  <span class="copy-done"><Fragment set:html={CHECK} />Copied</span>
+                </button>
               ))
             }
-          </div>
-        </li>
-        <li>
-          <h3>Add its peers</h3>
-          <p>With <code>npx expo install</code>, so the versions match your Expo SDK.</p>
-          <CodePanel code={peers} lang="sh" file="Terminal" />
-        </li>
-        <li>
-          <h3>Mount the Toaster, then toast</h3>
-          <p>Once, after the rest of the app. Then call <code>toast</code> from anywhere.</p>
-          <CodePanel code={app} lang="tsx" file="App.tsx" />
-        </li>
-      </ol>
-      <div class="way-foot">
-        <a class="text-link" href={url('docs/installation')}>Full installation guide <Icon name="arrow-right" /></a>
-        <a class="text-link" href={url('docs/quick-start')}>Quick start <Icon name="arrow-right" /></a>
-      </div>
-    </div>
+          </figcaption>
+          {
+            managers.map((m) => (
+              <div class:list={['cmd', `for-${m.id}`]}>
+                <Code code={m.command} lang="sh" themes={themes} defaultColor={false} />
+              </div>
+            ))
+          }
+        </figure>
+      </li>
+      <li>
+        <h3>Add its peers</h3>
+        <p>With <code>npx expo install</code>, so each version matches your Expo SDK.</p>
+        <CodeBlock code={peers} lang="sh" copy={peers.replace(/ \\\n\s+/g, ' ')} />
+      </li>
+      <li>
+        <h3>Mount the Toaster</h3>
+        <p>Once, after the rest of the app, inside a <code>GestureHandlerRootView</code>. Expo Router already gives you the safe-area provider it reads.</p>
+        <CodeBlock code={layout} lang="tsx" file="app/_layout.tsx" />
+      </li>
+      <li>
+        <h3>Toast</h3>
+        <p>From any screen. Run it to see this one.</p>
+        <CodeBlock code={`import { toast } from 'expo-hot-toast';\n\n${call}`} lang="tsx" file="Any screen">
+          <span class="code-title" slot="head">
+            <span class="code-icon" set:html={ICONS.tsx} />
+            <span class="code-file">Any screen</span>
+            <button type="button" class="run" data-run aria-label="Run it: show this toast on the page"><Icon name="play-circle" /> Run</button>
+          </span>
+        </CodeBlock>
+      </li>
+    </ol>
+  </div>
 
-    <div class="way way-agent">
-      <p class="agent-intro">
-        Paste this into Claude Code, Cursor or Codex. It installs the package and its peers, wires the app root and swaps
-        your existing toasts, reading the full docs as plain text.
-      </p>
-      <div class="prompt-box">
-        <div class="prompt-bar">
-          <span><Icon name="sparkle" /> Add expo-hot-toast to your app</span>
-          <button type="button" class="copy-prompt" data-copy={SETUP_PROMPT}>
-            <span class="copy-idle">Copy prompt <Icon name="copy" /></span>
-            <span class="copy-done">Copied <Icon name="check" /></span>
-          </button>
-        </div>
-        <div class="prompt-body">
-          <input type="checkbox" id="prompt-open" class="visually-hidden" />
-          <pre>{SETUP_PROMPT}</pre>
-          <label for="prompt-open" class="prompt-toggle"><span class="expand">Expand prompt</span><span class="collapse">Collapse prompt</span></label>
-        </div>
+  <div class="way way-agent" data-reveal>
+    <p class="agent-intro">Paste it into Claude Code, Cursor or Codex. It reads the docs as plain text, installs the package and its peers, wires the app root and swaps your existing toasts, then shows you the diff.</p>
+    <figure class="code-block prompt">
+      <figcaption class="code-head">
+        <span class="code-title">
+          <span class="code-icon"><Icon name="sparkle" /></span>
+          <span class="code-file">Add expo-hot-toast to this app</span>
+        </span>
+        <button type="button" class="copy-prompt" data-copy={SETUP_PROMPT}>
+          <span class="copy-idle"><Icon name="copy" /> Copy prompt</span>
+          <span class="copy-done"><Icon name="check" /> Copied</span>
+        </button>
+      </figcaption>
+      <div class="prompt-body">
+        <input type="checkbox" id="prompt-open" class="visually-hidden" />
+        <pre>{SETUP_PROMPT}</pre>
+        <label for="prompt-open" class="prompt-toggle"><span class="expand">Show the whole prompt</span><span class="collapse">Show less</span></label>
       </div>
-      <p class="llms">
-        For tools that read docs: <a href={url('llms.txt')}>llms.txt</a> · <a href={url('llms-full.txt')}>llms-full.txt</a> ·
-        <a href={`${REPO_URL}`}>GitHub</a>
-      </p>
-    </div>
-  </GlassPanel>
+    </figure>
+    <p class="llms">
+      Docs as plain text, for any tool: <a href={url('llms.txt')}>llms.txt</a> and <a href={url('llms-full.txt')}>llms-full.txt</a>.{' '}Source on <a href={REPO_URL}>GitHub</a>.
+    </p>
+  </div>
 </div>
 
+<script>
+  import { withToast } from '../../lib/live';
+
+  // Run: the step's own call, on the real library.
+  document.querySelectorAll<HTMLButtonElement>('[data-run]').forEach((button) =>
+    button.addEventListener('click', () => withToast((toast) => toast.success('Changes saved'))),
+  );
+</script>
+
 <style>
-  .start-shell {
+  /* The intro, sticky beside whichever way is picked. */
+  .start {
     display: grid;
-    gap: 36px;
-    padding-top: 112px;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    gap: 32px clamp(32px, 4vw, 64px);
+    align-items: start;
+    padding-top: 120px;
   }
-  .start-head {
+  .intro {
+    position: sticky;
+    top: 104px;
     display: grid;
-    gap: 14px;
-    justify-items: center;
-    text-align: center;
+    justify-items: start;
   }
-  .start-head h2 {
+  .intro h2 {
     margin: 0;
-    font-size: clamp(44px, 6.4vw, 88px);
-    line-height: 0.98;
+    font-size: clamp(36px, 4.4vw, 60px);
+    max-width: 11ch;
   }
-  .start-head p {
-    margin: 0;
+  .intro > p:not(.web-note) {
+    margin: 16px 0 0;
     color: var(--muted);
-    font-size: clamp(16px, 1.4vw, 19px);
+    max-width: 40ch;
   }
 
-  .start-shell :global(.start-card) {
-    width: 100%;
-    max-width: 920px;
-    margin-inline: auto;
-    padding: 8px;
-  }
   /* The two ways, as a segmented pill. */
   .ways {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
+    display: inline-grid;
+    grid-template-columns: auto auto;
+    gap: 2px;
+    margin-top: 28px;
     padding: 4px;
-    border-radius: 16px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
     background: var(--hover);
   }
   .ways label {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: 8px;
-    height: 42px;
-    border-radius: 12px;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 999px;
     color: var(--muted);
+    font-size: 14.5px;
     font-weight: 500;
+    white-space: nowrap;
     cursor: pointer;
     transition:
       background 160ms,
-      color 160ms;
+      color 160ms,
+      box-shadow 160ms;
   }
   .ways label:hover {
     color: var(--text);
   }
-  #way-hand:checked ~ .ways label[for='way-hand'],
-  #way-agent:checked ~ .ways label[for='way-agent'] {
+  .ways label:has(:checked) {
     background: var(--surface);
     color: var(--text);
     box-shadow:
-      0 1px 2px var(--hairline),
-      0 4px 14px -6px var(--shadow);
+      0 0 0 1px var(--line),
+      0 4px 12px -6px var(--shadow);
   }
-  #way-hand:focus-visible ~ .ways label[for='way-hand'],
-  #way-agent:focus-visible ~ .ways label[for='way-agent'] {
+  .ways label:has(:focus-visible),
+  .pm label:has(:focus-visible) {
     outline: 2px solid var(--accent);
-  }
-  .way {
-    display: none;
-    padding: 28px clamp(16px, 3vw, 32px) 24px;
-  }
-  #way-hand:checked ~ .way-hand,
-  #way-agent:checked ~ .way-agent {
-    display: block;
+    outline-offset: 2px;
   }
 
-  /* Numbered steps on a rail. */
-  .install-steps {
-    counter-reset: install;
-    list-style: none;
-    margin: 0;
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin: 24px 0 0;
     padding: 0;
-    display: grid;
-    gap: 28px;
+    list-style: none;
   }
-  .install-steps > li {
-    position: relative;
-    padding-left: 46px;
+  .web-note {
+    display: flex;
+    gap: 10px;
+    margin: 28px 0 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 44ch;
+  }
+  .web-note :global(.icon) {
+    margin-top: 3px;
+    color: var(--faint);
+  }
+  .web-note code {
+    white-space: nowrap;
+    color: var(--text);
+    font-size: 0.92em;
+  }
+  .web-note a {
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+    text-underline-offset: 3px;
+  }
+  .web-note a:hover {
+    text-decoration-color: currentColor;
+  }
+
+  /* One way at a time. */
+  .way {
+    grid-column: 2;
+    grid-row: 1;
     min-width: 0;
   }
-  .install-steps > li::before {
-    counter-increment: install;
-    content: counter(install);
+  .start:has([value='hand']:checked) .way-agent,
+  .start:has([value='agent']:checked) .way-hand {
+    display: none;
+  }
+
+  /* Numbered steps on a rail, as the docs' step pages draw them. */
+  .steps {
+    counter-reset: step;
+    display: grid;
+    gap: 36px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .steps > li {
+    position: relative;
+    min-width: 0;
+    padding-left: 44px;
+  }
+  .steps h3::before {
+    counter-increment: step;
+    content: counter(step);
     position: absolute;
     left: 0;
-    top: -2px;
+    top: 0;
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
+    width: 27px;
+    height: 27px;
     border-radius: 50%;
-    background: var(--accent);
-    color: var(--accent-ink);
-    font: 600 14px/1 var(--font);
+    background: var(--text);
+    color: var(--bg);
+    font: 600 13.5px/1 var(--font);
   }
-  .install-steps > li:not(:last-child)::after {
+  .steps > li:not(:last-child)::after {
     content: '';
     position: absolute;
-    left: 15px;
-    top: 36px;
-    bottom: -22px;
+    left: 13px;
+    top: 37px;
+    bottom: -26px;
     width: 1px;
     background: var(--line);
   }
-  .install-steps h3 {
+  .steps h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 600;
+    line-height: 27px;
   }
-  .install-steps p {
-    margin: 6px 0 14px;
+  .steps p {
+    margin: 4px 0 14px;
     color: var(--muted);
+    font-size: 15px;
   }
-  .install-steps p code {
-    padding: 1px 6px;
-    border-radius: 6px;
-    background: var(--hover);
-    font-size: 0.88em;
+  .steps p code,
+  .agent-intro code {
+    color: var(--text);
+    font-size: 0.9em;
   }
 
-  /* Package managers: tabs over one command. */
-  .manager-tabs {
-    display: flex;
+  /* Package managers: tabs in the block's header, one command under them. */
+  .pm {
     gap: 2px;
-    margin-bottom: 8px;
   }
-  .manager-tabs label {
-    padding: 4px 12px;
-    border-radius: 8px;
+  .pm .code-icon {
+    margin-right: 6px;
+  }
+  .pm label {
+    padding: 3px 9px;
+    border-radius: 7px;
     color: var(--muted);
     font: 500 13px var(--mono);
     cursor: pointer;
+    transition:
+      background 140ms,
+      color 140ms;
   }
-  .manager-tabs label:hover {
+  .pm label:hover {
     color: var(--text);
   }
-  .command {
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 6px 6px 6px 16px;
-    border: 1px solid var(--hairline);
-    border-radius: 14px;
-    background: var(--code-panel);
-  }
-  .command code {
-    overflow-x: auto;
-    white-space: nowrap;
-    font-size: 14px;
-  }
-  .command .prompt {
-    color: var(--accent-text);
-  }
-  #pm-npm:checked ~ .manager-tabs label[for='pm-npm'],
-  #pm-pnpm:checked ~ .manager-tabs label[for='pm-pnpm'],
-  #pm-yarn:checked ~ .manager-tabs label[for='pm-yarn'],
-  #pm-bun:checked ~ .manager-tabs label[for='pm-bun'] {
-    background: var(--hover);
+  .pm label:has(:checked) {
+    background: var(--surface);
     color: var(--text);
+    box-shadow: inset 0 0 0 1px var(--line);
   }
-  #pm-npm:checked ~ .cmd-npm,
-  #pm-pnpm:checked ~ .cmd-pnpm,
-  #pm-yarn:checked ~ .cmd-yarn,
-  #pm-bun:checked ~ .cmd-bun {
-    display: flex;
-  }
-  .copy-cmd {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 34px;
-    height: 34px;
-    border: 0;
-    border-radius: 10px;
-    background: transparent;
-    color: var(--faint);
-    cursor: pointer;
-  }
-  .copy-cmd:hover {
-    color: var(--text);
-    background: var(--hover);
-  }
-  .copy-cmd .copy-done,
-  .copy-cmd[data-copied] .copy-idle,
-  .copy-prompt .copy-done,
-  .copy-prompt[data-copied] .copy-idle {
+  .install .for-pnpm,
+  .install .for-yarn,
+  .install .for-bun,
+  .install:has([value='pnpm']:checked) .for-npm,
+  .install:has([value='yarn']:checked) .for-npm,
+  .install:has([value='bun']:checked) .for-npm {
     display: none;
   }
-  .copy-cmd[data-copied] .copy-done {
-    display: inline-flex;
-    color: var(--accent-text);
+  .install:has([value='pnpm']:checked) div.for-pnpm,
+  .install:has([value='yarn']:checked) div.for-yarn,
+  .install:has([value='bun']:checked) div.for-bun {
+    display: block;
   }
-  .copy-prompt[data-copied] .copy-done {
+  .install:has([value='pnpm']:checked) button.for-pnpm,
+  .install:has([value='yarn']:checked) button.for-yarn,
+  .install:has([value='bun']:checked) button.for-bun {
     display: inline-flex;
   }
 
-  .way-foot {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px 28px;
-    margin-top: 28px;
-    padding-top: 20px;
-    border-top: 1px solid var(--hairline);
-  }
-  .text-link {
+  /* Run: fires the step's toast on this page. */
+  .run {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: var(--accent-text);
-    font-weight: 500;
-    text-decoration: none;
+    height: 28px;
+    margin-left: 10px;
+    padding: 0 11px 0 9px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: 600 12.5px var(--font);
+    cursor: pointer;
+    transition:
+      transform 120ms,
+      filter 160ms;
   }
-  .text-link:hover {
-    text-decoration: underline;
-    text-underline-offset: 4px;
+  .run:hover {
+    filter: brightness(1.06);
+  }
+  .run:active {
+    transform: scale(0.97);
   }
 
-  /* The agent's prompt, after Clerk's quickstart. */
+  /* The agent's prompt, in the same block. */
   .agent-intro {
     margin: 0 0 18px;
     color: var(--muted);
-    max-width: 62ch;
-  }
-  .prompt-box {
-    border: 1px solid var(--hairline);
-    border-radius: 16px;
-    background: var(--code-panel);
-    overflow: hidden;
-  }
-  .prompt-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 10px 10px 16px;
-    border-bottom: 1px solid var(--hairline);
-  }
-  .prompt-bar > span {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 500;
+    max-width: 60ch;
   }
   .copy-prompt {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    height: 34px;
-    padding: 0 14px;
+    height: 30px;
+    padding: 0 12px;
     border: 0;
-    border-radius: 10px;
+    border-radius: 999px;
     background: var(--accent);
     color: var(--accent-ink);
-    font: 600 13.5px var(--font);
+    font: 600 13px var(--font);
     cursor: pointer;
+    transition:
+      transform 120ms,
+      filter 160ms;
+  }
+  .copy-prompt:hover {
+    filter: brightness(1.06);
+  }
+  .copy-prompt:active {
+    transform: scale(0.97);
   }
   .copy-prompt span {
     display: inline-flex;
     align-items: center;
     gap: 6px;
   }
+  .copy-prompt .copy-done,
+  .copy-prompt[data-copied] .copy-idle {
+    display: none;
+  }
+  .copy-prompt[data-copied] .copy-done {
+    display: inline-flex;
+  }
   .prompt-body {
     position: relative;
+    background: color-mix(in srgb, var(--surface) 70%, var(--bg));
   }
   .prompt-body pre {
     margin: 0;
-    padding: 16px 18px 56px;
-    max-height: 180px;
+    padding: 16px 20px 64px;
+    max-height: 236px;
     overflow: hidden;
     color: var(--muted);
-    font: 13px/1.65 var(--mono);
+    font: 13px/1.7 var(--mono);
     white-space: pre-wrap;
-    mask-image: linear-gradient(#000 40%, transparent);
-    -webkit-mask-image: linear-gradient(#000 40%, transparent);
+    mask-image: linear-gradient(#000 45%, transparent);
+    -webkit-mask-image: linear-gradient(#000 45%, transparent);
   }
   #prompt-open:checked ~ pre {
     max-height: none;
@@ -411,20 +457,24 @@ toast.success('Changes saved');`;
   .prompt-toggle {
     position: absolute;
     left: 50%;
-    bottom: 14px;
-    z-index: 1;
+    bottom: 16px;
     transform: translateX(-50%);
     padding: 6px 14px;
-    border: 1px solid var(--hairline);
+    border: 1px solid var(--line);
     border-radius: 999px;
     background: var(--surface);
     color: var(--text);
     font-size: 13px;
     font-weight: 500;
+    white-space: nowrap;
     cursor: pointer;
+  }
+  .prompt-toggle:hover {
+    background: var(--surface-raised);
   }
   #prompt-open:focus-visible ~ .prompt-toggle {
     outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
   .prompt-toggle .collapse,
   #prompt-open:checked ~ .prompt-toggle .expand {
@@ -440,14 +490,42 @@ toast.success('Changes saved');`;
   }
   .llms a {
     color: var(--muted);
+    text-underline-offset: 3px;
   }
 
-  @media (max-width: 640px) {
-    .install-steps > li {
-      padding-left: 40px;
+  @media (max-width: 960px) {
+    .start {
+      grid-template-columns: minmax(0, 1fr);
     }
-    .ways label {
-      font-size: 14px;
+    .intro {
+      position: static;
+    }
+    .way {
+      grid-column: 1;
+      grid-row: 2;
+    }
+  }
+  @media (max-width: 520px) {
+    .steps > li {
+      padding-left: 0;
+    }
+    .steps h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .steps h3::before {
+      position: static;
+      flex: none;
+    }
+    .steps > li:not(:last-child)::after {
+      display: none;
+    }
+    .pm label {
+      padding: 3px 7px;
+    }
+    .pm .code-icon {
+      display: none;
     }
   }
 </style>

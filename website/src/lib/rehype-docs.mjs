@@ -32,7 +32,7 @@ function classes(node) {
 
 const el = (tagName, properties, children = []) => ({ type: 'element', tagName, properties, children });
 
-const LANGUAGES = { tsx: 'TSX', ts: 'TypeScript', sh: 'Terminal', bash: 'Terminal', json: 'JSON', js: 'JavaScript', diff: 'Diff', xml: 'XML', md: 'Markdown' };
+export const LANGUAGES = { tsx: 'TSX', ts: 'TypeScript', sh: 'Terminal', bash: 'Terminal', json: 'JSON', js: 'JavaScript', diff: 'Diff', xml: 'XML', md: 'Markdown' };
 
 /** `{1,3-5}` -> Set {1, 3, 4, 5}. */
 function lineSet(meta) {
@@ -68,7 +68,7 @@ const glyph = (d) => `<svg viewBox="0 0 256 256" aria-hidden="true"><path fill="
 // Phosphor's terminal-window and git-diff, for the blocks without a brand.
 const TERMINAL = glyph('M128 128a8 8 0 0 1-3 6.25l-40 32a8 8 0 1 1-10-12.5L107.19 128 75 102.25a8 8 0 1 1 10-12.5l40 32a8 8 0 0 1 3 6.25Zm48 24h-40a8 8 0 0 0 0 16h40a8 8 0 0 0 0-16Zm56-96v144a16 16 0 0 1-16 16H40a16 16 0 0 1-16-16V56a16 16 0 0 1 16-16h176a16 16 0 0 1 16 16Zm-16 144V56H40v144h176Z');
 const DIFF = glyph('M112 152a8 8 0 0 0-8 8v28.69L75.72 160.4A39.71 39.71 0 0 1 64 132.12V95a32 32 0 1 0-16 0v37.13a55.67 55.67 0 0 0 16.4 39.6L92.69 200H64a8 8 0 0 0 0 16h48a8 8 0 0 0 8-8v-48a8 8 0 0 0-8-8ZM40 64a16 16 0 1 1 16 16 16 16 0 0 1-16-16Zm168 97V123.88a55.67 55.67 0 0 0-16.4-39.6L163.31 56H192a8 8 0 0 0 0-16h-48a8 8 0 0 0-8 8v48a8 8 0 0 0 16 0V67.31l28.28 28.29A39.71 39.71 0 0 1 192 123.88V161a32 32 0 1 0 16 0Zm-8 47a16 16 0 1 1 16-16 16 16 0 0 1-16 16Z');
-const ICONS = {
+export const ICONS = {
   ts: brand(siTypescript),
   tsx: brand(siTypescript),
   js: brand(siJavascript),
@@ -97,8 +97,8 @@ function callout(node) {
   ]);
 }
 
-const COPY = glyph('M216 32H88a8 8 0 0 0-8 8v40H40a8 8 0 0 0-8 8v128a8 8 0 0 0 8 8h128a8 8 0 0 0 8-8v-40h40a8 8 0 0 0 8-8V40a8 8 0 0 0-8-8Zm-56 176H48V96h112Zm48-48h-32V88a8 8 0 0 0-8-8H96V48h112Z');
-const CHECK = glyph('m229.66 77.66-128 128a8 8 0 0 1-11.32 0l-56-56a8 8 0 0 1 11.32-11.32L96 188.69 218.34 66.34a8 8 0 0 1 11.32 11.32Z');
+export const COPY = glyph('M216 32H88a8 8 0 0 0-8 8v40H40a8 8 0 0 0-8 8v128a8 8 0 0 0 8 8h128a8 8 0 0 0 8-8v-40h40a8 8 0 0 0 8-8V40a8 8 0 0 0-8-8Zm-56 176H48V96h112Zm48-48h-32V88a8 8 0 0 0-8-8H96V48h112Z');
+export const CHECK = glyph('m229.66 77.66-128 128a8 8 0 0 1-11.32 0l-56-56a8 8 0 0 1 11.32-11.32L96 188.69 218.34 66.34a8 8 0 0 1 11.32 11.32Z');
 
 function codeBlock(pre, fence) {
   const language = pre.properties?.dataLanguage ?? '';

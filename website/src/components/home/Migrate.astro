@@ -1,321 +1,247 @@
 ---
 /**
- * Know react-hot-toast from the web? The port is one import, shown as the
- * swap itself; then what works the same, what has a native equivalent, and
- * what only this has. The lists follow docs/guide/coming-from-react-hot-toast.md.
+ * Know react-hot-toast? Porting a screen is one import, shown as the diff
+ * itself, beside the few things a native app spells differently. The lists
+ * follow docs/guide/coming-from-react-hot-toast.md.
  */
+import CodeBlock from '../CodeBlock.astro';
 import Icon from '../Icon.astro';
-import { GlassPanel } from '../glassyui/glass-panel';
 import { url } from '../../lib/url';
 
-const same = [
-  'toast()', 'toast.success', 'toast.error', 'toast.loading', 'toast.custom', 'toast.promise', 'toast.dismiss', 'toast.remove',
-  '<Toaster>', 'position', 'toastOptions', 'reverseOrder', '<ToastBar>', 'iconTheme', 'removeDelay', 'useToaster',
+const screen = `import toast from 'react-hot-toast';
+import toast from 'expo-hot-toast';
+
+export function Checkout({ cart }) {
+  const placeOrder = () =>
+    toast.promise(saveOrder(cart), {
+      loading: 'Placing order…',
+      success: 'Order placed',
+      error: 'Could not place the order',
+    });
+
+  return <Button title="Order" onPress={placeOrder} />;
+}`;
+
+/** react-hot-toast on the left, what a native app uses on the right. Code in backticks. */
+const changes: Array<[string, string, string?]> = [
+  ['`className`', '`style`, `textStyle` and `theme`'],
+  ['`ariaProps`', '`accessibilityLabel` and `important`'],
+  ['Up to 20 on screen', '3 per position, the rest queue'],
+  ['`gutter`, `toastLimit`', '`gap`, `visibleToasts`', 'The old names still work.'],
+  ['`useToaster(opts, id)`', '`useToaster({ toastOptions, toasterId })`'],
+  ['`calculateOffset`, `updateHeight`', 'Not needed: layout places toasts'],
 ];
-const mapped = [
-  { web: 'className', native: 'style · textStyle · theme' },
-  { web: 'ariaProps', native: 'accessibilityLabel · important' },
-  { web: 'up to 20 on screen', native: '3 per edge, the rest queue' },
-  { web: 'gutter · toastLimit', native: 'gap · visibleToasts (both still work)' },
-];
-const only = [
-  { icon: 'hand-tap', text: 'Undo actions and a close button' },
-  { icon: 'arrows-out-cardinal', text: 'Swipe to dismiss, hold to pause' },
-  { icon: 'stack', text: 'A queue, deduplication and a collapsed stack' },
-  { icon: 'file-text', text: 'A description line and rich colours' },
-  { icon: 'sparkle', text: 'Liquid Glass on iOS 26' },
-  { icon: 'eye', text: 'VoiceOver, Reduce Motion, text size, haptics' },
-] as const;
+
+const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const inline = (s: string) => escape(s).replace(/`([^`]+)`/g, '<code>$1</code>');
 ---
 
-<div class="migrate-shell inset">
-  <div class="migrate-top">
-    <div class="migrate-copy">
-      <h2 id="migrate" class="display">Know <span class="nowrap">react-hot-toast</span> from the web?</h2>
-      <p>
-        It renders to the DOM, so it cannot run in an Expo or React Native app. This is its API rebuilt on native views:
-        porting a screen is one import.
+<div class="migrate inset">
+  <header class="head" data-reveal>
+    <h2 id="migrate" class="display">Know <span class="nowrap">react-hot-toast?</span> Change one import.</h2>
+    <p>
+      react-hot-toast renders to the DOM, so it cannot run in a native app. This is its API rebuilt on native views, so
+      the toast code you have ports as it is.
+    </p>
+  </header>
+
+  <div class="port" data-reveal>
+    <div class="port-col">
+      <CodeBlock code={screen} lang="tsx" file="screens/Checkout.tsx" removed={[1]} added={[2]} />
+      <p class="note">
+        <strong>The same:</strong>{' '}<code>toast()</code> and each of its methods, <code>&lt;Toaster&gt;</code> with{' '}
+        <code>position</code>, <code>toastOptions</code> and <code>reverseOrder</code>, <code>&lt;ToastBar&gt;</code>,{' '}
+        <code>iconTheme</code>, <code>removeDelay</code> and <code>resolveValue</code>.
       </p>
-      <a class="text-link" href={url('docs/coming-from-react-hot-toast')}>Every difference, on one page <Icon name="arrow-right" /></a>
     </div>
 
-    <GlassPanel variant="card" className="swap-card">
-      <div class="swap-bar">
-        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="swap-file">screens/Checkout.tsx</span>
+    <div class="port-col">
+      <div class="changes">
+        <table>
+          <caption class="visually-hidden">What a native app spells differently</caption>
+          <thead>
+            <tr>
+              <th scope="col"><Icon name="react" /> react-hot-toast</th>
+              <th scope="col"><img src={url('mark.svg')} alt="" width="16" height="16" /> expo-hot-toast</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              changes.map(([web, native, aside]) => (
+                <tr>
+                  <td class="web" set:html={inline(web)} />
+                  <td class="native">
+                    <Fragment set:html={inline(native)} />
+                    {aside && <span class="aside">{aside}</span>}
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
       </div>
-      <pre class="swap-code" aria-label="Change the import from react-hot-toast to expo-hot-toast"><code><span class="k">import</span> toast, {'{'} Toaster {'}'} <span class="k">from</span> <span class="swap"><span class="from">'react-hot-toast'</span><span class="to">'expo-hot-toast'</span></span>;
-
-<span class="c">// Nothing below changes.</span>
-<span class="f">toast</span>.<span class="f">promise</span>(saveOrder(cart), {'{'}
-  loading: <span class="s">'Placing order…'</span>,
-  success: <span class="s">'Order placed'</span>,
-  error: <span class="s">'Could not place the order'</span>,
-{'}'});</code></pre>
-    </GlassPanel>
+      <p class="note">
+        <strong>Only here:</strong>{' '}<a href={url('docs/actions')}>Undo and other actions</a>,{' '}
+        <a href={url('docs/rich-toasts')}>rich toasts</a>, swipe to dismiss, <code>toast.update</code>,{' '}
+        <code>dedupeKey</code>, a queue, and Liquid Glass on iOS 26.
+      </p>
+    </div>
   </div>
 
-  <div class="compare">
-    <GlassPanel variant="card" className="compare-card">
-      <p class="compare-title"><Icon name="check" /> Works the same</p>
-      <ul class="chips">
-        {same.map((s) => <li><code>{s}</code></li>)}
-      </ul>
-    </GlassPanel>
-    <GlassPanel variant="card" className="compare-card">
-      <p class="compare-title"><Icon name="swap" /> Has a native equivalent</p>
-      <ul class="pairs">
-        {
-          mapped.map((m) => (
-            <li>
-              <code class="web">{m.web}</code>
-              <Icon name="arrow-right" />
-              <span>{m.native}</span>
-            </li>
-          ))
-        }
-      </ul>
-    </GlassPanel>
-    <GlassPanel variant="card" className="compare-card">
-      <p class="compare-title"><Icon name="sparkle" /> Only here</p>
-      <ul class="only">
-        {
-          only.map((o) => (
-            <li>
-              <Icon name={o.icon} />
-              {o.text}
-            </li>
-          ))
-        }
-      </ul>
-    </GlassPanel>
-  </div>
+  <a class="text-link more" href={url('docs/coming-from-react-hot-toast')}>Every difference, on one page <Icon name="arrow-right" /></a>
 </div>
 
 <style>
-  .migrate-shell {
-    display: grid;
-    gap: 16px;
-    padding-top: 112px;
-  }
-  .migrate-top {
-    display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    gap: clamp(28px, 4vw, 56px);
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  .migrate-copy {
-    display: grid;
-    gap: 16px;
-    justify-items: start;
-  }
-  .migrate-copy h2 {
-    margin: 0;
-    font-size: clamp(32px, 3.6vw, 48px);
-  }
-  .migrate-copy p {
-    margin: 0;
-    color: var(--muted);
-    max-width: 44ch;
-  }
-  .text-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--accent-text);
-    font-weight: 500;
-    text-decoration: none;
-  }
-  .text-link:hover {
-    text-decoration: underline;
-    text-underline-offset: 4px;
+  .migrate {
+    padding-bottom: 8px;
   }
 
-  /* The swap: the old name struck through, the new one written in. */
-  .migrate-shell :global(.swap-card) {
-    overflow: hidden;
-  }
-  .swap-bar {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    height: 42px;
-    padding: 0 16px;
-    border-bottom: 1px solid var(--hairline);
-  }
-  .dots {
-    display: inline-flex;
-    gap: 6px;
-  }
-  .dots i {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #ff5f57;
-    opacity: 0.85;
-  }
-  .dots i + i {
-    background: #febc2e;
-  }
-  .dots i + i + i {
-    background: #28c840;
-  }
-  .swap-file {
-    color: var(--faint);
-    font: 12.5px var(--mono);
-  }
-  .swap-code {
-    margin: 0;
-    padding: 20px 22px 24px;
-    overflow-x: auto;
-    color: var(--text);
-    font: 14px/1.75 var(--mono);
-  }
-  .k {
-    color: #f47067;
-  }
-  .f {
-    color: #dcbdfb;
-  }
-  .s {
-    color: #96d0ff;
-  }
-  .c {
-    color: var(--faint);
-  }
-  :root[data-theme='light'] .k {
-    color: #cf222e;
-  }
-  :root[data-theme='light'] .f {
-    color: #8250df;
-  }
-  :root[data-theme='light'] .s {
-    color: #0a3069;
-  }
-  .swap {
-    display: inline-grid;
-  }
-  .swap > span {
-    grid-area: 1 / 1;
-    border-radius: 4px;
-    padding: 0 2px;
-  }
-  .from {
-    color: #f47067;
-    background: rgb(244 112 103 / 0.12);
-    text-decoration: line-through;
-    text-decoration-thickness: 2px;
-    animation: swap-out 5s ease-in-out infinite;
-  }
-  .to {
-    color: #57ab5a;
-    background: rgb(87 171 90 / 0.14);
-    animation: swap-in 5s ease-in-out infinite;
-  }
-  :root[data-theme='light'] .to {
-    color: #116329;
-  }
-  @keyframes swap-out {
-    0%, 30% { opacity: 1; text-decoration-color: transparent; }
-    40% { opacity: 1; text-decoration-color: currentColor; }
-    50%, 92% { opacity: 0; transform: translateY(-6px); }
-    100% { opacity: 1; transform: none; text-decoration-color: transparent; }
-  }
-  @keyframes swap-in {
-    0%, 45% { opacity: 0; transform: translateY(6px); }
-    55%, 90% { opacity: 1; transform: none; }
-    100% { opacity: 0; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .from {
-      display: none;
-    }
-    .from,
-    .to {
-      animation: none;
-    }
-  }
-
-  /* What carries over, what maps, what is new. */
-  .compare {
+  /* The diff beside the table, each with its note under it. */
+  .port {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
   }
-  .compare :global(.compare-card) {
-    padding: 22px 22px 24px;
+  .port-col {
+    display: grid;
+    gap: 16px;
     min-width: 0;
   }
-  .compare-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0 0 16px;
+  .note {
+    margin: 0;
+    padding: 0 4px;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.65;
+    text-wrap: pretty;
+  }
+  .note strong {
+    color: var(--text);
     font-weight: 600;
   }
-  .compare-title :global(.icon) {
-    color: var(--accent-text);
+  .note code,
+  .changes code {
+    font-size: 0.9em;
   }
-  .compare ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  .note code {
+    color: var(--text);
   }
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+  .note a {
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+    text-underline-offset: 3px;
   }
-  .chips code {
-    display: inline-block;
-    padding: 3px 8px;
-    border: 1px solid var(--hairline);
-    border-radius: 7px;
-    background: var(--hover);
-    font-size: 12.5px;
+  .note a:hover {
+    text-decoration-color: currentColor;
   }
-  .pairs {
-    display: grid;
-    gap: 12px;
+
+  /* The table wears the code block's surface, so the pair reads as one. */
+  .changes {
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow:
+      0 1px 2px var(--hairline),
+      0 12px 28px -18px var(--shadow);
   }
-  .pairs li {
-    display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr);
-    align-items: baseline;
-    gap: 8px;
+  .changes table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .changes th {
+    height: 44px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(var(--surface-raised), color-mix(in srgb, var(--surface-raised) 60%, var(--surface)));
     color: var(--muted);
+    font: 500 13px var(--mono);
+    text-align: left;
+    white-space: nowrap;
+  }
+  .changes th :global(.icon),
+  .changes th img {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    margin-right: 6px;
+    vertical-align: -3px;
+  }
+  .changes th :global(.icon) {
+    color: #58c4dc;
+  }
+  .changes th + th {
+    color: var(--text);
+  }
+  .changes th:first-child,
+  .changes td.web {
+    width: 42%;
+  }
+  .changes td {
+    padding: 13px 16px;
+    vertical-align: top;
     font-size: 14px;
+    line-height: 1.55;
   }
-  .pairs li :global(.icon) {
+  .changes tr + tr td {
+    border-top: 1px solid var(--hairline);
+  }
+  .changes td.web {
+    color: var(--muted);
+  }
+  .changes td.web :global(code) {
+    color: var(--muted);
+  }
+  .changes td.native {
+    color: var(--text);
+  }
+  .aside {
+    display: block;
+    margin-top: 2px;
     color: var(--faint);
-    align-self: center;
+    font-size: 13px;
   }
-  .pairs .web {
-    color: var(--text);
-    font-size: 12.5px;
-    text-decoration: line-through;
-    text-decoration-color: var(--faint);
+  .changes :global(code) {
+    overflow-wrap: anywhere;
   }
-  .only {
-    display: grid;
-    gap: 10px;
-  }
-  .only li {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--text);
-    font-size: 14.5px;
-  }
-  .only li :global(.icon) {
-    color: var(--accent-text);
+
+  .more {
+    margin-top: 28px;
   }
 
   @media (max-width: 960px) {
-    .migrate-top,
-    .compare {
+    .port {
       grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  /* A phone stacks each row: the old name over the new one. */
+  @media (max-width: 560px) {
+    .changes thead {
+      display: none;
+    }
+    .changes tr {
+      display: grid;
+      gap: 2px;
+      padding: 12px 16px;
+    }
+    .changes tr + tr {
+      border-top: 1px solid var(--hairline);
+    }
+    .changes td,
+    .changes tr + tr td {
+      width: auto !important;
+      padding: 0;
+      border: 0;
+    }
+    .changes td.web {
+      font-size: 13px;
+    }
+    .changes td.web::after {
+      content: '  \2192';
+      color: var(--faint);
     }
   }
 </style>
