@@ -18,9 +18,25 @@ const servings: Fire[] = [
   (toast) => toast('Message archived', { action: { label: 'Undo', onPress: () => toast.success('Restored') } }),
 ];
 
+/** Once per visit, the page says hello with a real toast. */
+function greet() {
+  try {
+    if (sessionStorage.getItem('eht-greeted')) return;
+    sessionStorage.setItem('eht-greeted', '1');
+  } catch {
+    return;
+  }
+  setTimeout(() => {
+    withToast((toast) => toast('Every button on this page fires a real toast.', { icon: '🍞', duration: 4000 }));
+  }, 1400);
+}
+
 export default function HeroToast() {
   const next = useRef(0);
-  useEffect(preload, []);
+  useEffect(() => {
+    preload();
+    greet();
+  }, []);
   return (
     <GlassButton
       variant="prominent"
