@@ -1,0 +1,317 @@
+---
+/**
+ * More than a line of text: the rich toasts, each in its own tile. Like the
+ * feature bento, every tile is a stage: the web embed mounts an independent
+ * Toaster inside each [data-toast-stage], and the script below plays the
+ * tile's toast while it is on screen.
+ */
+import { GlassPanel } from '../glassyui/glass-panel';
+import { GlassBadge } from '../glassyui/glass-badge';
+
+const tiles = [
+  { id: 'upload', size: 'wide', spec: 'toast.progress()', title: 'Progress that never re-renders', body: 'set() writes to the UI thread, so the bar fills smoothly however often you call it. Then the same toast becomes the outcome.' },
+  { id: 'steps', size: 'half', spec: 'toast.steps()', title: 'Named steps', body: 'Each stage gets its label and a segment of the bar.' },
+  { id: 'notify', size: 'third', spec: 'toast.notify()', title: 'Notifications', body: 'A title, a body, an avatar and a time. Tap to open.' },
+  { id: 'undo', size: 'third', spec: 'action.countdown', title: 'Undo, with a countdown', body: 'A ring drains around the button over the time left.' },
+  { id: 'expand', size: 'third', spec: 'expandable', title: 'Details on demand', body: 'Open it and the timers wait while you read.', hint: 'Open the details' },
+  { id: 'hud', size: 'quarter', spec: 'toast.hud()', title: 'HUD', body: 'Centred, with a large icon.' },
+  { id: 'island', size: 'quarter', spec: 'toast.island()', title: 'Island', body: 'Grows out of the Dynamic Island.' },
+  { id: 'banner', size: 'quarter', spec: 'toast.banner()', title: 'Banner', body: 'Edge to edge, for lasting states.' },
+  { id: 'material', size: 'quarter', spec: "preset: 'auto'", title: 'Material on Android', body: 'Android gets a Material 3 snackbar by default.' },
+];
+---
+
+<div class="rich inset">
+  {
+    tiles.map((t) => (
+      <GlassPanel variant="card" className={`tile ${t.size}`} data-rich={t.id}>
+        <div class={`tile-stage stage-${t.id}`} data-toast-stage={`r-${t.id}`}>
+          {t.hint ? <span class="stage-hint">{t.hint}</span> : null}
+          <button type="button" class="replay" data-replay={t.id} aria-label={`Play ${t.title} again`}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+        <div class="tile-copy">
+          <GlassBadge tone="orange" className="spec">{t.spec}</GlassBadge>
+          <h3>{t.title}</h3>
+          <p>{t.body}</p>
+        </div>
+      </GlassPanel>
+    ))
+  }
+</div>
+
+<script>
+  import { live, withToast } from '../../lib/live';
+  import { getScheme, onScheme } from '../../lib/theme';
+
+  type Api = Awaited<ReturnType<typeof live>>;
+  type Toast = Api['toast'];
+
+  const IDS = ['upload', 'steps', 'notify', 'undo', 'expand', 'hud', 'island', 'banner', 'material'];
+  // Small toasts for the content tiles; the shaped ones keep their own size.
+  const TILE_THEME = { fontSize: 14, lineHeight: 19, iconSize: 20, paddingVertical: 11, paddingHorizontal: 15, maxWidth: 320, gap: 8 };
+  const COMPACT = new Set(['upload', 'steps', 'undo', 'expand']);
+
+  let api: Api | undefined;
+  const setup = (a: Api) => {
+    api = a;
+    for (const id of IDS) {
+      a.configureStage(
+        {
+          position: id === 'material' ? 'bottom-center' : 'top-center',
+          offset: id === 'banner' ? 0 : 16,
+          gap: 8,
+          colorScheme: getScheme(),
+          preset: id === 'material' ? 'material' : 'glass',
+          theme: COMPACT.has(id) ? TILE_THEME : undefined,
+        },
+        `r-${id}`,
+      );
+    }
+    onScheme((colorScheme) => IDS.forEach((id) => a.configureStage({ colorScheme }, `r-${id}`)));
+  };
+
+  const at = (ms: number, run: () => void) => window.setTimeout(run, ms);
+
+  const plays: Record<string, (toast: Toast, a: Api) => void> = {
+    upload: (toast) => {
+      const upload = toast.progress('Uploading 4 photos', { toasterId: 'r-upload', description: '18.6 MB' });
+      // Uneven steps, as a real upload reports them.
+      [0.08, 0.21, 0.27, 0.44, 0.58, 0.63, 0.79, 0.92, 1].forEach((p, i) => at(350 + i * 330, () => upload.set(p)));
+      at(3700, () => upload.success('4 photos uploaded', { duration: 2200 }));
+    },
+    steps: (toast) => {
+      const job = toast.steps(['Compressing video', 'Uploading', 'Processing'], { toasterId: 'r-steps' });
+      at(1500, () => job.next());
+      at(3000, () => job.next());
+      at(4500, () => job.success('Video published', { duration: 2000 }));
+    },
+    notify: (_toast, a) => a.examples.notify?.({ toasterId: 'r-notify', duration: 3600, onPress: () => {} }),
+    undo: (toast) =>
+      toast('Conversation deleted', {
+        toasterId: 'r-undo',
+        duration: 5200,
+        action: { label: 'Undo', countdown: true, onPress: () => toast.success('Conversation restored', { toasterId: 'r-undo' }) },
+      }),
+    expand: (toast) => {
+      const show = () =>
+        toast.error('3 photos failed to upload', {
+          id: 'r-expand',
+          toasterId: 'r-expand',
+          duration: Infinity,
+          expandable: { content: 'IMG_2041.jpg, IMG_2042.jpg and IMG_2045.jpg are larger than 50 MB.' },
+          // Dismissed? It comes back, so there is always one to open.
+          onDismiss: () => at(1200, show),
+        });
+      show();
+    },
+    hud: (toast) => toast.hud('Added to Library', { toasterId: 'r-hud', duration: 1900 }),
+    island: (toast) => toast.island('AirPods Pro connected', { type: 'success', toasterId: 'r-island', duration: 2600 }),
+    banner: (toast) =>
+      toast.banner("You're offline", { type: 'warning', description: 'Changes sync when you reconnect.', toasterId: 'r-banner', duration: 3200 }),
+    material: (toast) =>
+      toast('Message archived', {
+        toasterId: 'r-material',
+        duration: 3200,
+        action: { label: 'Undo', onPress: () => {} },
+      }),
+  };
+  // How often each tile plays while it is on screen. The expandable toast
+  // stays until it is dismissed, so it plays once.
+  const loops: Record<string, number> = { upload: 7000, steps: 7600, notify: 5200, undo: 7000, hud: 3600, island: 4400, banner: 5000, material: 4800 };
+
+  const play = (name: string) => withToast((toast, a) => plays[name]?.(toast, a));
+
+  const timers = new Map<string, number>();
+  const seen = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const name = (entry.target as HTMLElement).dataset.rich ?? '';
+        if (!plays[name]) continue;
+        if (entry.isIntersecting) {
+          void live().then((a) => {
+            if (!api) setup(a);
+            if (timers.has(name)) return;
+            play(name);
+            timers.set(name, loops[name] ? window.setInterval(() => play(name), loops[name]) : 0);
+          }, () => {});
+        } else if (timers.has(name)) {
+          clearInterval(timers.get(name));
+          timers.delete(name);
+        }
+      }
+    },
+    { threshold: 0.5 },
+  );
+  document.querySelectorAll<HTMLElement>('[data-rich]').forEach((tile) => seen.observe(tile));
+
+  document.querySelectorAll<HTMLButtonElement>('[data-replay]').forEach((button) =>
+    button.addEventListener('click', () => play(button.dataset.replay!)),
+  );
+</script>
+
+<style>
+  /* Twelve columns: upload and steps share the first row, then thirds, then quarters. */
+  .rich {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .rich :global(.tile) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .rich :global(.tile.wide) {
+    grid-column: span 7;
+  }
+  .rich :global(.tile.half) {
+    grid-column: span 5;
+  }
+  .rich :global(.tile.third) {
+    grid-column: span 4;
+  }
+  .rich :global(.tile.quarter) {
+    grid-column: span 3;
+  }
+
+  /* Warm light for the frosted toasts to blur, as in the feature tiles. */
+  .tile-stage {
+    position: relative;
+    height: 200px;
+    margin: 8px 8px 0;
+    border-radius: 18px;
+    overflow: hidden;
+    background:
+      radial-gradient(60% 80% at 20% 10%, rgb(255 140 40 / 0.55), transparent 70%),
+      radial-gradient(60% 90% at 90% 90%, rgb(214 45 74 / 0.45), transparent 70%),
+      var(--stage-base);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+  :root[data-theme='light'] .tile-stage {
+    background:
+      radial-gradient(60% 80% at 20% 10%, rgb(255 170 90 / 0.65), transparent 70%),
+      radial-gradient(60% 90% at 90% 90%, rgb(255 120 140 / 0.45), transparent 70%),
+      var(--stage-base);
+  }
+  /* The expandable toast opens downwards; give it the room. */
+  .stage-expand {
+    height: 220px;
+  }
+  .rich :global(.tile.third) .stage-expand,
+  .rich :global(.tile.third) .tile-stage {
+    height: 220px;
+  }
+  /* The island and banner sit against the top edge, like a phone's. */
+  .stage-island,
+  .stage-banner {
+    background:
+      radial-gradient(70% 90% at 50% 120%, rgb(255 140 40 / 0.5), transparent 70%),
+      var(--stage-base);
+  }
+  :root[data-theme='light'] .stage-island,
+  :root[data-theme='light'] .stage-banner {
+    background:
+      radial-gradient(70% 90% at 50% 120%, rgb(255 170 90 / 0.6), transparent 70%),
+      var(--stage-base);
+  }
+
+  .stage-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 14px;
+    text-align: center;
+    color: var(--caption-text);
+    font: 500 12px var(--mono);
+  }
+  .replay {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--hairline);
+    border-radius: 50%;
+    background: var(--caption-bg);
+    color: var(--caption-text);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .replay svg {
+    width: 15px;
+    height: 15px;
+  }
+  .tile-stage:hover .replay,
+  .replay:focus-visible {
+    opacity: 1;
+  }
+  @media (hover: none) {
+    .replay {
+      opacity: 1;
+    }
+  }
+  /* The Material snackbar rises from the bottom; keep the button out of its way. */
+  .stage-material .replay {
+    top: 10px;
+    bottom: auto;
+  }
+  .stage-expand .replay {
+    display: none;
+  }
+
+  .tile-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 18px 20px 22px;
+  }
+  .tile-copy :global(.spec) {
+    align-self: flex-start;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .tile-copy h3 {
+    margin: 6px 0 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .tile-copy p {
+    margin: 0;
+    color: var(--muted);
+    max-width: 46ch;
+    font-size: 15px;
+  }
+
+  @media (max-width: 1100px) {
+    .rich :global(.tile.quarter) {
+      grid-column: span 6;
+    }
+  }
+  @media (max-width: 960px) {
+    .rich :global(.tile.wide),
+    .rich :global(.tile.half),
+    .rich :global(.tile.third) {
+      grid-column: span 6;
+    }
+    .rich :global(.tile.wide) {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 640px) {
+    .rich :global(.tile) {
+      grid-column: 1 / -1 !important;
+    }
+  }
+</style>

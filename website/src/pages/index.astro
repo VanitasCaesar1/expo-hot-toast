@@ -10,6 +10,7 @@ import Faq from '../components/glass/Faq';
 import Features from '../components/home/Features.astro';
 import Migrate from '../components/home/Migrate.astro';
 import Start from '../components/home/Start.astro';
+import Rich from '../components/home/Rich.astro';
 import StarButton from '../components/glass/StarButton';
 import { buildStars } from '../lib/stars';
 import { GlassPanel } from '../components/glassyui/glass-panel';
@@ -30,7 +31,7 @@ const faq = [
   },
   {
     q: 'What do Android and older iOS get?',
-    a: 'An opaque surface with real colour, border and shadow, in light and dark. The same surface is used on iOS 26 when Reduce Transparency is on. On the web, browsers that can blur a backdrop get frosted glass instead, the toasts you can fire on this page.',
+    a: 'Android gets a Material 3 snackbar by default, as its own apps do: the inverse surface, near-square corners, rising from the bottom. Older iOS gets an opaque pill with real colour, border and shadow, in light and dark, as does iOS 26 when Reduce Transparency is on. preset="glass" uses the pill everywhere. On the web, browsers that can blur a backdrop get frosted glass instead, the toasts you can fire on this page.',
   },
   {
     q: 'Does it work on the web?',
@@ -86,22 +87,13 @@ const faq = [
     </figure>
   </section>
 
-  <section class="proof inset" aria-label="How it is checked">
-    {
-      [
-        { stat: '350+', body: 'Tests across logic and components, on every change.' },
-        { stat: 'iOS 26', body: 'The example app runs on an iOS 26 simulator in CI.' },
-        { stat: 'Android', body: 'And on an Android emulator, every row driven by Maestro.' },
-        { stat: 'Web', body: 'Built for the web in CI. Every toast on this page runs on it.' },
-      ].map((p, i) => (
-        <div data-reveal style={`--i: ${i}`}>
-          <GlassPanel variant="card" className="stat-card">
-            <span class="display stat">{p.stat}</span>
-            <p>{p.body}</p>
-          </GlassPanel>
-        </div>
-      ))
-    }
+  <section aria-labelledby="more">
+    <header class="head inset" data-reveal>
+      <h2 id="more" class="display">More than a line of text.</h2>
+      <p>Uploads, steps, Undo with a countdown, notifications, a HUD and the island. Each is one call, and each tile is the library itself, playing on this page.</p>
+      <a class="head-link" href={url('docs/rich-toasts')}>Rich toasts guide <Icon name="arrow-right" /></a>
+    </header>
+    <Rich />
   </section>
 
   <section class="band live" aria-labelledby="try">
@@ -360,28 +352,6 @@ const faq = [
     box-shadow: 0 0 0 4px rgb(255 107 61 / 0.2);
   }
 
-  /* Four glass cards: how the library is checked. */
-  .proof {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
-  }
-  .proof :global(.stat-card) {
-    height: 100%;
-    padding: 24px 24px 26px;
-  }
-  .stat {
-    display: block;
-    font-size: clamp(30px, 3vw, 40px);
-    color: var(--text);
-  }
-  .proof p {
-    margin: 8px 0 0;
-    color: var(--muted);
-    font-size: 15px;
-    max-width: 30ch;
-  }
-
   .head {
     padding-block: 96px 36px;
   }
@@ -394,6 +364,18 @@ const faq = [
     margin: 14px 0 0;
     color: var(--muted);
     max-width: 58ch;
+  }
+  .head-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    color: var(--accent-text);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .head-link:hover {
+    text-decoration: underline;
   }
 
   /* The heading beside one glass card of questions. */
@@ -464,9 +446,6 @@ const faq = [
   }
 
   @media (max-width: 960px) {
-    .proof {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
     .faq,
     .star :global(.star-card) {
       grid-template-columns: minmax(0, 1fr);

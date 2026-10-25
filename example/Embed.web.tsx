@@ -29,7 +29,7 @@ declare global {
       /** Merges into the Toaster's props. Pass `undefined` to reset a prop. */
       configure: (config: EmbedConfig) => void;
       /** Examples that need React elements, which the page cannot build. */
-      examples: Record<string, () => void>;
+      examples: Record<string, (options?: Record<string, unknown>) => void>;
       /** Props for a stage's Toaster; `id` defaults to "stage". */
       configureStage: (config: EmbedConfig, id?: string) => void;
     };
@@ -41,7 +41,7 @@ const NO_INSETS = { top: 0, right: 0, bottom: 0, left: 0 };
 /** The Toaster's colour scheme, so text the examples draw themselves matches it. */
 let scheme: 'light' | 'dark' = 'light';
 
-const examples: Record<string, () => void> = {
+const examples: Record<string, (options?: Record<string, unknown>) => void> = {
   custom: () =>
     toast.custom((t) => (
       <View style={[styles.custom, { opacity: t.visible ? 1 : 0 }]}>
@@ -58,6 +58,19 @@ const examples: Record<string, () => void> = {
         </Text>
       </Text>
     )),
+  // A notification needs its avatar drawn: initials on a colour, as in the app.
+  notify: (options) =>
+    toast.notify({
+      title: 'Maya Patel',
+      body: 'Sent you 4 photos from the trip',
+      timestamp: 'now',
+      avatar: (
+        <View style={styles.initials}>
+          <Text style={styles.initialsText}>MP</Text>
+        </View>
+      ),
+      ...options,
+    }),
 };
 
 export default function Embed() {
@@ -107,4 +120,6 @@ const styles = StyleSheet.create({
   jsx: { fontSize: 15, lineHeight: 20 },
   bold: { fontWeight: '700' },
   link: { color: '#0A84FF', fontWeight: '600' },
+  initials: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FF9F0A' },
+  initialsText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
 });

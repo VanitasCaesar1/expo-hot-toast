@@ -14,11 +14,27 @@
 type Options = Record<string, unknown>;
 type Show = (message: string, options?: Options) => string;
 
+interface Progress {
+  id: string;
+  set: (progress: number | 'indeterminate') => void;
+  success: (message: string, options?: Options) => void;
+  error: (message: string, options?: Options) => void;
+  dismiss: () => void;
+}
+
 /** The parts of expo-hot-toast's `toast` the site calls. */
 interface Toast extends Show {
   success: Show;
   error: Show;
+  info: Show;
+  warning: Show;
   loading: Show;
+  hud: Show;
+  banner: Show;
+  island: Show;
+  update: (id: string, changes: Options) => void;
+  progress: (message: string, options?: Options) => Progress;
+  steps: (labels: string[], options?: Options) => Omit<Progress, 'set'> & { next: () => void };
   promise: <T>(promise: Promise<T>, messages: { loading: string; success: string; error: string }, options?: Options) => Promise<T>;
   dismiss: (id?: string) => void;
 }
@@ -37,9 +53,12 @@ export interface LiveConfig {
 interface LiveApi {
   toast: Toast;
   configure: (config: LiveConfig) => void;
-  examples: Record<string, () => void>;
+  examples: Record<string, (options?: Options) => void>;
   /** Props for the hero's stage Toaster (toasterId "stage"). */
-  configureStage: (config: LiveConfig & { offset?: number; gap?: number; visibleToasts?: number }, id?: string) => void;
+  configureStage: (
+    config: LiveConfig & { offset?: number; gap?: number; visibleToasts?: number; preset?: 'auto' | 'glass' | 'material'; animation?: string },
+    id?: string,
+  ) => void;
 }
 
 declare global {
