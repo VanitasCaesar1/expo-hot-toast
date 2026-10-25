@@ -153,7 +153,9 @@ describe('reducer', () => {
 
   it('END_PAUSE credits the paused span to every toast', () => {
     const t0 = 1_000_000;
-    const a = baseToast({ id: 'a', pauseDuration: 0 });
+    // Created before the pause: a toast is credited only the part of a pause
+    // it was there for.
+    const a = baseToast({ id: 'a', pauseDuration: 0, createdAt: t0 - 1 });
     let state = reducer(initial, { type: ActionType.ADD_TOAST, toast: a });
     state = reducer(state, { type: ActionType.START_PAUSE, time: t0 });
     state = reducer(state, { type: ActionType.END_PAUSE, time: t0 + 2_500 });
