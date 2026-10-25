@@ -147,6 +147,9 @@ const ICON_POP_FROM_SCALE = 0.6;
 
 const noop = () => {};
 
+/** Below Android's 8dp touch slop, so a toast's drag wins over a scroll view behind it. */
+const ANDROID_SLOP = 6;
+
 export const ToastBar = React.memo(function ToastBar({
   toast,
   theme: themeProp,
@@ -451,8 +454,13 @@ export const ToastBar = React.memo(function ToastBar({
     () =>
       Gesture.Pan()
         .enabled(panThreshold > 0 && dismissible)
-        .activeOffsetX([-12, 12])
-        .activeOffsetY([-12, 12])
+        // On Android a native ScrollView behind the toast also bids for the
+        // drag, and it activates at the system touch slop (8dp). A 12dp
+        // threshold lost every vertical race there, so a swipe up or down
+        // scrolled the screen instead. 6dp claims the drag first; it is still
+        // well beyond the jitter of a tap.
+        .activeOffsetX(Platform.OS === 'android' ? [-ANDROID_SLOP, ANDROID_SLOP] : [-12, 12])
+        .activeOffsetY(Platform.OS === 'android' ? [-ANDROID_SLOP, ANDROID_SLOP] : [-12, 12])
         .onStart(() => {
           dragAxis.value = 0;
         })

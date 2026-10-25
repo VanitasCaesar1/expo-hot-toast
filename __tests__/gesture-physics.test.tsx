@@ -180,6 +180,20 @@ describe('ToastBar — drag thresholds', () => {
     expect(config.activeOffsetY).toEqual([-12, 12]);
   });
 
+  it('claims the drag inside the touch slop on Android, before a scroll view behind it', () => {
+    const platform = require('react-native').Platform as { OS: string };
+    const original = platform.OS;
+    platform.OS = 'android';
+    try {
+      const { config } = mountBar(72, jest.fn());
+      // Android's touch slop is 8dp; a native ScrollView activates there.
+      expect(config.activeOffsetY).toEqual([-6, 6]);
+      expect(config.activeOffsetX).toEqual([-6, 6]);
+    } finally {
+      platform.OS = original;
+    }
+  });
+
   it('disables the pan gesture entirely when panThreshold is 0', () => {
     const { config } = mountBar(0, jest.fn());
     expect(config.enabled).toBe(false);
