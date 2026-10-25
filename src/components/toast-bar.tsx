@@ -783,7 +783,9 @@ export const ToastBar = React.memo(function ToastBar({
 
   const texts =
     descriptionNode == null && titleLine === messageText && inlineBar == null ? (
-      messageText
+      // A message alone still takes the free space of a full-width toast, so
+      // "Conversation deleted … Undo" puts Undo at the trailing edge.
+      theme.fill && !hud ? <View style={[styles.texts, styles.grow]}>{messageText}</View> : messageText
     ) : (
       <View
         style={[

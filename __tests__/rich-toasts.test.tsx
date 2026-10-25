@@ -559,6 +559,28 @@ describe('size changes', () => {
   });
 });
 
+describe('width', () => {
+  it('a full-width toast gives its message the free space, so the action sits at the trailing edge', () => {
+    render(<Toaster preset="material" />);
+    act(() => {
+      toast('Conversation deleted', { action: { label: 'Undo', onPress: () => {} } });
+    });
+    const message = screen.getByText('Conversation deleted');
+    const parentStyle = flat(message.parent?.parent?.props.style ?? message.parent?.props.style);
+    const grows = [message.parent, message.parent?.parent].some((n) => flat(n?.props.style).flexGrow === 1);
+    expect(grows || parentStyle.flexGrow === 1).toBe(true);
+  });
+
+  it('a hugging pill does not stretch its message', () => {
+    render(<Toaster preset="glass" />);
+    act(() => {
+      toast('Saved', { action: { label: 'Undo', onPress: () => {} } });
+    });
+    const message = screen.getByText('Saved');
+    expect([message.parent, message.parent?.parent].some((n) => flat(n?.props.style).flexGrow === 1)).toBe(false);
+  });
+});
+
 describe('classes', () => {
   it('lets a class on the title replace the token text styles', () => {
     render(<Toaster />);
