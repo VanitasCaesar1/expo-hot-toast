@@ -24,6 +24,7 @@ export const darkTheme: ToastTheme = {
   border: 'rgba(255,255,255,0.14)',
   color: '#f2f2f7',
   closeButtonBackground: 'rgba(255,255,255,0.18)',
+  frostHighlight: 'rgba(255,255,255,0.3)',
   shadowOpacity: 0.3,
   descriptionColor: 'rgba(235,235,245,0.68)',
   rich: {

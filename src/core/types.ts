@@ -284,9 +284,9 @@ export interface GlassConfig {
 
 export interface ToastTheme {
   /**
-   * A translucent fill, for custom renderers and the CSS variable export. The
-   * built-in surface does not draw it: glass has its own material, and the
-   * fallback uses `fallbackBackground`.
+   * A translucent fill: the frosted glass drawn on the web, and a fill for
+   * custom renderers and the CSS variable export. Liquid Glass has its own
+   * material, and the opaque surface uses `fallbackBackground`.
    */
   background: string;
   /** Fill of the opaque surface used when Liquid Glass is unavailable. Keep it opaque. */
@@ -297,6 +297,12 @@ export interface ToastTheme {
   paddingVertical: number;
   paddingHorizontal: number;
   maxWidth: number;
+  /** Backdrop blur of the frosted glass drawn on the web, in px. */
+  frostBlur: number;
+  /** Saturation of the blurred backdrop on the web, in percent. */
+  frostSaturation: number;
+  /** Light caught in the frosted glass rim on the web. */
+  frostHighlight: string;
   /** Depth cue on the fallback surface. Ignored by real glass. */
   shadowColor: string;
   shadowOpacity: number;

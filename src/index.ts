@@ -8,6 +8,7 @@ export type { ToastIconKind, ToastIconProps } from './components/icons';
 export {
   GlassSurface,
   GLASS_SUPPORTED,
+  FROST_SUPPORTED,
   NATIVE_GLASS,
 } from './components/glass-surface';
 export type {

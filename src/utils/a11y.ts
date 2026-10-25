@@ -54,8 +54,18 @@ const MOTION_KEY = 'reduceMotion';
 const TRANSPARENCY_KEY = 'reduceTransparency';
 
 const queryReduceMotion = () => AccessibilityInfo.isReduceMotionEnabled();
-const queryReduceTransparency = () =>
-  AccessibilityInfo.isReduceTransparencyEnabled();
+const queryReduceTransparency = (): Promise<boolean> => {
+  // React Native Web has no answer for this, but a browser can say whether the
+  // user asked for less transparency, which the frosted glass honours.
+  if (Platform.OS === 'web') {
+    const media =
+      typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(prefers-reduced-transparency: reduce)')
+        : undefined;
+    return Promise.resolve(media?.matches ?? false);
+  }
+  return AccessibilityInfo.isReduceTransparencyEnabled();
+};
 const SCREEN_READER_KEY = 'screenReader';
 const queryScreenReader = () => AccessibilityInfo.isScreenReaderEnabled();
 

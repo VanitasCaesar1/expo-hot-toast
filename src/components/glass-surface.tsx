@@ -32,7 +32,22 @@ const NATIVE_GLASS =
  */
 export const GLASS_SUPPORTED = NATIVE_GLASS;
 
-export type GlassSurfaceMode = 'glass' | 'opaque';
+/**
+ * Browsers that can blur what is behind an element. Liquid Glass is UIKit's and
+ * has no web counterpart, so on the web the glass setting draws frosted glass
+ * instead: a CSS backdrop blur under a translucent fill, with a lit rim. The
+ * recipe follows Glassy UI's frost (glassyui.com, MIT).
+ */
+const WEB_FROST =
+  Platform.OS === 'web' &&
+  typeof CSS !== 'undefined' &&
+  typeof CSS.supports === 'function' &&
+  (CSS.supports('backdrop-filter', 'blur(1px)') ||
+    CSS.supports('-webkit-backdrop-filter', 'blur(1px)'));
+
+export const FROST_SUPPORTED = WEB_FROST;
+
+export type GlassSurfaceMode = 'glass' | 'frost' | 'opaque';
 
 export interface GlassSurfaceProps extends ViewProps {
   theme: ToastTheme;
@@ -80,11 +95,13 @@ function readGlassConfig(
 /**
  * The material behind a toast.
  *
- * Two rungs, not one. `expo-glass-effect`'s own non-iOS implementation renders a
- * bare `<View>` with no effect at all, which means a silent no-op is the
- * library's default behaviour on Android and web. Shipping that as-is would
- * make Android look like a bug rather than a design, so the opaque rung is
- * always drawn with real colour, a real border and a real shadow.
+ * Three rungs: Liquid Glass on iOS 26, frosted glass in browsers that can blur
+ * a backdrop, and an opaque surface everywhere else. `expo-glass-effect`'s own
+ * non-iOS implementation renders a bare `<View>` with no effect at all, which
+ * means a silent no-op is the library's default behaviour on Android and web.
+ * Shipping that as-is would make Android look like a bug rather than a design,
+ * so the opaque rung is always drawn with real colour, a real border and a
+ * real shadow.
  *
  * Opacity is never animated here or on any ancestor. UIKit skips installing the
  * glass effect when cumulative opacity is ~0 and does not retry, so fading a
@@ -110,8 +127,9 @@ export const GlassSurface = React.memo(function GlassSurface({
 }: GlassSurfaceProps) {
   const config = readGlassConfig(glass);
   const wantsGlass = glass !== false && config.style !== 'none';
+  const translucent = wantsGlass && !reduceTransparency;
   const mode: GlassSurfaceMode =
-    wantsGlass && !reduceTransparency && GLASS_SUPPORTED ? 'glass' : 'opaque';
+    translucent && GLASS_SUPPORTED ? 'glass' : translucent && FROST_SUPPORTED ? 'frost' : 'opaque';
   const shape: ViewStyle = {
     borderRadius: radius ?? theme.radius,
     borderCurve: 'continuous',
@@ -150,6 +168,14 @@ export const GlassSurface = React.memo(function GlassSurface({
       >
         {children}
       </GlassView>
+    );
+  }
+
+  if (mode === 'frost') {
+    return (
+      <View {...rest} style={[shape, frostStyle(theme, config.tintColor), style]}>
+        {children}
+      </View>
     );
   }
 
@@ -199,6 +225,41 @@ function opaqueStyle(theme: ToastTheme): ViewStyle {
   };
 }
 
+/** `color` at `percent` strength, for colours given in any CSS form. */
+function fade(color: string, percent: number): string {
+  return `color-mix(in srgb, ${color} ${Math.round(percent)}%, transparent)`;
+}
+
+/**
+ * The web rung. The fill is `theme.background`, the translucent token, with any
+ * glass tint laid over it, and the backdrop is blurred and saturated behind.
+ * The edge is an inset shadow stack lit from the top left: a bright bevel, a
+ * softer counter-bevel, an inner glow and a faint chromatic fringe, ringed by
+ * the border colour and lifted by the theme's own shadow.
+ *
+ * React Native's types have no backdrop filter, so the style is cast; React
+ * Native Web passes it through to the DOM, prefixing it for Safari.
+ */
+function frostStyle(theme: ToastTheme, tintColor: string | undefined): ViewStyle {
+  const filter = `blur(${theme.frostBlur}px) saturate(${theme.frostSaturation}%)`;
+  const light = theme.frostHighlight;
+  const shadow = [
+    `inset 0 0 0 1px ${theme.border}`,
+    `inset 0 0 12px -4px ${fade(light, 60)}`,
+    `inset 1.5px 2.5px 1px -2px ${fade(light, 70)}`,
+    `inset -1.5px -2px 1px -2px ${fade(light, 50)}`,
+    'inset 2px 0 3px -1px rgb(80 160 255 / 0.06)',
+    'inset -2px 0 3px -1px rgb(255 90 150 / 0.06)',
+    `0 ${theme.shadowOffsetY}px ${theme.shadowRadius * 2}px ${fade(theme.shadowColor, theme.shadowOpacity * 100)}`,
+  ].join(', ');
+  return {
+    backgroundColor: theme.background,
+    ...(tintColor ? { backgroundImage: `linear-gradient(${tintColor}, ${tintColor})` } : null),
+    backdropFilter: filter,
+    boxShadow: shadow,
+  } as ViewStyle;
+}
+
 const styles = StyleSheet.create({
   opaque: {
     // Deliberately not `overflow: hidden`. The background already follows the
@@ -207,4 +268,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export { NATIVE_GLASS };
+export { NATIVE_GLASS, WEB_FROST };
