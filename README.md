@@ -6,8 +6,11 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 Toasts for Expo and React Native, with the react-hot-toast API. On iOS 26 each
-toast is drawn in Apple's own Liquid Glass; everywhere else, on a designed
-opaque surface.
+toast is drawn in Apple's own Liquid Glass, on the web in frosted glass, and
+everywhere else on a designed opaque surface.
+
+**[Try it on the website](https://vanitascaesar1.github.io/expo-hot-toast/)**: every
+button there fires a real toast, from this library running in your browser.
 
 <p align="center">
   <img src="./docs/media/demo.gif" width="732" alt="The same toasts on iOS 26, in Liquid Glass, and on Android, on an opaque surface" />
@@ -62,7 +65,8 @@ await toast.promise(upload(photo), {
 ## What you get
 
 - **Liquid Glass on iOS 26**, through `expo-glass-effect`. Older iOS, Android
-  and Reduce Transparency get an opaque surface; nothing imitates glass.
+  and Reduce Transparency get an opaque surface; nothing imitates glass. The
+  web gets frosted glass, a CSS backdrop blur.
 - **A queue.** Three toasts per position; the rest wait, and get their full time
   once they show.
 - **Gestures.** Swipe to dismiss; press and hold to pause every timer.
@@ -86,7 +90,7 @@ page.
 | iOS 26 | Liquid Glass | iOS 26.5 simulator in CI |
 | Android | Opaque | Android 15 emulator in CI |
 | iOS before 26 | Opaque | Not yet |
-| Web | Opaque | Not yet |
+| Web | Frosted glass | Built for the web in CI; runs the website's demos |
 
 Requires Expo SDK 55 or later (tested on 57). Liquid Glass needs an app built
 with Xcode 26 or later.

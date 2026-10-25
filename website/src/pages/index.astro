@@ -2,7 +2,10 @@
 import Base from '../layouts/Base.astro';
 import ScreenCrop from '../components/ScreenCrop.astro';
 import DemoWindow from '../components/DemoWindow.astro';
-import Playground from '../components/Playground.astro';
+import HeroToast from '../components/live/HeroToast';
+import Examples from '../components/live/Examples';
+import PositionPicker from '../components/live/Position';
+import Customiser from '../components/live/Customiser';
 import CopyInstall from '../components/CopyInstall.astro';
 import Icon from '../components/Icon.astro';
 import CodePanel from '../components/CodePanel.astro';
@@ -25,19 +28,11 @@ export default function App() {
 
 toast.success('Changes saved');`;
 
-// Paired by appearance, so each row compares the two platforms.
-const stills = [
-  { media: 'ios-stack-dark', platform: 'iOS 26', surface: 'Liquid Glass', scheme: 'Dark', alt: 'An error toast stacked above a success toast in Liquid Glass, dark mode, iOS 26' },
-  { media: 'android-stack-dark', platform: 'Android', surface: 'Opaque surface', scheme: 'Dark', alt: 'The same two toasts on the opaque surface, dark mode, Android' },
-  { media: 'ios-stack-light', platform: 'iOS 26', surface: 'Liquid Glass', scheme: 'Light', alt: 'An error toast stacked above a success toast in Liquid Glass, light mode, iOS 26' },
-  { media: 'android-stack-light', platform: 'Android', surface: 'Opaque surface', scheme: 'Light', alt: 'The same two toasts on the opaque surface, light mode, Android' },
-];
-
 // Each feature leads with the line of API it is about.
 const features = [
   { spec: 'visibleToasts: 3', title: 'A queue, not a pile', body: 'Three show per edge. The rest wait their turn, and each gets its full time once it is on screen.' },
   { spec: 'swipe · press and hold', title: 'Swipe it away, hold to read', body: 'Fling a toast to dismiss it. Press and hold one to pause every timer in the stack.' },
-  { spec: "dedupeKey: 'draft'", title: 'Twenty calls, one toast', body: 'Repeat a call with the same key and the toast already on screen updates instead of stacking.' },
+  { spec: "dedupeKey: 'draft'", title: 'Twenty calls, one toast', body: 'Repeat a call with the same key while its toast is showing and you get that toast back, not a second copy.' },
   { spec: 'VoiceOver · TalkBack', title: 'Accessible by default', body: 'Announced to screen readers, with Reduce Motion, Reduce Transparency, capped font scaling and a haptic per type.' },
   { spec: 'iconPop · iconPopDelay', title: 'The check draws itself', body: 'Icons pop in and the checkmark draws on react-hot-toast’s timing. Under Reduce Motion they arrive finished.' },
   { spec: 'theme={{ radius: 14 }}', title: 'Tokens, not overrides', body: 'Light and dark defaults follow the system. Every token is overridable, and exports as a CSS variable for NativeWind or Unistyles.' },
@@ -50,7 +45,11 @@ const faq = [
   },
   {
     q: 'What do Android and older iOS get?',
-    a: 'An opaque surface with real colour, border and shadow, in light and dark. The same surface is used on iOS 26 when Reduce Transparency is on. Nothing imitates glass where the platform does not draw it.',
+    a: 'An opaque surface with real colour, border and shadow, in light and dark. The same surface is used on iOS 26 when Reduce Transparency is on. On the web, browsers that can blur a backdrop get frosted glass instead, the toasts you can fire on this page.',
+  },
+  {
+    q: 'Does it work on the web?',
+    a: 'Yes, through React Native Web, as in Expo web apps. Every toast on this page is the library running that way. Liquid Glass is UIKit’s, so browsers get frosted glass: a backdrop blur under a translucent fill, tuned by the frostBlur, frostSaturation and frostHighlight tokens, and opaque for anyone who prefers reduced transparency.',
   },
   {
     q: 'What does Liquid Glass need?',
@@ -69,16 +68,17 @@ const faq = [
 
 <Base
   title="expo-hot-toast: toasts for Expo, in real Liquid Glass"
-  description="The react-hot-toast API for Expo and React Native, drawn with Apple's own Liquid Glass on iOS 26 and a designed surface on Android."
+  description="The react-hot-toast API for Expo and React Native, drawn with Apple's own Liquid Glass on iOS 26, frosted glass on the web and a designed surface on Android."
+  live
 >
   <section class="hero">
     <div class="hero-copy inset">
       <p class="label eyebrow enter" style="--i: 0">Open source for Expo and React Native</p>
       <h1 class="display enter" style="--i: 1">Toasts in real Liquid Glass.</h1>
-      <p class="lede enter" style="--i: 2">The react-hot-toast API, drawn with Apple's own material on iOS 26 and a designed surface on Android.</p>
+      <p class="lede enter" style="--i: 2">The react-hot-toast API, drawn with Apple's own material on iOS 26, frosted glass on the web and a designed surface on Android.</p>
       <div class="ctas enter" style="--i: 3">
+        <HeroToast client:load />
         <a class="button primary" href={url('docs/installation')}>Quick start <Icon name="arrow-right" /></a>
-        <CopyInstall />
       </div>
       <button type="button" class="ai-link enter" style="--i: 4" data-copy={SETUP_PROMPT}>
         <span class="idle-label">Using an AI agent? Copy a setup prompt <Icon name="copy" /></span>
@@ -109,39 +109,42 @@ const faq = [
     <div data-reveal style="--i: 3"><span class="display stat">MIT</span><p>Open source, with a typed API and no runtime dependencies.</p></div>
   </section>
 
+  <section class="band live" aria-labelledby="try">
+    <header class="head inset" data-reveal>
+      <h2 id="try" class="display">Go on, make a toast.</h2>
+      <p>Every button fires a real toast over this page: the library itself, running in your browser. Swipe one away, or press and hold to pause it.</p>
+    </header>
+    <div class="live-stage">
+      <Examples client:visible />
+    </div>
+  </section>
+
+  <section class="band live" aria-labelledby="where">
+    <header class="head inset" data-reveal>
+      <h2 id="where" class="display">Put it anywhere.</h2>
+      <p>Six positions, and the stack can grow either way. This page's toasts move as you pick.</p>
+    </header>
+    <div class="live-stage" style="min-height: 300px">
+      <PositionPicker client:only="react" />
+    </div>
+  </section>
+
+  <section class="band live" aria-labelledby="yours">
+    <header class="head inset" data-reveal>
+      <h2 id="yours" class="display">Make it yours.</h2>
+      <p>Every colour, size and duration is a token. Change them here, watch the toasts on this page follow, and copy the Toaster you built.</p>
+    </header>
+    <div class="live-stage" style="min-height: 560px">
+      <Customiser client:only="react" />
+    </div>
+  </section>
+
   <section class="band" aria-labelledby="calls">
     <header class="head inset" data-reveal>
-      <h2 id="calls" class="display">Every call, on a real device.</h2>
-      <p>Pick a call to jump the recording to it. These are screen recordings from CI, not mockups.</p>
+      <h2 id="calls" class="display">On iPhone, it's real Liquid Glass.</h2>
+      <p>A browser can only frost. On iOS 26 the same calls draw Apple's own material. These are screen recordings from CI, not mockups: pick a call to jump to it.</p>
     </header>
     <DemoWindow />
-  </section>
-
-  <section class="band" aria-labelledby="play">
-    <header class="head inset" data-reveal>
-      <h2 id="play" class="display">Now try it yourself.</h2>
-      <p>The real library, in your browser. Tap, flick, press and hold.</p>
-    </header>
-    <Playground />
-  </section>
-
-  <section class="band" aria-labelledby="surfaces">
-    <header class="head inset" data-reveal>
-      <h2 id="surfaces" class="display">Glass where the platform has it.</h2>
-      <p>Liquid Glass on iOS 26. A designed opaque surface everywhere else, and for anyone with Reduce Transparency on.</p>
-    </header>
-    <ul class="stills grid">
-      {
-        stills.map((s, i) => (
-          <li data-reveal style={`--i: ${i % 2}`}>
-            <img src={url(`media/${s.media}.jpg`)} alt={s.alt} loading="lazy" decoding="async" width="800" height="424" />
-            <p class="label">
-              <span>{s.platform}</span> · {s.surface} · {s.scheme}
-            </p>
-          </li>
-        ))
-      }
-    </ul>
   </section>
 
   <section class="band" aria-labelledby="built">
@@ -274,6 +277,7 @@ const faq = [
   .ctas {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 12px;
     margin-top: 36px;
   }
@@ -404,34 +408,6 @@ const faq = [
   }
 
   /* Two columns, iOS beside Android; a row per appearance. */
-  .stills {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .stills li {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-    padding: clamp(20px, 3vw, 36px) var(--pad);
-    min-width: 0;
-  }
-  .stills img {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 800 / 424;
-    border-radius: 18px;
-    background: var(--surface);
-    box-shadow: 0 0 0 1px var(--line);
-  }
-  .stills .label {
-    margin: 0;
-    color: var(--faint);
-  }
-  .stills .label span {
-    color: var(--text);
-  }
 
   /* Six equal cells: the API line, the name, one sentence. */
   .features {
@@ -702,8 +678,5 @@ const faq = [
       border-top: 1px solid var(--line);
     }
     .features,
-    .stills {
-      grid-template-columns: minmax(0, 1fr);
-    }
   }
 </style>

@@ -42,7 +42,9 @@ when a toast leaves, so the change is visible.
 
 ## Reduce Transparency
 
-On iOS 26, toasts use the opaque surface instead of Liquid Glass.
+On iOS 26, toasts use the opaque surface instead of Liquid Glass. On the web,
+the browser's `prefers-reduced-transparency` setting does the same for the
+frosted glass.
 
 ## Text size
 

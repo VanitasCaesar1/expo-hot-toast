@@ -92,6 +92,15 @@ Or configure it:
 The opaque surface uses `fallbackBackground`, `border`, `borderWidth` and the
 shadow tokens. People with Reduce Transparency on always get it.
 
+On the web, `glass` draws frosted glass instead of Liquid Glass. It fills with
+`background`, lays any `tintColor` over it, blurs the page behind by
+`frostBlur` and saturates it by `frostSaturation`, and lights the rim with
+`frostHighlight`:
+
+```tsx
+<Toaster theme={{ frostBlur: 28, background: 'rgba(28,28,30,0.5)' }} />
+```
+
 ## Tokens outside React
 
 `resolveTheme` returns the full token set for a scheme, for use in a style

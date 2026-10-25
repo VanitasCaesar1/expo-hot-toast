@@ -27,9 +27,12 @@ toast.promise(upload(photo), {
 | iOS 26 with Reduce Transparency on | An opaque surface |
 | iOS before 26 | An opaque surface |
 | Android | An opaque surface, in light and dark |
+| Web | Frosted glass: a backdrop blur under a translucent fill |
 
 The opaque surface is designed for its platform: a solid fill, border and
-shadow. It does not imitate glass.
+shadow. It does not imitate glass. On the web, where browsers can blur what is
+behind an element, toasts are frosted instead; anyone who prefers reduced
+transparency gets the opaque surface there too.
 
 ## The API
 

@@ -13,15 +13,18 @@ Override any of these with `<Toaster theme>` or a toast's `theme` option. See
 | Token | Light | Dark | |
 |---|---|---|---|
 | `fallbackBackground` | `#FFFFFF` | `#2C2C2E` | Fill of the opaque surface |
-| `border` | `rgba(255,255,255,0.6)` | `rgba(255,255,255,0.14)` | Border of the opaque surface |
+| `background` | `rgba(255,255,255,0.72)` | `rgba(28,28,30,0.72)` | Fill of the frosted glass on the web |
+| `border` | `rgba(255,255,255,0.6)` | `rgba(255,255,255,0.14)` | Border of the opaque surface and the frosted glass |
+| `frostBlur` | `18` | same | Web only: backdrop blur, in px |
+| `frostSaturation` | `180` | same | Web only: backdrop saturation, in percent |
+| `frostHighlight` | `rgba(255,255,255,0.9)` | `rgba(255,255,255,0.3)` | Web only: light in the glass rim |
 | `borderWidth` | `0` on 3x screens, else `1` | same | |
 | `radius` | `22` | same | Corner radius |
-| `shadowColor` | `#000000` | same | Opaque surface only |
+| `shadowColor` | `#000000` | same | Opaque surface and frosted glass |
 | `shadowOpacity` | `0.12` | `0.3` | |
 | `shadowRadius` | `16` | same | |
 | `shadowOffsetY` | `6` | same | |
 | `elevation` | `8` | same | Android shadow |
-| `background` | `rgba(255,255,255,0.72)` | `rgba(28,28,30,0.72)` | Not drawn by the built-in surface; for custom renderers and CSS variables |
 
 Liquid Glass draws its own material and ignores the fill, border and shadow.
 
@@ -66,7 +69,7 @@ Used by toasts with `richColors`. Override one field without losing the rest:
 | `rich.success.background` | `#ECFDF3` | `#032313` | Opaque surface |
 | `rich.success.border` | `#BFF5D6` | `#0B4425` | |
 | `rich.success.color` | `#00702A` | `#5FE39A` | Message and description |
-| `rich.success.tint` | `rgba(52,199,89,0.22)` | `rgba(48,209,88,0.26)` | Tint over Liquid Glass |
+| `rich.success.tint` | `rgba(52,199,89,0.22)` | `rgba(48,209,88,0.26)` | Tint over Liquid Glass and frosted glass |
 | `rich.error.background` | `#FFF0F0` | `#2E0809` | |
 | `rich.error.border` | `#FFD9DA` | `#561317` | |
 | `rich.error.color` | `#C8000F` | `#FF8F92` | |

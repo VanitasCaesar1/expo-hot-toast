@@ -1,7 +1,7 @@
 name: Web
 
-# Builds the example for the web with Expo, which is what the website's
-# playground embeds. Runs the real library on react-native-web, so a failure
+# Builds the example for the web with Expo, which is what the website
+# loads for its live demos. Runs the real library on react-native-web, so a failure
 # here means web support broke.
 
 on:

@@ -1,0 +1,276 @@
+/*
+ * The live demos. The Glassy UI controls are glass, so each demo sits on a
+ * stage with colour behind it for the glass to bend: a warm ribbon on the dark
+ * page, the same heat as the flame mark.
+ */
+
+/* Glassy UI's accent, in the site's amber. */
+:root[data-lg-theme='dark'] {
+  --lg-accent: #ffad3b;
+  --lg-switch-on: #ff9f0a;
+  --lg-focus-ring: #ffad3b;
+  /* Prominent buttons are amber glass instead of blue: the same recolouring
+     filter, turned to the flame's hue, still capped so white text holds. */
+  --lg-prominent-fill: #c25e00;
+  --lg-prominent-tint: grayscale(1) contrast(0.5) brightness(0.4) sepia(1) hue-rotate(-14deg) saturate(7)
+    brightness(1.2);
+  --lg-prominent-glow: 255 205 150;
+  --lg-prominent-shade: 64 26 0;
+}
+
+.live-stage {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(28px, 4vw, 56px) var(--pad);
+  overflow: hidden;
+}
+.live-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url('/expo-hot-toast/media/ribbon.svg') center / cover no-repeat;
+  opacity: 0.9;
+}
+.live-stage::after {
+  /* Darkens the ribbon under the code, which has to stay readable. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(120% 90% at 50% 50%, transparent 30%, rgb(18 18 17 / 0.55) 100%);
+}
+
+/* Examples: a grid of buttons beside the code for the last one pressed. */
+.examples {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 40px);
+  align-items: start;
+}
+.example-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.example-grid .lg-button {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 10px;
+}
+.example-emoji {
+  font-size: 1.05em;
+}
+
+/* Code written by the demos. */
+.live-code {
+  min-width: 0;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 18px;
+  background: rgb(14 14 13 / 0.78);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 30px 60px -30px rgb(0 0 0 / 0.8);
+  overflow: hidden;
+}
+.live-code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 8px 0 16px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  color: var(--faint);
+}
+.live-code-bar button {
+  border: 0;
+  border-radius: 8px;
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--faint);
+  font: 500 12px/1 var(--mono);
+  cursor: pointer;
+}
+.live-code-bar button:hover {
+  color: var(--text);
+  background: rgb(255 255 255 / 0.06);
+}
+.live-code pre {
+  margin: 0;
+  padding: 18px 18px 22px;
+  min-height: 132px;
+  overflow-x: auto;
+  font: 14px/1.7 var(--mono);
+  color: #adbac7;
+}
+.tok-comment {
+  color: #768390;
+}
+.tok-string {
+  color: #96d0ff;
+}
+.tok-tag {
+  color: #8ddb8c;
+}
+.tok-keyword {
+  color: #f47067;
+}
+.tok-number {
+  color: #6cb6ff;
+}
+.tok-prop,
+.tok-key {
+  color: #6cb6ff;
+}
+.tok-call {
+  color: #dcbdfb;
+}
+.tok-punct {
+  color: #adbac7;
+}
+
+/* Position. */
+.position {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(20px, 3vw, 40px);
+  align-items: center;
+}
+.position-controls {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+}
+.position-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+.position-grid .lg-button {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.switch-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 15px;
+}
+.switch-row code {
+  margin-left: 6px;
+  color: var(--accent);
+  font: 13px var(--mono);
+}
+
+/* Customiser. */
+.customiser {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 40px);
+  align-items: start;
+}
+.controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 28px;
+  padding: 24px;
+  border-radius: 24px;
+  background: rgb(14 14 13 / 0.5);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid rgb(255 255 255 / 0.1);
+}
+.control {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.control-label {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+.control-label output {
+  color: var(--text);
+  font-family: var(--mono);
+}
+.swatches {
+  display: flex;
+  gap: 10px;
+}
+.swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  background:
+    linear-gradient(var(--swatch), var(--swatch)),
+    repeating-conic-gradient(rgb(255 255 255 / 0.12) 0 25%, transparent 0 50%) 0 0 / 10px 10px;
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out);
+}
+.swatch[aria-checked='true'] {
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--accent);
+}
+.swatch:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+.swatch:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.switches {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 28px;
+}
+.controls .fire {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.hero-toast {
+  font-weight: 600;
+}
+.hero-toast span {
+  margin-right: 8px;
+}
+
+@media (max-width: 960px) {
+  .examples,
+  .position,
+  .customiser {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .example-grid,
+  .position-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The real library's page Toaster (lib/live.ts). It covers the viewport, but
+   its layers pass the pointer through, so only the toasts take it. */
+.live-root {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  pointer-events: none;
+}

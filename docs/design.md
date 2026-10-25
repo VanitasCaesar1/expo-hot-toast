@@ -33,7 +33,8 @@ neighbouring toasts from merging, so nothing above the surface clips.
 | iOS 26+, not opted out, transparency allowed | Real `UIGlassEffect` |
 | iOS < 26, or `UIDesignRequiresCompatibility=YES` | Opaque tinted surface |
 | Reduce Transparency enabled | Opaque tinted surface |
-| Android, web | Opaque tinted surface |
+| Web, in a browser with `backdrop-filter` | Frosted glass: CSS backdrop blur, translucent fill, lit rim |
+| Android, or a browser without `backdrop-filter` | Opaque tinted surface |
 | `glass: false` on the toast or the `<Toaster>` | Opaque tinted surface |
 
 The Reduce Transparency rung is the one people miss: `isLiquidGlassAvailable()`
@@ -42,6 +43,13 @@ availability check alone renders a translucent material to someone who asked
 not to see one. `expo-glass-effect`'s non-iOS build renders a bare `<View>`, so
 the opaque rung is always drawn with real colour, border and shadow rather than
 left blank.
+
+The web gets its own rung because a browser can do what Android cannot cheaply:
+blur whatever is behind an element. It is frosted glass, not an imitation of
+Liquid Glass, and it follows Glassy UI's frost (glassyui.com, MIT): the
+backdrop blurred and saturated under the translucent `background` token, with
+an inset shadow stack for the rim. `prefers-reduced-transparency` drops it to
+the opaque rung, as Reduce Transparency does on iOS.
 
 Not available in React Native, and deliberately not faked: `glassEffectID`
 shape morphing, `glassEffectTransition`, `.glass` / `.glassProminent` button

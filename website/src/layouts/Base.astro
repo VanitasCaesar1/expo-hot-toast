@@ -4,19 +4,34 @@ import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import Search from '../components/Search.astro';
 import { url } from '../lib/url';
+import { readFileSync } from 'node:fs';
 
 interface Props {
   title: string;
   description: string;
+  /** Mount the real library over the page, for the live toast demos. */
+  live?: boolean;
 }
 
-const { title, description } = Astro.props;
+// The library's web build, exported by CI into public/playground. Its script
+// tag names the hashed bundle, which the live demos load (see lib/live.ts).
+function toasterScript(): string | undefined {
+  try {
+    const html = readFileSync(new URL('../../public/playground/index.html', import.meta.url), 'utf8');
+    return html.match(/<script src="([^"]+)"/)?.[1];
+  } catch {
+    return undefined;
+  }
+}
+
+const { title, description, live = false } = Astro.props;
+const toasterSrc = live ? toasterScript() : undefined;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(url('media/og.png'), Astro.site);
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lg-theme="dark" data-lg-mode="clear">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -41,6 +56,7 @@ const ogImage = new URL(url('media/og.png'), Astro.site);
     </main>
     <Footer />
     <Search />
+    {live && <div id="root" class="live-root" data-src={toasterSrc}></div>}
     <script>
       // Copy buttons anywhere on the page.
       for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy]')) {

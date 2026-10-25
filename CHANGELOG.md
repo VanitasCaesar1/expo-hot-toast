@@ -19,6 +19,21 @@ Initial release. Not yet published to npm; `main` previously pointed at
   iOS < 26 or when `UIDesignRequiresCompatibility=YES`; opaque surface when
   Reduce Transparency is enabled. The availability check alone is insufficient —
   `isLiquidGlassAvailable()` still returns `true` under Reduce Transparency.
+- **Frosted glass on the web**: a CSS backdrop blur under the translucent
+  `background` token, with a lit rim, after Glassy UI's frost. Tuned by
+  `frostBlur`, `frostSaturation` and `frostHighlight`; browsers without
+  `backdrop-filter`, and anyone who prefers reduced transparency, get the opaque
+  surface. `FROST_SUPPORTED` reports whether it is in use.
+- **`description`**: a second, quieter line under the message, announced after
+  it.
+- **`richColors`**: success and error toasts take an outcome palette (fill,
+  border, text, and a glass tint), themeable under `theme.rich`.
+- **`<Toaster stacked>`**: toasts collapse into a deck behind the newest and fan
+  out while pressed. Stays expanded under a screen reader and with
+  `reverseOrder`.
+- **Swipe toward the edge to dismiss**, as well as sideways.
+- **`haptics`** on the Toaster and per toast, to turn the success and error
+  haptics off.
 - **Soft visible cap** via `visibleToasts` (default 3) with implicit promotion.
   Overflow stays stored with its timer unarmed and is promoted into the freed
   slot on dismissal. Nothing is evicted until `visibleToasts + maxPending` is
