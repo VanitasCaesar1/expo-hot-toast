@@ -43,7 +43,7 @@ export default function StarButton({ repo, initial, label = 'Star', variant = 's
         data-compact={compact ? '' : undefined}
         aria-label={stars ? `${label} on GitHub, ${stars} stars` : `${label} on GitHub`}
         onClick={() =>
-          window.expoHotToast?.toast('Thank you for the star!', { icon: '⭐', id: 'star-thanks' })
+          window.expoHotToast?.toast.success('Thank you for the star', { id: 'star-thanks' })
         }
       >
         <Glyph name="star" />

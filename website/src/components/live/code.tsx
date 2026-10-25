@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { Glyph } from '../glass/icons';
 
 /**
  * A small highlighter for the snippets the live demos write as you change
  * them. They are a few lines of toast calls and Toaster props, so a handful of
  * token rules covers them, in the github-dark-dimmed colours the static code
- * panels use.
+ * blocks use; the header matches theirs (styles/code-block.css).
  */
 const RULES: Array<[RegExp, string]> = [
   [/^\/\/[^\n]*/, 'comment'],
@@ -60,8 +61,14 @@ export function LiveCode({ code, file }: { code: string; file: string }) {
   return (
     <div className="live-code">
       <div className="live-code-bar">
-        <span className="label">{file}</span>
-        <button type="button" onClick={copy} aria-label={`Copy ${file}`}>
+        <span className="live-code-title">
+          <span className="code-icon">
+            <Glyph name="typescript" />
+          </span>
+          <span className="live-code-file">{file}</span>
+        </span>
+        <button type="button" onClick={copy} aria-label={`Copy ${file}`} data-copied={copied ? '' : undefined}>
+          <Glyph name={copied ? 'check' : 'copy'} />
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>

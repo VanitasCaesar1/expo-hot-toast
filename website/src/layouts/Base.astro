@@ -39,7 +39,7 @@ const searchPages = loadDocs().map((p) => ({ title: p.title, group: p.group, url
     <main class="frame">
       <slot />
     </main>
-    <Footer stars={stars} />
+    <Footer stars={stars} star={!live} />
     <SiteSearch client:idle base={url('pagefind/')} pages={searchPages} />
     {live && <div id="root" class="live-root"></div>}
     <script>

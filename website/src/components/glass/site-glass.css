@@ -22,10 +22,11 @@
   --lg-accent: #d97706;
   --lg-switch-on: #f59e0b;
   --lg-focus-ring: #d97706;
-  /* Amber glass in the light theme too, a shade deeper so white text holds. */
+  /* Amber glass in the light theme too: burnt orange over the pale page (a
+     darker tint turned it brown), still deep enough that white text holds. */
   --lg-prominent-fill: #c25e00;
-  --lg-prominent-tint: grayscale(1) contrast(0.5) brightness(0.5) sepia(1) hue-rotate(-14deg) saturate(7)
-    brightness(1.05);
+  --lg-prominent-tint: grayscale(1) contrast(0.5) brightness(0.7) sepia(1) hue-rotate(-18deg) saturate(9)
+    brightness(1.02);
   --lg-prominent-glow: 255 200 140;
   --lg-prominent-shade: 90 40 0;
   --lg-foreground: #1b1a17;
@@ -226,4 +227,17 @@
 .copy-button[data-copied] .copy-done {
   display: inline-flex;
   color: var(--accent-text);
+}
+
+/* One radius for every glass card on the site; what sits inside one, 8px in,
+   takes 14px, so the corners stay concentric. */
+.lg-panel--card {
+  --lg-panel-radius: 22px;
+}
+
+/* Cards in the dark theme: a quieter fill than Glassy's standard 8% white,
+   which reads as grey slabs over this near-black page. The rim and the frost
+   stay; the card sits closer to the page, and its stage carries the colour. */
+:root[data-lg-theme='dark'] .lg-panel--card[data-lg-preset='standard'] {
+  --lg-surface-alpha: 0.045;
 }

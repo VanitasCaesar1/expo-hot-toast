@@ -164,11 +164,13 @@ const tiles = [
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 14px;
   }
+  /* The stage sits 8px inside the card (22px corners), concentric with it. */
   .rich :global(.tile) {
     display: flex;
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+    padding: 0;
   }
   .rich :global(.tile.wide) {
     grid-column: span 7;
@@ -188,7 +190,7 @@ const tiles = [
     position: relative;
     height: 200px;
     margin: 8px 8px 0;
-    border-radius: 18px;
+    border-radius: 14px;
     overflow: hidden;
     background:
       radial-gradient(60% 80% at 20% 10%, rgb(255 140 40 / 0.55), transparent 70%),

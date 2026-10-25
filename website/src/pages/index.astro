@@ -13,7 +13,6 @@ import Start from '../components/home/Start.astro';
 import Rich from '../components/home/Rich.astro';
 import StarButton from '../components/glass/StarButton';
 import { buildStars } from '../lib/stars';
-import { GlassPanel } from '../components/glassyui/glass-panel';
 import Icon from '../components/Icon.astro';
 import { url, REPO_URL } from '../lib/url';
 import { SETUP_PROMPT } from '../lib/ai';
@@ -129,7 +128,7 @@ const faq = [
   <section class="band" aria-labelledby="calls">
     <header class="head inset" data-reveal>
       <h2 id="calls" class="display">On iPhone, it's real Liquid Glass.</h2>
-      <p>A browser can only frost. On iOS 26 the same calls draw Apple's own material. These are screen recordings from CI, not mockups: pick a call to jump to it.</p>
+      <p>A browser can only frost. On iOS 26 the same calls draw Apple's own material. These are recordings of the example app, not mockups: pick a call to jump to it.</p>
     </header>
     <DemoWindow />
   </section>
@@ -157,17 +156,13 @@ const faq = [
   <section aria-labelledby="start">
     <Start />
   </section>
-  <section class="star inset" aria-labelledby="star">
-    <GlassPanel variant="card" className="star-card">
-      <div>
-        <h2 id="star" class="display">Like it? Give it a star.</h2>
-        <p>It is free and MIT licensed. Stars are how other Expo developers find it, and the best way to say it saved you an afternoon.</p>
-      </div>
-      <div class="star-actions">
-        <StarButton client:visible repo={REPO_URL} initial={stars} label="Star on GitHub" variant="prominent" size="lg" />
-        <LinkButton href={`${REPO_URL}/issues`} label="Report an issue" variant="soft" size="lg" />
-      </div>
-    </GlassPanel>
+  <section class="star inset" aria-labelledby="star" data-reveal>
+    <h2 id="star" class="display">Like it? Give it a star.</h2>
+    <p>It is free and MIT licensed. Stars are how other Expo developers find it, and the best way to say it saved you an afternoon.</p>
+    <div class="star-actions">
+      <StarButton client:visible repo={REPO_URL} initial={stars} label="Star on GitHub" variant="prominent" size="lg" />
+      <LinkButton href={`${REPO_URL}/issues`} label="Report an issue" variant="soft" size="lg" />
+    </div>
   </section>
 </Base>
 
@@ -246,7 +241,7 @@ const faq = [
     position: relative;
     margin: 0;
     height: clamp(340px, 34vw, 440px);
-    border-radius: 36px;
+    border-radius: 32px;
     overflow: hidden;
     background: var(--stage-base);
     box-shadow:
@@ -396,37 +391,32 @@ const faq = [
     display: inline-flex;
     color: var(--accent-text);
   }
-  /* The star card continues the start section above it, so it shares that
-     section's centred 920px column rather than the full page width. */
+  /* The close: a centred ask, open on the page, before the footer's card. */
   .star {
-    margin-top: 20px;
-  }
-  .star :global(.star-card) {
-    max-width: 920px;
-    margin-inline: auto;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 28px 48px;
-    align-items: center;
-    padding: clamp(28px, 4vw, 48px);
+    justify-items: center;
+    padding-block: 136px 56px;
+    text-align: center;
   }
   .star h2 {
-    font-size: clamp(28px, 3vw, 40px);
+    max-width: none;
+    font-size: clamp(32px, 4vw, 52px);
   }
   .star p {
-    margin: 12px 0 0;
-    max-width: 52ch;
+    margin: 14px 0 0;
+    max-width: 50ch;
     color: var(--muted);
   }
   .star-actions {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 12px;
+    margin-top: 28px;
   }
 
   @media (max-width: 960px) {
-    .faq,
-    .star :global(.star-card) {
+    .faq {
       grid-template-columns: minmax(0, 1fr);
     }
   }
