@@ -131,6 +131,44 @@ function playDemo() {
   steps.forEach(([at, run]) => setTimeout(run, at));
 }
 
+/**
+ * The rich toasts, scripted for the website's recordings the same way: a
+ * long-press on the subtitle (testID `play-rich-demo`) starts it, and every
+ * toast names its own duration. About 25 seconds.
+ */
+function playRichDemo() {
+  const at = (ms: number, run: () => void) => setTimeout(run, ms);
+  at(800, () => {
+    const upload = toast.progress('Uploading 4 photos', { description: 'Trip to Lisbon' });
+    [0.12, 0.27, 0.35, 0.52, 0.66, 0.74, 0.88, 1].forEach((p, i) => at(350 + i * 360, () => upload.set(p)));
+    at(3700, () => upload.success('4 photos uploaded', { description: 'Trip to Lisbon', duration: 2200 }));
+  });
+  at(6600, () => {
+    const job = toast.steps(['Compressing video', 'Uploading', 'Processing']);
+    at(1200, () => job.next());
+    at(2400, () => job.next());
+    at(3600, () => job.success('Video published', { duration: 2000 }));
+  });
+  at(12800, () =>
+    toast('Conversation deleted', {
+      duration: 4000,
+      action: { label: 'Undo', countdown: true, onPress: () => toast.success('Conversation restored') },
+    }),
+  );
+  at(13400, () =>
+    toast.notify({
+      title: 'Maya Patel',
+      body: 'Sent you 4 photos from the trip',
+      timestamp: 'now',
+      avatar: <Initials name="MP" />,
+      duration: 3200,
+    }),
+  );
+  at(17200, () => toast.island('AirPods Pro connected', { type: 'success', duration: 2400 }));
+  at(19900, () => toast.hud('Added to Library', { duration: 1800 }));
+  at(22000, () => toast.banner("You're offline", { type: 'warning', description: 'Changes will sync when you reconnect.', duration: 2600 }));
+}
+
 function Row({
   title,
   detail,
@@ -213,10 +251,12 @@ function Screen() {
         <Pressable testID="play-demo" onLongPress={playDemo} accessibilityRole="header">
           <Text style={[styles.title, { color: colors.label }]}>expo-hot-toast</Text>
         </Pressable>
-        <Text style={[styles.subtitle, { color: colors.secondary }]}>
-          The react-hot-toast API for Expo. On iOS 26 each toast is drawn with
-          the system Liquid Glass material.
-        </Text>
+        <Pressable testID="play-rich-demo" onLongPress={playRichDemo}>
+          <Text style={[styles.subtitle, { color: colors.secondary }]}>
+            The react-hot-toast API for Expo. On iOS 26 each toast is drawn with
+            the system Liquid Glass material.
+          </Text>
+        </Pressable>
 
         <Section header="Toasts" colors={colors}>
           <Row

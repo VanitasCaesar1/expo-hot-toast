@@ -45,18 +45,22 @@ xcrun simctl ui "$UDID" appearance dark
 # whole flow; the clips are trimmed later.
 record_demo() {
   local name=$1
+  local flow=${2:-demo}
   xcrun simctl terminate "$UDID" "$APP_ID" || true
   xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$OUT/$name.mp4" &
   local recorder=$!
   sleep 2
-  (cd "$OUT" && maestro --device "$UDID" test ../../example/.maestro/demo.yaml) || true
-  sleep 26
+  (cd "$OUT" && maestro --device "$UDID" test "../../example/.maestro/$flow.yaml") || true
+  sleep 28
   kill -INT "$recorder" || true
   wait "$recorder" || true
 }
 record_demo demo-dark
+# The rich toasts, scripted the same way (playRichDemo), for the website.
+record_demo rich-dark demo-rich
 xcrun simctl ui "$UDID" appearance light
 record_demo demo-light
+record_demo rich-light demo-rich
 
 cp -R "$HOME/.maestro/tests" "$OUT/maestro-debug" 2>/dev/null || true
 xcrun simctl shutdown "$UDID" || true

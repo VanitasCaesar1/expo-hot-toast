@@ -45,22 +45,26 @@ wait_for_emulator() {
 }
 record_demo() {
   local name=$1
+  local flow=${2:-demo}
   wait_for_emulator
   adb shell am force-stop "$APP_ID"
   adb shell screenrecord "/sdcard/$name.mp4" &
   sleep 1
-  (cd "$OUT" && maestro test ../../example/.maestro/demo.yaml) || {
+  (cd "$OUT" && maestro test "../../example/.maestro/$flow.yaml") || {
     wait_for_emulator
-    (cd "$OUT" && maestro test ../../example/.maestro/demo.yaml) || true
+    (cd "$OUT" && maestro test "../../example/.maestro/$flow.yaml") || true
   }
-  sleep 26
+  sleep 28
   adb shell pkill -INT screenrecord || true
   sleep 3
   adb pull "/sdcard/$name.mp4" "$OUT/$name.mp4" || true
 }
 record_demo demo-dark
+# The rich toasts, scripted the same way (playRichDemo), for the website.
+record_demo rich-dark demo-rich
 adb shell cmd uimode night no
 record_demo demo-light
+record_demo rich-light demo-rich
 
 adb logcat -d > "$OUT/logcat.txt" || true
 # Maestro keeps its own logs, and a screenshot at the failing step.
