@@ -118,15 +118,17 @@ appId: dev.expohottoast.example
           end: "50%, 1%"
           duration: 150
 # Android's Material snackbars rise from the bottom, so the flick toward the
-# toast's own edge is down.
+# toast's own edge is down. An element swipe from a toast this close to the
+# edge travels too little to count, so this is an explicit flick from the
+# snackbar (around 92% down) to the bottom edge.
 - runFlow:
     when:
       platform: Android
     commands:
       - swipe:
-          from:
-            text: "Payment received"
-          direction: DOWN
+          start: "50%, 92%"
+          end: "50%, 99%"
+          duration: 150
 - extendedWaitUntil:
     notVisible: "Payment received"
     timeout: 5000

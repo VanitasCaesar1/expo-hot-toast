@@ -1,6 +1,9 @@
 # Drives every row of the "Rich toasts" section and screenshots each one, on
 # the same E2E build as smoke.yaml: toasts last 60 seconds, progress takes 20,
 # and a tap dismisses (or, for the notification, opens) a toast.
+#
+# Row taps cap Maestro's wait for the screen to settle: a filling bar keeps
+# the screen changing, and the default wait sat through the whole upload.
 appId: dev.expohottoast.example
 ---
 - launchApp:
@@ -15,38 +18,68 @@ appId: dev.expohottoast.example
       id: "row-success"
     timeout: 120000
 
-# Info and warning, each with its own glyph.
+# Info and warning, each with its own glyph. Each row is scrolled to the
+# middle of the screen first: on Android the snackbars cover the bottom rows.
 - scrollUntilVisible:
     element:
       id: "row-info"
     direction: DOWN
     timeout: 20000
+    centerElement: true
 - tapOn:
     id: "row-info"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "A new version is ready"
+- scrollUntilVisible:
+    element:
+      id: "row-warning"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - tapOn:
     id: "row-warning"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Storage almost full"
 - takeScreenshot: 20-info-warning
-- tapOn: "Storage almost full"
-- tapOn: "A new version is ready"
+- tapOn:
+    text: "Storage almost full"
+    waitToSettleTimeoutMs: 300
+- tapOn:
+    text: "A new version is ready"
+    waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
     notVisible: "A new version is ready"
     timeout: 5000
 
 # Progress: the bar fills while the toast stays put, then it becomes the success.
+- scrollUntilVisible:
+    element:
+      id: "row-upload-with-progress"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - tapOn:
     id: "row-upload-with-progress"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Uploading 4 photos"
 - takeScreenshot: 21-progress
 - extendedWaitUntil:
     visible: "4 photos uploaded"
     timeout: 60000
-- tapOn: "4 photos uploaded"
+- tapOn:
+    text: "4 photos uploaded"
+    waitToSettleTimeoutMs: 300
 
 # Steps: the label and the segment advance.
+- scrollUntilVisible:
+    element:
+      id: "row-steps"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - tapOn:
     id: "row-steps"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Compressing video"
 - extendedWaitUntil:
     visible: "Uploading"
@@ -55,7 +88,9 @@ appId: dev.expohottoast.example
 - extendedWaitUntil:
     visible: "Video published"
     timeout: 60000
-- tapOn: "Video published"
+- tapOn:
+    text: "Video published"
+    waitToSettleTimeoutMs: 300
 
 # Expandable: closed, then open with its details.
 - scrollUntilVisible:
@@ -63,33 +98,61 @@ appId: dev.expohottoast.example
       id: "row-expandable"
     direction: DOWN
     timeout: 20000
+    centerElement: true
 - tapOn:
     id: "row-expandable"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "3 photos failed to upload"
-- tapOn: "Show details"
+- tapOn:
+    text: "Show details"
+    waitToSettleTimeoutMs: 300
 - assertVisible: ".*larger than 50 MB.*"
 - takeScreenshot: 23-expandable
-- tapOn: "Hide details"
-- tapOn: "3 photos failed to upload"
+- tapOn:
+    text: "Hide details"
+    waitToSettleTimeoutMs: 300
+- tapOn:
+    text: "3 photos failed to upload"
+    waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
     notVisible: "3 photos failed to upload"
     timeout: 5000
 
 # Undo with its countdown, and Undo works.
+- scrollUntilVisible:
+    element:
+      id: "row-undo-countdown"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - tapOn:
     id: "row-undo-countdown"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Conversation deleted"
 - takeScreenshot: 24-undo-countdown
-- tapOn: "Undo"
+- tapOn:
+    text: "Undo"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Conversation restored"
-- tapOn: "Conversation restored"
+- tapOn:
+    text: "Conversation restored"
+    waitToSettleTimeoutMs: 300
 
 # Cancel beside the confirming action.
+- scrollUntilVisible:
+    element:
+      id: "row-cancel-and-confirm"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - tapOn:
     id: "row-cancel-and-confirm"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Delete 3 photos?"
 - takeScreenshot: 25-cancel-confirm
-- tapOn: "Cancel"
+- tapOn:
+    text: "Cancel"
+    waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
     notVisible: "Delete 3 photos?"
     timeout: 5000
@@ -100,20 +163,35 @@ appId: dev.expohottoast.example
       id: "row-notification"
     direction: DOWN
     timeout: 20000
+    centerElement: true
 - tapOn:
     id: "row-notification"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Maya Patel"
 - takeScreenshot: 26-notification
-- tapOn: "Maya Patel"
+- tapOn:
+    text: "Maya Patel"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Opened the chat"
-- tapOn: "Opened the chat"
+- tapOn:
+    text: "Opened the chat"
+    waitToSettleTimeoutMs: 300
 
 # A banner against the edge.
+- scrollUntilVisible:
+    element:
+      id: "row-banner"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - tapOn:
     id: "row-banner"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "You're offline"
 - takeScreenshot: 27-banner
-- tapOn: "You're offline"
+- tapOn:
+    text: "You're offline"
+    waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
     notVisible: "You're offline"
     timeout: 5000
@@ -124,15 +202,28 @@ appId: dev.expohottoast.example
       id: "row-hud"
     direction: DOWN
     timeout: 20000
+    centerElement: true
 - tapOn:
     id: "row-hud"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "Added to Library"
 - takeScreenshot: 28-hud
-- tapOn: "Added to Library"
+- tapOn:
+    text: "Added to Library"
+    waitToSettleTimeoutMs: 300
 
 # The island at the top.
+- scrollUntilVisible:
+    element:
+      id: "row-island"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - tapOn:
     id: "row-island"
+    waitToSettleTimeoutMs: 300
 - assertVisible: "AirPods Pro connected"
 - takeScreenshot: 29-island
-- tapOn: "AirPods Pro connected"
+- tapOn:
+    text: "AirPods Pro connected"
+    waitToSettleTimeoutMs: 300
