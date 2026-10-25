@@ -357,7 +357,7 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
     <div className="eht-title-line">
       <p
         className={cx('eht-title', slotClass('title'))}
-        style={{ ...textBase, WebkitLineClamp: theme.maxLines || undefined, textAlign: hud ? 'center' : undefined, ...flatten(toast.textStyle), ...slot('title') }}
+        style={{ ...(toast.classNames?.title ? null : textBase), WebkitLineClamp: theme.maxLines || undefined, textAlign: hud ? 'center' : undefined, ...flatten(toast.textStyle), ...slot('title') }}
       >
         {message}
       </p>
@@ -382,10 +382,14 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
           <p
             className={cx('eht-description', slotClass('description'))}
             style={{
-              color: descriptionColor,
-              fontSize: theme.descriptionFontSize,
-              lineHeight: `${theme.descriptionLineHeight}px`,
-              fontFamily: theme.descriptionFontFamily ?? theme.fontFamily,
+              ...(toast.classNames?.description
+                ? null
+                : {
+                    color: descriptionColor,
+                    fontSize: theme.descriptionFontSize,
+                    lineHeight: `${theme.descriptionLineHeight}px`,
+                    fontFamily: theme.descriptionFontFamily ?? theme.fontFamily,
+                  }),
               WebkitLineClamp: theme.descriptionMaxLines || undefined,
               textAlign: hud ? 'center' : undefined,
               ...slot('description'),
@@ -680,10 +684,10 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
         style={{
           // Each side on its own: React clears a side given as undefined next to
           // the shorthand, which dropped the bottom padding.
-          paddingTop: unstyled ? 0 : theme.paddingVertical,
-          paddingBottom: unstyled ? 0 : theme.paddingVertical + (progress && !ring ? 6 : 0),
-          paddingLeft: unstyled ? 0 : theme.paddingHorizontal,
-          paddingRight: unstyled ? 0 : theme.paddingHorizontal,
+          paddingTop: unstyled ? undefined : theme.paddingVertical,
+          paddingBottom: unstyled ? undefined : theme.paddingVertical + (progress && !ring ? 6 : 0),
+          paddingLeft: unstyled ? undefined : theme.paddingHorizontal,
+          paddingRight: unstyled ? undefined : theme.paddingHorizontal,
           maxWidth: fill ? undefined : `min(${theme.maxWidth}px, var(--eht-avail, 100vw))`,
         }}
       >

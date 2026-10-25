@@ -123,7 +123,16 @@ that read `className` on React Native components:
 ```
 
 Class strings from each level are joined, not replaced. Without such a
-library, `classNames` does nothing.
+library, `classNames` does nothing. On the web build (`expo-hot-toast/web`)
+they are ordinary `className`s, so Tailwind or any CSS works as is.
+
+In React Native an inline style beats a class, so a part given a class drops
+the token styles a class would set: a `title` class replaces the title's
+colour, size, weight and font tokens, and `unstyled` leaves the toast's
+padding and corners to your classes. `styles` still wins over both.
+
+Checked with Uniwind and Tailwind 4 on Android: background, border, padding,
+corners and text classes all reach the toast.
 
 ## Unstyled
 

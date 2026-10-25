@@ -651,13 +651,18 @@ export const ToastBar = React.memo(function ToastBar({
     <Text
       style={[
         styles.message,
-        {
-          color: theme.color,
-          fontSize: theme.fontSize,
-          lineHeight: theme.lineHeight,
-          fontWeight: titleWeight,
-          fontFamily: theme.fontFamily,
-        },
+        // A class on the title takes the place of the token text styles: in
+        // React Native an inline style beats a class, so keeping them would
+        // silently override text-xl or font-bold. `style` still wins.
+        toast.classNames?.title
+          ? null
+          : {
+              color: theme.color,
+              fontSize: theme.fontSize,
+              lineHeight: theme.lineHeight,
+              fontWeight: titleWeight,
+              fontFamily: theme.fontFamily,
+            },
         hud && styles.centered,
         toast.textStyle,
         slotStyle('title') as StyleProp<TextStyle>,
@@ -712,12 +717,14 @@ export const ToastBar = React.memo(function ToastBar({
     description == null ? null : typeof description === 'string' || typeof description === 'number' ? (
       <Text
         style={[
-          {
-            color: theme.descriptionColor,
-            fontSize: theme.descriptionFontSize,
-            lineHeight: theme.descriptionLineHeight,
-            fontFamily: theme.descriptionFontFamily ?? theme.fontFamily,
-          },
+          toast.classNames?.description
+            ? null
+            : {
+                color: theme.descriptionColor,
+                fontSize: theme.descriptionFontSize,
+                lineHeight: theme.descriptionLineHeight,
+                fontFamily: theme.descriptionFontFamily ?? theme.fontFamily,
+              },
           hud && styles.centered,
           slotStyle('description') as StyleProp<TextStyle>,
         ]}
@@ -1005,24 +1012,27 @@ export const ToastBar = React.memo(function ToastBar({
               layout={reduceMotion ? undefined : LinearTransition.duration(motion.queueShift).easing(motion.enterEasing)}
               style={[
                 styles.surfaceWrap,
-                {
-                  borderRadius: theme.radius,
-                  // iOS renders a continuous corner curve as one smooth arc
-                  // across adjoining corners; a plain borderRadius leaves a
-                  // visible crease where they meet.
-                  borderCurve: 'continuous',
-                  paddingVertical: theme.paddingVertical,
-                  paddingHorizontal: theme.paddingHorizontal,
-                  maxWidth: theme.maxWidth,
-                  gap: theme.gap,
-                },
+                // Unstyled leaves the padding and corners out altogether rather
+                // than zeroing them, so classes on the toast can set them.
+                unstyled
+                  ? { maxWidth: theme.maxWidth, gap: theme.gap }
+                  : {
+                      borderRadius: theme.radius,
+                      // iOS renders a continuous corner curve as one smooth arc
+                      // across adjoining corners; a plain borderRadius leaves a
+                      // visible crease where they meet.
+                      borderCurve: 'continuous',
+                      paddingVertical: theme.paddingVertical,
+                      paddingHorizontal: theme.paddingHorizontal,
+                      maxWidth: theme.maxWidth,
+                      gap: theme.gap,
+                    },
                 // A snackbar, banner or card stretches to the stack's width.
                 theme.fill && styles.fill,
                 // Room under a progress bar, so it never sits on the text.
-                hasProgress && !ring && { paddingBottom: theme.paddingVertical + 6 },
+                !unstyled && hasProgress && !ring && { paddingBottom: theme.paddingVertical + 6 },
                 // A banner reaches under the status bar or home indicator.
-                edgeInset > 0 && (atTop ? { paddingTop: theme.paddingVertical + edgeInset } : { paddingBottom: theme.paddingVertical + edgeInset }),
-                unstyled && styles.unstyled,
+                !unstyled && edgeInset > 0 && (atTop ? { paddingTop: theme.paddingVertical + edgeInset } : { paddingBottom: theme.paddingVertical + edgeInset }),
                 // Applied last so a consumer's `style` can override any token,
                 // which is the precedence the store's merge already assumes.
                 toast.style,
@@ -1113,12 +1123,6 @@ const styles = StyleSheet.create({
   },
   fill: {
     width: '100%',
-  },
-  // No padding or corner: the parts are styled by the consumer.
-  unstyled: {
-    paddingVertical: 0,
-    paddingHorizontal: 0,
-    borderRadius: 0,
   },
   row: {
     flexDirection: 'row',

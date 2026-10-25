@@ -168,6 +168,15 @@ describe('expo-hot-toast/web', () => {
     expect(container.querySelector('.my-title')!.textContent).toBe('Classy');
   });
 
+  it('lets classes style a part in place of its tokens', () => {
+    mount();
+    show(() => toast('Classy', { unstyled: true, classNames: { toast: 'card', title: 'big' } }));
+    const title = container.querySelector<HTMLElement>('.big')!;
+    expect(title.style.fontSize).toBe('');
+    const content = container.querySelector<HTMLElement>('.eht-content')!;
+    expect(content.style.paddingTop).toBe('');
+  });
+
   it('counts deduplicated repeats', () => {
     mount();
     show(() => toast.error('Offline', { dedupeKey: 'offline' }));

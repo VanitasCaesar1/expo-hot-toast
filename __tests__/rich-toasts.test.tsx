@@ -559,6 +559,32 @@ describe('size changes', () => {
   });
 });
 
+describe('classes', () => {
+  it('lets a class on the title replace the token text styles', () => {
+    render(<Toaster />);
+    act(() => {
+      toast('Classy', { classNames: { title: 'text-xl font-bold' } });
+    });
+    const title = screen.getByText('Classy');
+    expect(title.props.className).toBe('text-xl font-bold');
+    const style = flat(title.props.style);
+    expect(style.fontSize).toBeUndefined();
+    expect(style.fontWeight).toBeUndefined();
+  });
+
+  it('leaves an unstyled toast\'s padding and corners to its classes', () => {
+    render(<Toaster />);
+    act(() => {
+      toast('Bare', { unstyled: true, classNames: { toast: 'px-5 py-4 rounded-2xl' } });
+    });
+    const surface = screen.UNSAFE_root.findAll((n) => typeof n.type === 'string' && n.props.className === 'px-5 py-4 rounded-2xl')[0]!;
+    const style = flat(surface.props.style);
+    expect(style.paddingVertical).toBeUndefined();
+    expect(style.paddingHorizontal).toBeUndefined();
+    expect(style.borderRadius).toBeUndefined();
+  });
+});
+
 describe('blur', () => {
   const FakeBlur = (props: Record<string, unknown>) => <Text testID="fake-blur">{String(props.tint)}</Text>;
 
