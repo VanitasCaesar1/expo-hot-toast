@@ -11,10 +11,8 @@ import Features from '../components/home/Features.astro';
 import Migrate from '../components/home/Migrate.astro';
 import Start from '../components/home/Start.astro';
 import Rich from '../components/home/Rich.astro';
-import RichPhones from '../components/home/RichPhones.astro';
 import StarButton from '../components/glass/StarButton';
 import { buildStars } from '../lib/stars';
-import { GlassPanel } from '../components/glassyui/glass-panel';
 import Icon from '../components/Icon.astro';
 import { url, REPO_URL } from '../lib/url';
 import { SETUP_PROMPT } from '../lib/ai';
@@ -89,13 +87,10 @@ const faq = [
   </section>
 
   <section aria-labelledby="more">
-    <header class="head head-split inset" data-reveal>
-      <div>
-        <h2 id="more" class="display">More than a line of text.</h2>
-        <p>Uploads, steps, Undo with a countdown, notifications, a HUD and the island. Each is one call. The tiles below are the library itself, playing on this page; beside this, the same calls on a phone.</p>
-        <a class="head-link" href={url('docs/rich-toasts')}>Rich toasts guide <Icon name="arrow-right" /></a>
-      </div>
-      <RichPhones />
+    <header class="head inset" data-reveal>
+      <h2 id="more" class="display">More than a line of text.</h2>
+      <p>Uploads, steps, Undo with a countdown, notifications, a HUD and the island. Each is one call, and each tile below is the library itself, playing on this page.</p>
+      <a class="text-link" href={url('docs/rich-toasts')}>Rich toasts guide <Icon name="arrow-right" /></a>
     </header>
     <Rich />
   </section>
@@ -133,7 +128,7 @@ const faq = [
   <section class="band" aria-labelledby="calls">
     <header class="head inset" data-reveal>
       <h2 id="calls" class="display">On iPhone, it's real Liquid Glass.</h2>
-      <p>A browser can only frost. On iOS 26 the same calls draw Apple's own material. These are screen recordings from CI, not mockups: pick a call to jump to it.</p>
+      <p>A browser can only frost. On iOS 26 the same calls draw Apple's own material. These are recordings of the example app, not mockups: pick a call to jump to it.</p>
     </header>
     <DemoWindow />
   </section>
@@ -161,17 +156,13 @@ const faq = [
   <section aria-labelledby="start">
     <Start />
   </section>
-  <section class="star inset" aria-labelledby="star">
-    <GlassPanel variant="card" className="star-card">
-      <div>
-        <h2 id="star" class="display">Like it? Give it a star.</h2>
-        <p>It is free and MIT licensed. Stars are how other Expo developers find it, and the best way to say it saved you an afternoon.</p>
-      </div>
-      <div class="star-actions">
-        <StarButton client:visible repo={REPO_URL} initial={stars} label="Star on GitHub" variant="prominent" size="lg" />
-        <LinkButton href={`${REPO_URL}/issues`} label="Report an issue" variant="soft" size="lg" />
-      </div>
-    </GlassPanel>
+  <section class="star inset" aria-labelledby="star" data-reveal>
+    <h2 id="star" class="display">Like it? Give it a star.</h2>
+    <p>It is free and MIT licensed. Stars are how other Expo developers find it, and the best way to say it saved you an afternoon.</p>
+    <div class="star-actions">
+      <StarButton client:visible repo={REPO_URL} initial={stars} label="Star on GitHub" variant="prominent" size="lg" />
+      <LinkButton href={`${REPO_URL}/issues`} label="Report an issue" variant="soft" size="lg" />
+    </div>
   </section>
 </Base>
 
@@ -189,14 +180,6 @@ const faq = [
     { threshold: 0.35 },
   );
   document.querySelectorAll('video').forEach((v) => seen.observe(v));
-
-  // A clip with data-loop-end restarts there instead of at its end.
-  document.querySelectorAll<HTMLVideoElement>('video[data-loop-end]').forEach((v) => {
-    const end = Number(v.dataset.loopEnd);
-    v.addEventListener('timeupdate', () => {
-      if (v.currentTime >= end) v.currentTime = 0;
-    });
-  });
 </script>
 
 <style>
@@ -258,7 +241,7 @@ const faq = [
     position: relative;
     margin: 0;
     height: clamp(340px, 34vw, 440px);
-    border-radius: 36px;
+    border-radius: 32px;
     overflow: hidden;
     background: var(--stage-base);
     box-shadow:
@@ -356,44 +339,10 @@ const faq = [
     box-shadow: 0 0 0 4px rgb(255 107 61 / 0.2);
   }
 
-  .head {
-    padding-block: 96px 36px;
-  }
   h2 {
     margin: 0;
     font-size: clamp(32px, 3.6vw, 48px);
     max-width: 20ch;
-  }
-  .head p {
-    margin: 14px 0 0;
-    color: var(--muted);
-    max-width: 58ch;
-  }
-  /* Explicit tracks: the phones' column is 380px at most. As an auto track
-     holding a percentage width it grew to the whole row in Chromium and
-     squeezed the heading to one word a line. */
-  .head-split {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
-    gap: 32px 56px;
-    align-items: center;
-  }
-  @media (max-width: 960px) {
-    .head-split {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-  .head-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 16px;
-    color: var(--accent-text);
-    font-weight: 500;
-    text-decoration: none;
-  }
-  .head-link:hover {
-    text-decoration: underline;
   }
 
   /* The heading beside one glass card of questions. */
@@ -442,37 +391,32 @@ const faq = [
     display: inline-flex;
     color: var(--accent-text);
   }
-  /* The star card continues the start section above it, so it shares that
-     section's centred 920px column rather than the full page width. */
+  /* The close: a centred ask, open on the page, before the footer's card. */
   .star {
-    margin-top: 20px;
-  }
-  .star :global(.star-card) {
-    max-width: 920px;
-    margin-inline: auto;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 28px 48px;
-    align-items: center;
-    padding: clamp(28px, 4vw, 48px);
+    justify-items: center;
+    padding-block: 136px 56px;
+    text-align: center;
   }
   .star h2 {
-    font-size: clamp(28px, 3vw, 40px);
+    max-width: none;
+    font-size: clamp(32px, 4vw, 52px);
   }
   .star p {
-    margin: 12px 0 0;
-    max-width: 52ch;
+    margin: 14px 0 0;
+    max-width: 50ch;
     color: var(--muted);
   }
   .star-actions {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 12px;
+    margin-top: 28px;
   }
 
   @media (max-width: 960px) {
-    .faq,
-    .star :global(.star-card) {
+    .faq {
       grid-template-columns: minmax(0, 1fr);
     }
   }

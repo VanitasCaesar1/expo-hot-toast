@@ -1,6 +1,6 @@
 ---
 import { url } from '../lib/url';
-import CodePanel from './CodePanel.astro';
+import CodeBlock from './CodeBlock.astro';
 import { moments } from '../lib/moments';
 import { GlassPanel } from './glassyui/glass-panel';
 import SchemeSwitch from './glass/SchemeSwitch';
@@ -60,7 +60,7 @@ import SchemeSwitch from './glass/SchemeSwitch';
       {
         moments.map((m, i) => (
           <div class="call" data-call={i} hidden={i !== 0}>
-            <CodePanel code={m.code} lang="ts" file="App.tsx" />
+            <CodeBlock code={m.code} lang="ts" file="App.tsx" />
           </div>
         ))
       }
@@ -286,6 +286,11 @@ import SchemeSwitch from './glass/SchemeSwitch';
     display: grid;
     gap: 22px;
     justify-items: start;
+  }
+  /* The Dark / Light switch is two short words, not a full-width bar. */
+  .aside :global(.lg-segmented) {
+    width: 240px;
+    max-width: 100%;
   }
   .note {
     margin: 0;

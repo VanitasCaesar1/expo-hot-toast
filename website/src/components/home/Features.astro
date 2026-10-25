@@ -86,11 +86,11 @@ import { GlassBadge } from '../glassyui/glass-badge';
       <div class="token-controls">
         <label>
           <span>radius <output data-token-out="radius">22</output></span>
-          <input type="range" min="0" max="32" value="22" data-token="radius" />
+          <input type="range" min="0" max="32" value="22" data-token="radius" style="--fill: 68.75%" />
         </label>
         <label>
           <span>paddingVertical <output data-token-out="paddingVertical">14</output></span>
-          <input type="range" min="6" max="24" value="14" data-token="paddingVertical" />
+          <input type="range" min="6" max="24" value="14" data-token="paddingVertical" style="--fill: 44.44%" />
         </label>
         <code class="token-code" data-token-code>{'<Toaster theme={{ radius: 22 }} />'}</code>
       </div>
@@ -192,6 +192,8 @@ import { GlassBadge } from '../glassyui/glass-badge';
     input.addEventListener('input', () => {
       const name = input.dataset.token!;
       tokens[name] = Number(input.value);
+      const min = Number(input.min), max = Number(input.max);
+      input.style.setProperty('--fill', `${((tokens[name] - min) / (max - min)) * 100}%`);
       const out = document.querySelector(`[data-token-out="${name}"]`);
       if (out) out.textContent = input.value;
       if (code) code.textContent = `<Toaster theme={{ radius: ${tokens.radius}, paddingVertical: ${tokens.paddingVertical} }} />`;
@@ -208,11 +210,13 @@ import { GlassBadge } from '../glassyui/glass-badge';
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
   }
+  /* The stage sits 8px inside the card (22px corners), concentric with it. */
   .bento :global(.tile) {
     display: flex;
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+    padding: 0;
   }
   .bento :global(.tile.wide) {
     grid-column: span 2;
@@ -226,7 +230,7 @@ import { GlassBadge } from '../glassyui/glass-badge';
     position: relative;
     height: 210px;
     margin: 8px 8px 0;
-    border-radius: 18px;
+    border-radius: 14px;
     overflow: hidden;
     background:
       radial-gradient(60% 80% at 20% 10%, rgb(255 140 40 / 0.55), transparent 70%),
@@ -395,9 +399,54 @@ import { GlassBadge } from '../glassyui/glass-badge';
   .token-controls output {
     color: var(--text);
   }
+  /* A thin track, filled in the accent to the value, with a white knob. */
   .token-controls input[type='range'] {
+    -webkit-appearance: none;
+    appearance: none;
     width: 100%;
-    accent-color: var(--accent);
+    height: 20px;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  .token-controls input[type='range']::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 4px;
+    background: linear-gradient(to right, var(--accent) var(--fill, 50%), var(--line) var(--fill, 50%));
+  }
+  .token-controls input[type='range']::-moz-range-track {
+    height: 4px;
+    border-radius: 4px;
+    background: linear-gradient(to right, var(--accent) var(--fill, 50%), var(--line) var(--fill, 50%));
+  }
+  .token-controls input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    margin-top: -7px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow:
+      0 1px 3px rgb(0 0 0 / 0.3),
+      0 0 0 0.5px rgb(0 0 0 / 0.12);
+  }
+  .token-controls input[type='range']::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow:
+      0 1px 3px rgb(0 0 0 / 0.3),
+      0 0 0 0.5px rgb(0 0 0 / 0.12);
+  }
+  .token-controls input[type='range']:focus-visible {
+    outline: none;
+  }
+  .token-controls input[type='range']:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
   .token-code {
     padding: 10px 12px;

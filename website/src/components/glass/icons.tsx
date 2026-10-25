@@ -7,7 +7,7 @@ import star from '@phosphor-icons/core/assets/fill/star-fill.svg?raw';
 import sun from '@phosphor-icons/core/assets/regular/sun.svg?raw';
 import moon from '@phosphor-icons/core/assets/regular/moon.svg?raw';
 import monitor from '@phosphor-icons/core/assets/regular/monitor.svg?raw';
-import { siGithub } from 'simple-icons';
+import { siGithub, siTypescript } from 'simple-icons';
 
 /** The site's glyphs for React islands, as Icon.astro has them for pages. */
 const glyphs = {
@@ -21,6 +21,7 @@ const glyphs = {
   'arrow-right': arrowRight,
   'arrow-up-right': arrowUpRight,
   github: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="${siGithub.path}"/></svg>`,
+  typescript: `<svg viewBox="0 0 24 24"><path fill="#${siTypescript.hex}" d="${siTypescript.path}"/></svg>`,
 } as const;
 
 export type GlyphName = keyof typeof glyphs;

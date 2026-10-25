@@ -22,7 +22,7 @@ const updated = page.updated
 ---
 
 <DocsLayout title={`${page.title}: expo-hot-toast docs`} description={page.description} current={page.slug}>
-  <nav class="crumbs" aria-label="Breadcrumb">
+  <nav class="crumbs" aria-label="Breadcrumb" data-pagefind-ignore="all">
     <a href={tab.id === 'guides' ? url('docs') : url(`docs/${page.slug}`)}>{tab.label}</a>
     <span aria-hidden="true">/</span>
     <span>{page.group === tab.label ? page.title : page.group}</span>

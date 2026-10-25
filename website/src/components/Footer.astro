@@ -6,16 +6,19 @@ import { url, REPO_URL } from '../lib/url';
 interface Props {
   /** Star count at build time. */
   stars?: number;
+  /** The Star button; off on the home page, which closes with its own ask. */
+  star?: boolean;
 }
-const { stars } = Astro.props;
+const { stars, star = true } = Astro.props;
 
 const columns = [
   {
     title: 'Docs',
     links: [
       { label: 'Installation', href: url('docs/installation') },
-      { label: 'Toaster props', href: url('docs/toaster-props') },
       { label: 'Quick start', href: url('docs/quick-start') },
+      { label: 'Web apps', href: url('docs/web') },
+      { label: 'Toaster props', href: url('docs/toaster-props') },
       { label: 'Theming', href: url('docs/theming') },
       { label: 'From react-hot-toast', href: url('docs/coming-from-react-hot-toast') },
     ],
@@ -47,7 +50,7 @@ const columns = [
     <div class="sign">
       <a class="brand" href={url()}><img class="mark" src={url('mark.svg')} alt="" width="36" height="36" />expo-hot-toast</a>
       <p>Toasts for Expo and React Native. Apple's own Liquid Glass on iOS 26, frosted glass on the web, a designed surface everywhere else.</p>
-      <StarButton client:visible repo={REPO_URL} initial={stars} label="Star on GitHub" />
+      {star && <StarButton client:visible repo={REPO_URL} initial={stars} label="Star on GitHub" />}
     </div>
     {
       columns.map((c) => (
@@ -83,6 +86,7 @@ const columns = [
   footer :global(.footer-card) {
     display: grid;
     grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+    padding: 0;
   }
   .sign {
     display: grid;

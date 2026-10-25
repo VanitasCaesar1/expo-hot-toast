@@ -22,7 +22,7 @@ const missing = issue('not helpful', 'What were you looking for, and what was mi
 const feedback = issue('feedback', 'What would make this page better?');
 ---
 
-<section class="feedback" data-feedback>
+<section class="feedback" data-feedback data-pagefind-ignore="all">
   <p class="feedback-title">What did you think of this content?</p>
   <div class="feedback-actions">
     <button type="button" data-vote="up"><Icon name="thumbs-up" /> It was helpful</button>
@@ -48,7 +48,7 @@ const feedback = issue('feedback', 'What would make this page better?');
         root.querySelectorAll<HTMLElement>('[data-thanks]').forEach((t) => (t.hidden = t.dataset.thanks !== choice.dataset.vote));
         // The library itself says thank you, from the bottom, clear of the top bar.
         configure({ position: 'bottom-center' });
-        withToast((toast) => (up ? toast.success('Thanks! Glad it helped.') : toast('Thanks for telling us.', { icon: '🙏' })));
+        withToast((toast) => (up ? toast.success('Thanks! Glad it helped.') : toast('Thanks for telling us.')));
       }),
     );
   }

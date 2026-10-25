@@ -1,0 +1,74 @@
+---
+/**
+ * A code block in the docs' style (src/styles/code-block.css): the language's
+ * logo and the file in a header, Copy, then the code with line numbers. The
+ * same markup lib/rehype-docs.mjs writes for the docs' fences, so the home page
+ * and the docs read as one site.
+ *
+ * `added` and `removed` mark lines (1-based) as a diff, with + and - in the
+ * gutter; Copy then leaves the removed lines out. A `head` slot replaces the
+ * title, for tabs.
+ */
+import { Code } from 'astro:components';
+import { ICONS, COPY, CHECK, LANGUAGES } from '../lib/rehype-docs.mjs';
+
+interface Props {
+  code: string;
+  lang: 'ts' | 'tsx' | 'sh';
+  /** Shown in the header, e.g. `App.tsx`; the language's name otherwise. */
+  file?: string;
+  added?: number[];
+  removed?: number[];
+  /** What Copy copies; the code, less removed lines, by default. */
+  copy?: string;
+  /** Hide the header's Copy, when the head slot brings its own. */
+  noCopy?: boolean;
+  class?: string;
+}
+
+const { code, lang, file, added = [], removed = [], copy, noCopy = false, class: className } = Astro.props;
+const lines = code.split('\n');
+const diff = added.length > 0 || removed.length > 0;
+const numbered = lines.length > 1 && lang !== 'sh';
+const copyText = copy ?? lines.filter((_, i) => !removed.includes(i + 1)).join('\n');
+const icon = (ICONS as Record<string, string>)[lang];
+const label = file ?? (LANGUAGES as Record<string, string>)[lang] ?? lang;
+const hasHead = Astro.slots.has('head');
+
+const transformers = [
+  {
+    line(node: { properties: Record<string, unknown> }, n: number) {
+      const extra = added.includes(n) ? ' add' : removed.includes(n) ? ' del' : '';
+      if (extra) node.properties.class = `${node.properties.class ?? 'line'}${extra}`;
+    },
+    pre(node: { properties: Record<string, unknown> }) {
+      const extra = [numbered && 'numbered', diff && 'diff-marks'].filter(Boolean).join(' ');
+      if (extra) node.properties.class = `${node.properties.class ?? ''} ${extra}`;
+    },
+  },
+];
+---
+
+<figure class:list={['code-block', className]} data-language={lang}>
+  <figcaption class="code-head">
+    {
+      hasHead ? (
+        <slot name="head" />
+      ) : (
+        <span class="code-title">
+          {icon && <span class="code-icon" set:html={icon} />}
+          <span class={file ? 'code-file' : 'code-lang'}>{label}</span>
+        </span>
+      )
+    }
+    {
+      !noCopy && (
+        <button type="button" class="code-copy" data-copy={copyText} aria-label={`Copy ${file ?? 'code'}`}>
+          <span class="copy-idle"><Fragment set:html={COPY} />Copy</span>
+          <span class="copy-done"><Fragment set:html={CHECK} />Copied</span>
+        </button>
+      )
+    }
+  </figcaption>
+  <Code code={code} lang={lang} themes={{ light: 'github-light', dark: 'github-dark-dimmed' }} defaultColor={false} transformers={transformers} />
+</figure>
