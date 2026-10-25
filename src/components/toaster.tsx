@@ -158,12 +158,13 @@ function bucketOf(t: Toast, position: ToastPosition, preset: Exclude<ToasterPres
 }
 
 /**
- * The island's top: just inside the Dynamic Island (about 11pt from the top on
- * iPhones that have one, whose top inset is over 50), and just below the
- * notch or status bar elsewhere.
+ * The island's top: just inside the Dynamic Island on iPhones that have one
+ * (about 11pt from the top; their top inset is over 50), and just below the
+ * notch or status bar everywhere else. It once sat 34 above the inset, which
+ * on Android put it over the status bar.
  */
 function islandTop(insetTop: number): number {
-  return insetTop > 50 ? 11 : Math.max(insetTop - 34, 6);
+  return Platform.OS === 'ios' && insetTop > 50 ? 11 : insetTop + 8;
 }
 
 /** How far each toast behind the front one peeks out of a collapsed stack, in px. */

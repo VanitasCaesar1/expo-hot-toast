@@ -98,11 +98,13 @@ export function variantTheme(variant: Exclude<ToastVariant, 'auto'>): ToastTheme
     case 'banner':
       return { radius: 0, paddingVertical: 12, paddingHorizontal: 18, maxWidth: 10000, fill: true, shadowOpacity: 0.08 };
     case 'hud':
-      return { radius: 28, paddingVertical: 22, paddingHorizontal: 26, maxWidth: 240, iconSize: 44, fontSize: 16, lineHeight: 21 };
+      // A HUD hugs its content, even under a preset that fills (Material).
+      return { radius: 28, paddingVertical: 22, paddingHorizontal: 26, maxWidth: 240, iconSize: 44, fontSize: 16, lineHeight: 21, fill: false };
     case 'island':
       // The Dynamic Island is black in either appearance, so the capsule is too.
       return {
         radius: 999,
+        fill: false,
         paddingVertical: 10,
         paddingHorizontal: 16,
         maxWidth: 360,

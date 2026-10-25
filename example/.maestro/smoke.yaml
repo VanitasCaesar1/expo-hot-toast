@@ -32,10 +32,24 @@ appId: dev.expohottoast.example
 - takeScreenshot: 02-success-and-error
 
 # Swipe one away, tap the other away.
-- swipe:
-    from:
-      text: "Could not reach the server"
-    direction: RIGHT
+# Sideways. iOS gets an explicit flick across the newest toast (around 12%
+# down): an element swipe on a slow simulator dragged too slowly to count.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - swipe:
+          start: "25%, 12%"
+          end: "95%, 12%"
+          duration: 200
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - swipe:
+          from:
+            text: "Could not reach the server"
+          direction: RIGHT
 - extendedWaitUntil:
     notVisible: "Could not reach the server"
     timeout: 5000
@@ -118,21 +132,17 @@ appId: dev.expohottoast.example
           end: "50%, 1%"
           duration: 150
 # Android's Material snackbars rise from the bottom and are swiped sideways,
-# as Material 3 has it. The downward flick first is a probe, not a check: down
-# is not a snackbar direction, so the recording should show a short resisted
-# drag. (An earlier run showed no movement at all from a flick this low.)
+# as Material 3 has it. An element swipe starts at the text's centre, near the
+# left edge, which leaves too little room to the edge to count; this flick
+# crosses most of the snackbar (around 92% down).
 - runFlow:
     when:
       platform: Android
     commands:
       - swipe:
-          start: "50%, 92%"
-          end: "50%, 99%"
-          duration: 150
-      - swipe:
-          from:
-            text: "Payment received"
-          direction: LEFT
+          start: "85%, 92%"
+          end: "10%, 92%"
+          duration: 200
 - extendedWaitUntil:
     notVisible: "Payment received"
     timeout: 5000

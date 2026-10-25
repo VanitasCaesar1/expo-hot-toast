@@ -377,6 +377,39 @@ describe('shapes', () => {
     expect(nodesWithStyle((s) => s.backgroundColor === '#000000').length).toBeGreaterThan(0);
   });
 
+  it('on Android the island sits below the status bar', () => {
+    withPlatform('android', () => {
+      render(<Toaster />);
+      act(() => {
+        toast.island('AirPods connected');
+      });
+    });
+    // The mocked status bar is 47 tall.
+    expect(nodesWithStyle((s) => s.position === 'absolute' && s.top === 47 + 8).length).toBeGreaterThan(0);
+  });
+
+  it('the island and the HUD hug their content under the Material preset, which fills', () => {
+    const filled = (show: () => void) => {
+      const view = render(<Toaster preset="material" />);
+      act(show);
+      const count = view.UNSAFE_root.findAll(
+        (node) => typeof node.type === 'string' && flat(node.props.style).width === '100%',
+      ).length;
+      view.unmount();
+      __resetStore();
+      return count;
+    };
+    const snackbar = filled(() => {
+      toast('Archived');
+    });
+    expect(filled(() => {
+      toast.island('AirPods connected');
+    })).toBe(snackbar - 1);
+    expect(filled(() => {
+      toast.hud('Added to Library');
+    })).toBe(snackbar - 1);
+  });
+
   it('a notification shows its title, body and time, and opens on press', () => {
     const onPress = jest.fn();
     render(<Toaster />);
