@@ -76,7 +76,7 @@ works the same.
 
 ## Size
 
-About 16 KB minified and gzipped, every rich toast type included. React and
+About 18 KB minified and gzipped, every rich toast type included. React and
 React DOM are the only dependencies.
 
 ## Try it

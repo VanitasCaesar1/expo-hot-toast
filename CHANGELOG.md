@@ -70,7 +70,7 @@ Initial release. Not yet published to npm; `main` previously pointed at
 - **`expo-hot-toast/web`**: the same toast API, store, queue, presets, rich
   toasts and theme tokens for React DOM apps (Next.js, Vite), drawn with DOM
   and CSS in the same frosted glass. No React Native, React Native Web or
-  Reanimated; about 16 KB gzipped. The React Native peers are now optional, so
+  Reanimated; about 18 KB gzipped. The React Native peers are now optional, so
   a web app installs none of them.
 - **Surfaces glide to a new size** when their content changes (a loading toast
   becoming its outcome, details opening, a message updated), on native and the
