@@ -6,16 +6,21 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 Toasts for Expo and React Native, with the react-hot-toast API. On iOS 26 each
-toast is drawn in Apple's own Liquid Glass, on the web in frosted glass, and
-everywhere else on a designed opaque surface.
+toast is drawn in Apple's own Liquid Glass, on Android as a Material 3
+snackbar, and on the web in frosted glass. Beyond plain toasts: progress,
+steps, Undo with a countdown, notifications, a HUD and a Dynamic Island
+capsule. Plain React web apps get the same API through `expo-hot-toast/web`.
 
 **[Try it on the website](https://vanitascaesar1.github.io/expo-hot-toast/)**: every
 button there fires a real toast, from this library running in your browser.
 
 <p align="center">
-  <img src="./docs/media/demo.gif" width="732" alt="The same toasts on iOS 26, in Liquid Glass, and on Android, on an opaque surface" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/media/demo-dark.webp" />
+    <img src="./docs/media/demo-light.webp" width="636" alt="The same toasts on an iPhone in Liquid Glass and on Android as Material 3 snackbars" />
+  </picture>
   <br />
-  <sub>iOS 26 (Liquid Glass) and Android, recorded in CI</sub>
+  <sub>iPhone (iOS 26.5, Liquid Glass) and Android 15 (Material 3), screen recordings from CI</sub>
 </p>
 
 **[Documentation](https://vanitascaesar1.github.io/expo-hot-toast/docs/)** ·
@@ -86,6 +91,31 @@ await toast.promise(upload(photo), {
 - **Accessibility**: screen reader announcements, Reduce Motion, Reduce
   Transparency, Bold Text, capped text size, and haptics for outcomes.
 - **Tokens** for every colour, size and duration, in light and dark.
+
+## More than a line of text
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/media/rich-dark.webp" />
+    <img src="./docs/media/rich-light.webp" width="636" alt="Upload progress, steps, Undo with a countdown, a notification, the island, a HUD and a banner, on iPhone and Android" />
+  </picture>
+  <br />
+  <sub>Progress, steps, Undo with a countdown, a notification, the island, a HUD and a banner. Recorded in CI.</sub>
+</p>
+
+```tsx
+const upload = toast.progress('Uploading 4 photos');
+upload.set(0.4);                       // on the UI thread, no re-render
+upload.success('4 photos uploaded');
+
+toast.steps(['Compressing video', 'Uploading', 'Processing']);
+toast('Conversation deleted', { action: { label: 'Undo', countdown: true, onPress: restore } });
+toast.notify({ title: 'Maya Patel', body: 'Sent you 4 photos', avatar: { uri } });
+toast.hud('Added to Library');
+toast.island('AirPods Pro connected', { type: 'success' });
+```
+
+See [Rich toasts](./docs/guide/rich-toasts.md).
 
 ## Coming from react-hot-toast
 
