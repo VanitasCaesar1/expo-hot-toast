@@ -215,7 +215,7 @@ export default function Customiser() {
           </label>
         </div>
 
-        <GlassButton variant="primary" size="lg" className="fire" onClick={sample}>
+        <GlassButton lens={false} variant="primary" size="lg" className="fire" onClick={sample}>
           Fire a few toasts
         </GlassButton>
       </div>

@@ -22,6 +22,7 @@ export default function SiteHeader({ home, mark, docs, changelog, repo, inDocs, 
   return (
     <GlassHeader
       condenseOnScroll
+      lens={false}
       className="site-header"
       brand={
         <a href={home} className="site-brand">
@@ -34,6 +35,7 @@ export default function SiteHeader({ home, mark, docs, changelog, repo, inDocs, 
           <GlassButton
             variant="soft"
             size="sm"
+            lens={false}
             className="site-search"
             aria-label="Search the docs"
             onClick={() => window.dispatchEvent(new Event('site:search'))}

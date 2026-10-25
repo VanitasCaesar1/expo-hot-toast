@@ -17,7 +17,7 @@ const copyable = lang === 'diff' ? code.split('\n').filter((l) => l.startsWith('
 <GlassPanel variant="card" className="code-panel">
   <div class="bar">
     <span class="label">{file ?? lang}</span>
-    <CopyButton client:visible text={copyable} label={`Copy ${file ?? 'code'}`} iconOnly variant="ghost" size="sm" />
+    <CopyButton text={copyable} label={`Copy ${file ?? 'code'}`} iconOnly variant="ghost" size="sm" />
   </div>
   <Code code={code} lang={lang} theme="github-dark-dimmed" />
 </GlassPanel>

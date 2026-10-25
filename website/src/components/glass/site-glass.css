@@ -89,26 +89,76 @@
   color: var(--accent);
 }
 
-/* FAQ. Glassy draws the chevron with Tailwind sizes, which this site lacks. */
-.faq-list {
-  display: grid;
-  gap: 10px;
+/* FAQ: one glass card, a hairline between questions. */
+.faq-card {
+  padding: 6px 8px;
 }
-.faq-list .lg-accordion-chevron {
-  width: 16px;
-  height: 16px;
-  flex: none;
+.faq-item + .faq-item {
+  border-top: 1px solid rgb(255 255 255 / 0.07);
 }
-.faq-list .lg-accordion-trigger {
-  width: 100%;
-  justify-content: space-between;
-  text-align: left;
-  font-size: 16px;
-}
-.faq-list .lg-accordion-content p {
+.faq-heading {
   margin: 0;
-  color: var(--muted);
+}
+.faq-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  padding: 20px 18px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text);
+  font: 500 16.5px/1.4 var(--font);
+  text-align: left;
+  cursor: pointer;
+  transition: background 160ms;
+}
+.faq-trigger:hover {
+  background: rgb(255 255 255 / 0.04);
+}
+.faq-chevron {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--faint);
+  transition: transform 260ms var(--ease-out);
+}
+.faq-trigger[data-state='open'] .faq-chevron {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+.faq-answer {
+  overflow: hidden;
+}
+.faq-answer[data-state='open'] {
+  animation: faq-open 260ms var(--ease-out);
+}
+.faq-answer[data-state='closed'] {
+  animation: faq-close 200ms ease-in;
+}
+@keyframes faq-open {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+@keyframes faq-close {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+.faq-answer p {
+  margin: 0;
+  padding: 0 18px 22px;
   max-width: 68ch;
+  color: var(--muted);
 }
 
 /* An install command on a glass pill. */
@@ -146,4 +196,20 @@
   background: rgb(255 255 255 / 0.1);
   font: 500 12px/1.5 var(--mono);
   font-variant-numeric: tabular-nums;
+}
+
+/* Static copy buttons: the label swaps on data-copied (see Base.astro). */
+.copy-button .copy-idle,
+.copy-button .copy-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.copy-button .copy-done,
+.copy-button[data-copied] .copy-idle {
+  display: none;
+}
+.copy-button[data-copied] .copy-done {
+  display: inline-flex;
+  color: var(--accent);
 }

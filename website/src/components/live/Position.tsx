@@ -33,6 +33,7 @@ export default function PositionPicker() {
               key={p}
               role="radio"
               aria-checked={p === position}
+              lens={false}
               variant={p === position ? 'prominent' : 'soft'}
               size="md"
               onClick={() => move(p)}

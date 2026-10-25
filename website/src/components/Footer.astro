@@ -151,7 +151,11 @@ const columns = [
     color: transparent;
     user-select: none;
   }
+  /* Padded past the glyphs: the tight tracking pushes the last t's bar
+     outside the span, where the gradient did not reach. */
   .wordmark span {
+    padding-inline: 0.04em 0.12em;
+    margin-inline: -0.04em -0.12em;
     background: linear-gradient(#ffc56b, #ff9a12);
     -webkit-background-clip: text;
     background-clip: text;

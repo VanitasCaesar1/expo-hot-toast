@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import '../glassyui/styles/liquid.css';
 import './site-glass.css';
 import { GlassButton } from '../glassyui/glass-button';
@@ -16,27 +15,27 @@ interface Props {
   className?: string;
 }
 
-/** A Glassy UI button that copies `text`. */
+/**
+ * A Glassy UI button that copies `text`. Rendered without hydration: Base.astro's
+ * delegated handler copies on click and sets data-copied, which swaps the label.
+ */
 export default function CopyButton({ text, label, copiedLabel = 'Copied', variant = 'soft', size = 'md', iconOnly, className }: Props) {
-  const [copied, setCopied] = useState(false);
   return (
     <GlassButton
       variant={variant}
       size={size}
-      className={className}
+      className={className ? `copy-button ${className}` : 'copy-button'}
       aria-label={iconOnly ? label : undefined}
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(text);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1600);
-        } catch {
-          // Clipboard unavailable (insecure context); the text stays selectable.
-        }
-      }}
+      data-copy={text}
     >
-      <Glyph name={copied ? 'check' : 'copy'} />
-      {!iconOnly && <span className="button-label">{copied ? copiedLabel : label}</span>}
+      <span className="copy-idle">
+        <Glyph name="copy" />
+        {!iconOnly && <span className="button-label">{label}</span>}
+      </span>
+      <span className="copy-done">
+        <Glyph name="check" />
+        {!iconOnly && <span className="button-label">{copiedLabel}</span>}
+      </span>
     </GlassButton>
   );
 }

@@ -1,6 +1,5 @@
 ---
 import Base from '../layouts/Base.astro';
-import ScreenCrop from '../components/ScreenCrop.astro';
 import DemoWindow from '../components/DemoWindow.astro';
 import HeroToast from '../components/live/HeroToast';
 import Examples from '../components/live/Examples';
@@ -80,28 +79,34 @@ const faq = [
   description="The react-hot-toast API for Expo and React Native, drawn with Apple's own Liquid Glass on iOS 26, frosted glass on the web and a designed surface on Android."
   live
 >
-  <section class="hero">
-    <div class="hero-copy inset">
+  <section class="hero inset">
+    <div class="hero-copy">
       <p class="label eyebrow enter" style="--i: 0">Open source for Expo and React Native</p>
-      <h1 class="display enter" style="--i: 1">Toasts in real Liquid Glass.</h1>
+      <h1 class="display enter" style="--i: 1">Toasts in real Liquid&nbsp;Glass.</h1>
       <p class="lede enter" style="--i: 2">The react-hot-toast API, drawn with Apple's own material on iOS 26, frosted glass on the web and a designed surface on Android.</p>
       <div class="ctas enter" style="--i: 3">
         <HeroToast client:load />
-        <LinkButton client:visible href={url('docs/installation')} label="Quick start" trailing="arrow-right" variant="primary" size="lg" />
+        <LinkButton href={url('docs/installation')} label="Quick start" trailing="arrow-right" variant="primary" size="lg" />
       </div>
       <button type="button" class="ai-link enter" style="--i: 4" data-copy={SETUP_PROMPT}>
         <span class="idle-label">Using an AI agent? Copy a setup prompt <Icon name="copy" /></span>
         <span class="done-label">Prompt copied. Paste it into your agent.</span>
       </button>
     </div>
-    <div class="hero-devices">
-      <div class="glow" aria-hidden="true"></div>
-      <div class="field dots" aria-hidden="true"></div>
-      <div class="shot">
-        <ScreenCrop media="ios-demo" label="Toasts stacking in Liquid Glass at the top of an iPhone running iOS 26" loopEnd={19.6} />
-        <p class="label caption">Screen recording · iOS 26 simulator in CI</p>
+
+    <figure class="stage enter" style="--i: 5">
+      <div class="stage-art" aria-hidden="true">
+        <span class="ribbon one"></span>
+        <span class="ribbon two"></span>
+        <span class="ember a"></span>
+        <span class="ember b"></span>
       </div>
-    </div>
+      <div class="stage-toasts" data-toast-stage></div>
+      <figcaption class="stage-caption">
+        <span class="live-dot" aria-hidden="true"></span>
+        Live: the library itself, running in your browser. <a href="#calls">See real Liquid Glass on iPhone ↓</a>
+      </figcaption>
+    </figure>
   </section>
 
   <section class="proof inset" aria-label="How it is checked">
@@ -189,13 +194,12 @@ const faq = [
     </div>
   </section>
 
-  <section class="band" aria-labelledby="faq">
-    <header class="head inset" data-reveal>
+  <section class="faq inset" aria-labelledby="faq">
+    <header>
       <h2 id="faq" class="display">Questions</h2>
+      <p>Something else? <a href={`${REPO_URL}/issues`}>Ask on GitHub</a>.</p>
     </header>
-    <div class="faq inset">
-      <Faq client:visible items={faq} />
-    </div>
+    <Faq client:visible items={faq} />
   </section>
 
   <section class="band start" aria-labelledby="start">
@@ -204,11 +208,11 @@ const faq = [
       <div class="start-grid">
         <div class="by-hand">
           <p class="label">By hand</p>
-          <CommandBox client:visible command={INSTALL} />
+          <CommandBox command={INSTALL} />
           <div class="setup">
             <CodePanel code={setup} lang="tsx" file="App.tsx" />
           </div>
-          <LinkButton client:visible href={url('docs/installation')} label="Quick start" trailing="arrow-right" variant="prominent" size="lg" />
+          <LinkButton href={url('docs/installation')} label="Quick start" trailing="arrow-right" variant="prominent" size="lg" />
         </div>
         <div class="by-agent">
           <p class="label">With an AI agent</p>
@@ -216,7 +220,7 @@ const faq = [
           <GlassPanel variant="card" className="prompt-card">
             <pre class="prompt-preview" aria-label="The setup prompt">{SETUP_PROMPT}</pre>
           </GlassPanel>
-          <CopyButton client:visible text={SETUP_PROMPT} label="Copy prompt" variant="primary" size="lg" />
+          <CopyButton text={SETUP_PROMPT} label="Copy prompt" variant="primary" size="lg" />
           <p class="llms">
             For tools that read docs: <a href={url('llms.txt')}>llms.txt</a> · <a href={url('llms-full.txt')}>llms-full.txt</a>
           </p>
@@ -232,7 +236,7 @@ const faq = [
       </div>
       <div class="star-actions">
         <StarButton client:visible repo={REPO_URL} initial={stars} label="Star on GitHub" variant="prominent" size="lg" />
-        <LinkButton client:visible href={`${REPO_URL}/issues`} label="Report an issue" variant="soft" size="lg" />
+        <LinkButton href={`${REPO_URL}/issues`} label="Report an issue" variant="soft" size="lg" />
       </div>
     </GlassPanel>
   </section>
@@ -263,16 +267,17 @@ const faq = [
 </script>
 
 <style>
+  /* A centred headline over the stage, where the library plays live. */
   .hero {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    min-height: min(calc(100dvh - 84px), 760px);
+    gap: clamp(36px, 5vw, 56px);
+    padding-block: clamp(40px, 6vw, 72px) 24px;
   }
   .hero-copy {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding-block: 56px;
+    align-items: center;
+    text-align: center;
   }
   .eyebrow {
     margin: 0 0 22px;
@@ -280,23 +285,24 @@ const faq = [
   }
   h1 {
     margin: 0;
-    font-size: clamp(44px, 6vw, 80px);
-    max-width: 11ch;
+    font-size: clamp(46px, 7.4vw, 104px);
+    max-width: 13ch;
   }
   .lede {
     margin: 24px 0 0;
     font-size: clamp(17px, 1.5vw, 20px);
     color: var(--muted);
-    max-width: 36ch;
+    max-width: 44ch;
   }
   .ctas {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     align-items: center;
     gap: 12px;
     margin-top: 36px;
   }
-  /* Staged entrance: label, headline, text, buttons, then the phone. */
+  /* Staged entrance: label, headline, text, buttons, then the stage. */
   @media (prefers-reduced-motion: no-preference) {
     .enter {
       animation: settle 800ms var(--ease-out) both;
@@ -309,45 +315,113 @@ const faq = [
       transform: translateY(14px);
     }
   }
-  .hero-devices {
+
+  /*
+   * The stage: warm liquid light, moving slowly, under the stage Toaster
+   * (toasterId "stage"). The toasts' frosted glass blurs and bends it, which is
+   * the whole point of putting colour here.
+   */
+  .stage {
     position: relative;
-    display: grid;
-    place-items: center;
-    padding: 32px var(--pad);
+    margin: 0;
+    height: clamp(340px, 34vw, 440px);
+    border-radius: 36px;
     overflow: hidden;
+    background: #0d0a08;
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.08),
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      0 50px 120px -50px rgb(255 120 30 / 0.45);
   }
-  /* Warm light under the phone: the 'hot' in hot toast. Tinted, not neon. */
-  .glow {
+  .stage-art,
+  .stage-toasts {
     position: absolute;
-    left: 50%;
-    top: 55%;
-    width: 760px;
-    height: 760px;
-    transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgb(255 173 59 / 0.2), rgb(255 173 59 / 0.07) 38%, transparent 68%);
-    pointer-events: none;
+    inset: 0;
   }
-  .shot {
-    position: relative;
-    width: 100%;
-    max-width: 560px;
-    animation: rise 1000ms 250ms var(--ease-out) both;
+  .ribbon {
+    position: absolute;
+    inset: -20% -10%;
+    background: url('/expo-hot-toast/media/ribbon.svg') center / cover no-repeat;
+    animation: drift 22s ease-in-out infinite alternate;
   }
-  .caption {
-    margin: 4px 0 0;
-    color: var(--faint);
-    text-align: center;
+  .ribbon.two {
+    inset: -30% -20%;
+    opacity: 0.55;
+    transform: scale(-1, 1) rotate(8deg);
+    animation-duration: 28s;
+    animation-direction: alternate-reverse;
   }
-  @keyframes rise {
+  .ember {
+    position: absolute;
+    width: 46%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    filter: blur(60px);
+    animation: float 18s ease-in-out infinite alternate;
+  }
+  .ember.a {
+    left: 8%;
+    top: -18%;
+    background: rgb(255 120 40 / 0.55);
+  }
+  .ember.b {
+    right: 4%;
+    bottom: -30%;
+    background: rgb(214 45 74 / 0.45);
+    animation-duration: 24s;
+  }
+  @keyframes drift {
     from {
-      transform: translateY(28px);
-      opacity: 0;
+      transform: translate3d(-4%, 3%, 0) rotate(-3deg);
     }
+    to {
+      transform: translate3d(4%, -3%, 0) rotate(3deg);
+    }
+  }
+  @keyframes float {
+    to {
+      transform: translate3d(12%, 10%, 0);
+    }
+  }
+  /* Off screen, under Reduce Motion, or once the page is hidden: still. */
+  .stage[data-offscreen] :is(.ribbon, .ember) {
+    animation-play-state: paused;
   }
   @media (prefers-reduced-motion: reduce) {
-    .shot {
+    .ribbon,
+    .ember {
       animation: none;
     }
+  }
+  .stage-caption {
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: max-content;
+    max-width: calc(100% - 32px);
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgb(10 8 6 / 0.55);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    color: rgb(243 241 236 / 0.78);
+    font-size: 13.5px;
+  }
+  .stage-caption a {
+    color: var(--accent);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff6b3d;
+    box-shadow: 0 0 0 4px rgb(255 107 61 / 0.2);
   }
 
   /* Four glass cards: how the library is checked. */
@@ -437,8 +511,20 @@ const faq = [
     color: var(--accent);
   }
 
+  /* The heading beside one glass card of questions. */
   .faq {
-    max-width: 920px;
+    display: grid;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    gap: clamp(28px, 4vw, 56px);
+    align-items: start;
+    padding-top: 112px;
+  }
+  .faq header p {
+    margin: 14px 0 0;
+    color: var(--muted);
+  }
+  .faq header a {
+    color: var(--accent);
   }
 
   .start-inner {
@@ -559,10 +645,6 @@ const faq = [
   }
 
   @media (max-width: 960px) {
-    .hero {
-      grid-template-columns: minmax(0, 1fr);
-      min-height: 0;
-    }
     .proof {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -570,6 +652,7 @@ const faq = [
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .migrate,
+    .faq,
     .start-grid,
     .star :global(.star-card) {
       grid-template-columns: minmax(0, 1fr);
@@ -578,6 +661,13 @@ const faq = [
   @media (max-width: 640px) {
     .features {
       grid-template-columns: minmax(0, 1fr);
+    }
+    .stage {
+      height: 360px;
+      border-radius: 26px;
+    }
+    .stage-caption a {
+      display: none;
     }
   }
 </style>

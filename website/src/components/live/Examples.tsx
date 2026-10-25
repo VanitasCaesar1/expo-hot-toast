@@ -1,6 +1,6 @@
 import './live.css';
 import { useState } from 'react';
-import { GlassButton } from '../glassyui/glass-button';
+import { GlassPanel } from '../glassyui/glass-panel';
 import { LiveCode } from './code';
 import { withToast } from '../../lib/live';
 
@@ -8,8 +8,9 @@ type Fire = Parameters<typeof withToast>[0];
 
 interface Example {
   id: string;
-  emoji: string;
   label: string;
+  /** The part of the API it shows, beside its name. */
+  api: string;
   code: string;
   fire: Fire;
 }
@@ -22,22 +23,22 @@ let saves = 0;
 const examples: Example[] = [
   {
     id: 'success',
-    emoji: '✅',
     label: 'Success',
+    api: 'toast.success()',
     code: `toast.success('Changes saved');`,
     fire: (toast) => toast.success('Changes saved'),
   },
   {
     id: 'error',
-    emoji: '❌',
     label: 'Error',
+    api: 'toast.error()',
     code: `toast.error('Could not reach the server');`,
     fire: (toast) => toast.error('Could not reach the server'),
   },
   {
     id: 'promise',
-    emoji: '⏳',
     label: 'Promise',
+    api: 'toast.promise()',
     code: `toast.promise(saveSettings(settings), {
   loading: 'Saving…',
   success: 'Settings saved',
@@ -57,8 +58,8 @@ const examples: Example[] = [
   },
   {
     id: 'description',
-    emoji: '📝',
     label: 'Description',
+    api: 'description',
     code: `toast.error('Could not upload photo', {
   description: 'Check your connection and try again.',
 });`,
@@ -66,8 +67,8 @@ const examples: Example[] = [
   },
   {
     id: 'action',
-    emoji: '↩️',
     label: 'Undo action',
+    api: 'action',
     code: `toast('Message archived', {
   action: { label: 'Undo', onPress: restore },
 });`,
@@ -78,8 +79,8 @@ const examples: Example[] = [
   },
   {
     id: 'rich',
-    emoji: '🎨',
     label: 'Rich colours',
+    api: 'richColors',
     code: `toast.success('Payment received', { richColors: true });
 toast.error('Card declined', { richColors: true });`,
     fire: (toast) => {
@@ -89,15 +90,15 @@ toast.error('Card declined', { richColors: true });`,
   },
   {
     id: 'emoji',
-    emoji: '👏',
-    label: 'Emoji',
+    label: 'Custom icon',
+    api: 'icon',
     code: `toast('Good job!', { icon: '👏' });`,
     fire: (toast) => toast('Good job!', { icon: '👏' }),
   },
   {
     id: 'tint',
-    emoji: '🫧',
     label: 'Tinted glass',
+    api: 'glass.tintColor',
     code: `toast('Hot out of the toaster', {
   icon: '🔥',
   glass: { tintColor: 'rgba(255,140,40,0.35)' },
@@ -106,8 +107,8 @@ toast.error('Card declined', { richColors: true });`,
   },
   {
     id: 'loading',
-    emoji: '🔄',
     label: 'Loading',
+    api: 'toast.loading()',
     code: `const id = toast.loading('Uploading 3 photos…');
 // later, the same toast changes in place:
 toast.success('3 photos uploaded', { id });`,
@@ -118,16 +119,16 @@ toast.success('3 photos uploaded', { id });`,
   },
   {
     id: 'dedupe',
-    emoji: '🧺',
     label: 'Deduplicated',
+    api: 'dedupeKey',
     code: `// Tap it again and again: still one toast.
 toast.success('Draft saved', { dedupeKey: 'draft' });`,
     fire: (toast) => toast.success('Draft saved', { dedupeKey: 'draft' }),
   },
   {
     id: 'close',
-    emoji: '✖️',
     label: 'Close button',
+    api: 'closeButton',
     code: `toast('Sync paused until you reconnect', {
   closeButton: true,
   duration: Infinity,
@@ -136,8 +137,8 @@ toast.success('Draft saved', { dedupeKey: 'draft' });`,
   },
   {
     id: 'jsx',
-    emoji: '🔩',
     label: 'Custom content',
+    api: 'toast((t) => …)',
     code: `toast((t) => (
   <Text>
     Custom and <Text style={{ fontWeight: '700' }}>bold</Text>
@@ -152,26 +153,25 @@ export default function Examples() {
   const [current, setCurrent] = useState(examples[0]);
   return (
     <div className="examples">
-      <div className="example-grid" role="group" aria-label="Fire a toast">
-        {examples.map((example) => (
-          <GlassButton
-            key={example.id}
-            variant={example.id === current.id ? 'prominent' : 'soft'}
-            size="md"
-            className="example-button"
-            aria-pressed={example.id === current.id}
-            onClick={() => {
-              setCurrent(example);
-              withToast(example.fire);
-            }}
-          >
-            <span aria-hidden="true" className="example-emoji">
-              {example.emoji}
-            </span>
-            {example.label}
-          </GlassButton>
-        ))}
-      </div>
+      <GlassPanel variant="card" className="example-list">
+        <div role="group" aria-label="Fire a toast">
+          {examples.map((example) => (
+            <button
+              key={example.id}
+              type="button"
+              className="example-row"
+              aria-pressed={example.id === current.id}
+              onClick={() => {
+                setCurrent(example);
+                withToast(example.fire);
+              }}
+            >
+              <span className="example-name">{example.label}</span>
+              <code className="example-api">{example.api}</code>
+            </button>
+          ))}
+        </div>
+      </GlassPanel>
       <LiveCode code={current.code} file={current.label} />
     </div>
   );

@@ -56,9 +56,9 @@ const next = pages[index + 1];
       <h1 class="display">{page.title}</h1>
       {page.description && <p class="lede">{page.description}</p>}
       <div class="page-tools">
-        <CopyButton client:visible text={markdown} label="Copy page" variant="soft" size="sm" />
-        <LinkButton client:visible href={url(`docs/md/${page.slug}.md`)} label="Markdown" variant="soft" size="sm" />
-        <LinkButton client:visible href={url('llms.txt')} label="llms.txt" variant="soft" size="sm" />
+        <CopyButton text={markdown} label="Copy page" variant="soft" size="sm" />
+        <LinkButton href={url(`docs/md/${page.slug}.md`)} label="Markdown" variant="soft" size="sm" />
+        <LinkButton href={url('llms.txt')} label="llms.txt" variant="soft" size="sm" />
       </div>
       <Fragment set:html={page.html} />
       <footer class="pager">

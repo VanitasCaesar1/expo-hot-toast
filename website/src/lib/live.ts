@@ -24,6 +24,7 @@ interface Toast extends Show {
 }
 
 export interface LiveConfig {
+  offset?: number;
   position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
   reverseOrder?: boolean;
   stacked?: boolean;
@@ -37,6 +38,8 @@ interface LiveApi {
   toast: Toast;
   configure: (config: LiveConfig) => void;
   examples: Record<string, () => void>;
+  /** Props for the hero's stage Toaster (toasterId "stage"). */
+  configureStage: (config: LiveConfig & { offset?: number; gap?: number }) => void;
 }
 
 declare global {

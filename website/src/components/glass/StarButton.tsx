@@ -35,7 +35,7 @@ export default function StarButton({ repo, initial, label = 'Star', variant = 's
   }, []);
 
   return (
-    <GlassButton asChild variant={variant} size={size} className={className ? `star-button ${className}` : 'star-button'}>
+    <GlassButton asChild lens={false} variant={variant} size={size} className={className ? `star-button ${className}` : 'star-button'}>
       <a
         href={repo}
         target="_blank"

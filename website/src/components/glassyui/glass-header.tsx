@@ -28,6 +28,11 @@ export type GlassHeaderProps = HTMLAttributes<HTMLElement> & {
   navigationLabel?: string;
   /** Fixed above the page by default; static keeps it in the surrounding layout. */
   position?: 'fixed' | 'static';
+  /**
+   * The Chromium edge lens over the frost. Off frosts only. (expo-hot-toast:
+   * added, because a lens over scrolling content redraws its filter every frame.)
+   */
+  lens?: boolean;
 };
 
 // The header condenses once the page has scrolled past this many CSS pixels, and opens again
@@ -168,6 +173,7 @@ export const GlassHeader = forwardRef<HTMLElement, GlassHeaderProps>(
       condenseOnScroll = false,
       navigationLabel = 'Primary',
       position = 'fixed',
+      lens = true,
       ...rest
     },
     forwardedRef,
@@ -191,7 +197,7 @@ export const GlassHeader = forwardRef<HTMLElement, GlassHeaderProps>(
         <GlassSurface
           aria-hidden
           className="lg-header-glass"
-          lens={!condensing || (condensed === true && !moving)}
+          lens={lens && (!condensing || (condensed === true && !moving))}
           preset="standard"
         />
         <div className="lg-header-bar">

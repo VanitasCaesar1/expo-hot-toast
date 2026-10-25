@@ -13,7 +13,7 @@ import SchemeSwitch from './glass/SchemeSwitch';
         <button
           type="button"
           role="tab"
-          class="tab label"
+          class="tab"
           aria-selected={i === 0 ? 'true' : 'false'}
           aria-controls="demo-panel"
           data-at-ios={m.at.ios}
@@ -159,36 +159,48 @@ import SchemeSwitch from './glass/SchemeSwitch';
   }
   .tab {
     position: relative;
-    isolation: isolate;
-    height: 42px;
-    padding: 0 10px;
-    overflow: hidden;
+    height: 44px;
+    padding: 0 12px;
     border: 0;
     border-radius: 999px;
     background: transparent;
-    color: var(--faint);
+    color: var(--muted);
+    font: 500 14.5px var(--font);
     cursor: pointer;
     transition:
       color 160ms,
-      background 160ms;
+      background 200ms,
+      box-shadow 200ms;
   }
   .tab:hover {
     color: var(--text);
+    background: rgb(255 255 255 / 0.05);
   }
   .tab[aria-selected='true'] {
-    color: var(--text);
-    background: rgb(255 173 59 / 0.1);
-    box-shadow: inset 0 0 0 1px rgb(255 173 59 / 0.35);
+    color: #fff;
+    background: linear-gradient(rgb(255 173 59 / 0.26), rgb(255 140 40 / 0.14));
+    box-shadow:
+      inset 0 0 0 1px rgb(255 173 59 / 0.42),
+      inset 0 1px 0 rgb(255 255 255 / 0.18),
+      0 6px 18px -8px rgb(255 140 40 / 0.6);
   }
+  /* How far the selected call's stretch of the recording has played. */
   .tab::after {
     content: '';
     position: absolute;
-    inset: 0;
-    z-index: -1;
-    background: rgb(255 173 59 / 0.2);
+    left: 22px;
+    right: 22px;
+    bottom: 6px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+    opacity: 0;
     transform: scaleX(var(--progress, 0));
     transform-origin: left;
     transition: transform 250ms linear;
+  }
+  .tab[aria-selected='true']::after {
+    opacity: 0.9;
   }
   .tab[aria-selected='true']:not([style*='--progress'])::after {
     transform: scaleX(1);
