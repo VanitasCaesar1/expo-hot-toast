@@ -14,7 +14,7 @@ import type { DismissReason, Toast, ToastTheme } from '../core/types';
 import { resolveValue } from '../core/store';
 import { defaultTheme } from '../core/defaults';
 import { toast as toastApi } from '../core/toast';
-import { GlassSurface } from './glass-surface';
+import { GlassSurface, GLASS_SUPPORTED } from './glass-surface';
 import { ToastIcon, CloseIcon } from './icons';
 import type { ToastIconKind } from './icons';
 
@@ -160,6 +160,15 @@ export const ToastBar = React.memo(function ToastBar({
       ? { ...glassConfig, tintColor: glassConfig?.tintColor ?? rich.tint }
       : toast.glass;
   const reduceTransparency = reduceTransparencyProp ?? slot?.reduceTransparency ?? false;
+  // Liquid Glass cannot fade: UIKit drops the effect at an opacity near zero
+  // and never puts it back, so it dematerializes instead. Every other surface,
+  // frosted on the web or opaque, fades with the content. Without that, the
+  // text left first and an empty pill shrank away for the rest of the exit.
+  const onLiquidGlass =
+    GLASS_SUPPORTED &&
+    glass !== false &&
+    !(typeof glass === 'object' && glass.style === 'none') &&
+    !reduceTransparency;
   const reduceMotion = reduceMotionProp ?? slot?.reduceMotion ?? false;
   const colorScheme = colorSchemeProp ?? slot?.colorScheme;
   const atTop = atTopProp ?? slot?.atTop ?? toast.resolvedPosition.startsWith('top');
@@ -598,6 +607,33 @@ export const ToastBar = React.memo(function ToastBar({
   );
 
 
+  const surface = (
+    <GlassSurface
+      theme={theme}
+      glass={glass}
+      // The material carries its own corner radius. expo-glass-effect
+      // reads `borderRadius` off the GlassView itself to configure
+      // UIKit's corner shape; clipping a square glass view with a
+      // rounded `overflow: hidden` parent instead cuts off the rim
+      // highlight at every corner and stops neighbouring toasts in a
+      // GlassContainer from merging.
+      radius={surfaceRadius}
+      // Must be threaded down from the Toaster. Without it the
+      // Reduce Transparency rung is unreachable through the public
+      // API, and a user who asked for no transparency still gets
+      // glass — which is the exact failure the ladder exists to
+      // prevent.
+      reduceTransparency={reduceTransparency}
+      // Glass cannot fade, so it materializes and dematerializes on
+      // the same clock as everything else.
+      visible={isVisible}
+      colorScheme={colorScheme}
+      enterDuration={motion.enter}
+      exitDuration={motion.exit}
+      style={StyleSheet.absoluteFill}
+    />
+  );
+
   return (
     <GestureDetector gesture={pan}>
       <Animated.View
@@ -663,30 +699,18 @@ export const ToastBar = React.memo(function ToastBar({
                 toast.style,
               ]}
             >
-              <GlassSurface
-                theme={theme}
-                glass={glass}
-                // The material carries its own corner radius. expo-glass-effect
-                // reads `borderRadius` off the GlassView itself to configure
-                // UIKit's corner shape; clipping a square glass view with a
-                // rounded `overflow: hidden` parent instead cuts off the rim
-                // highlight at every corner and stops neighbouring toasts in a
-                // GlassContainer from merging.
-                radius={surfaceRadius}
-                // Must be threaded down from the Toaster. Without it the
-                // Reduce Transparency rung is unreachable through the public
-                // API, and a user who asked for no transparency still gets
-                // glass — which is the exact failure the ladder exists to
-                // prevent.
-                reduceTransparency={reduceTransparency}
-                // Glass cannot fade, so it materializes and dematerializes on
-                // the same clock as everything else.
-                visible={isVisible}
-                colorScheme={colorScheme}
-                enterDuration={motion.enter}
-                exitDuration={motion.exit}
-                style={StyleSheet.absoluteFill}
-              />
+              {onLiquidGlass ? (
+                surface
+              ) : (
+                // Off Liquid Glass, the surface takes the content's fade, handed
+                // back once settled for the same reason as the content's.
+                <Animated.View
+                  pointerEvents="none"
+                  style={[StyleSheet.absoluteFill, contentSettled ? null : contentStyle]}
+                >
+                  {surface}
+                </Animated.View>
+              )}
               <Animated.View
                 style={[styles.content, contentSettled ? null : contentStyle, stack?.hidden && styles.tucked]}
                 importantForAccessibility={stack?.hidden ? 'no-hide-descendants' : undefined}

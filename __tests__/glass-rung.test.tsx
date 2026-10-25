@@ -6,7 +6,7 @@ afterEach(() => {
 });
 import * as React from 'react';
 import * as ReactNative from 'react-native';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { defaultTheme } from '../src/core/defaults';
 import type { ToastTheme } from '../src/core/types';
 
@@ -285,6 +285,24 @@ describe('Toaster — the glass stack', () => {
 
     // The merge distance follows the stack gap.
     expect(containers[0]!.props.spacing).toBe(GUTTER);
+  });
+
+  it('never fades Liquid Glass: no view above the glass carries an opacity', () => {
+    // UIKit drops a glass effect whose cumulative opacity nears zero and never
+    // reinstalls it, so the fade other surfaces get must not wrap real glass.
+    withGlass({}, ({ Toaster, toast }) => {
+      render(<Toaster />);
+      act(() => {
+        toast('clear');
+      });
+    });
+
+    let node = screen.getByTestId('glass-view').parent;
+    while (node) {
+      const style = StyleSheet.flatten(node.props.style) as { opacity?: number } | undefined;
+      expect(style?.opacity).toBeUndefined();
+      node = node.parent;
+    }
   });
 
   it('forces the glass appearance when the Toaster forces a colour scheme', () => {

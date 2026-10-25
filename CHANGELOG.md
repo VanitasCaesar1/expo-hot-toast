@@ -34,6 +34,9 @@ Initial release. Not yet published to npm; `main` previously pointed at
 - **Swipe toward the edge to dismiss**, as well as sideways.
 - **`haptics`** on the Toaster and per toast, to turn the success and error
   haptics off.
+- **Surfaces fade with their content** everywhere but Liquid Glass, which
+  cannot fade and dematerializes instead. Before, the text left first and an
+  empty frosted or opaque pill shrank away for the rest of the exit.
 - **Soft visible cap** via `visibleToasts` (default 3) with implicit promotion.
   Overflow stays stored with its timer unarmed and is promoted into the freed
   slot on dismissal. Nothing is evicted until `visibleToasts + maxPending` is

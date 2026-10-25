@@ -74,7 +74,7 @@ export default function HeroToast() {
   const holdUntil = useRef(0);
 
   useEffect(() => {
-    const stage = document.querySelector<HTMLElement>('.stage');
+    const stage = document.querySelector<HTMLElement>('.hero-stage');
     if (!stage) return undefined;
     let visible = true;
     let hovering = false;

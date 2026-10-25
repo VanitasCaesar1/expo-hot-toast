@@ -401,7 +401,7 @@ describe('ToastBar — theming', () => {
     expect(screen.queryByTestId('glass-view')).toBeNull();
 
     const wrap = findSurfaceWrap(toJSON(), defaultTheme.radius);
-    const surface = flatten(wrap?.children?.[0]?.props?.style);
+    const surface = flatten(surfaceIn(wrap)?.props?.style);
     expect(surface.backgroundColor).toBe(defaultTheme.fallbackBackground);
     expect(surface.borderColor).toBe(defaultTheme.border);
     expect(surface.elevation).toBe(defaultTheme.elevation);
@@ -412,10 +412,26 @@ describe('ToastBar — theming', () => {
 
     expect(screen.queryByTestId('glass-view')).toBeNull();
     const wrap = findSurfaceWrap(toJSON(), defaultTheme.radius);
-    const surface = flatten(wrap?.children?.[0]?.props?.style);
+    const surface = flatten(surfaceIn(wrap)?.props?.style);
     expect(surface.backgroundColor).toBe(defaultTheme.fallbackBackground);
   });
+
+  it('fades the opaque surface with the content, so no empty pill outlives the text', () => {
+    const { toJSON } = renderBar({});
+    const wrap = findSurfaceWrap(toJSON(), defaultTheme.radius);
+    const fade = wrap?.children?.[0] as { props: Record<string, any> } | undefined;
+    // The enter has not finished in tests, so the fade is still applied, at
+    // its first frame.
+    expect(flatten(fade?.props.style).opacity).toBe(0);
+    expect(fade?.props.pointerEvents).toBe('none');
+  });
 });
+
+/** The surface: the wrap's first child, inside the fade where there is one. */
+function surfaceIn(wrap: ReturnType<typeof findSurfaceWrap>) {
+  const first = wrap?.children?.[0] as { props: Record<string, any>; children?: Array<{ props: Record<string, any> }> } | undefined;
+  return first?.props.pointerEvents === 'none' ? first.children?.[0] : first;
+}
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
