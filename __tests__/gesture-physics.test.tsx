@@ -519,6 +519,16 @@ describe('ToastBar — vertical swipe', () => {
     expect(onDismiss).toHaveBeenCalledWith('swipe-me', 'swipe');
   });
 
+  it('does not lock the axis on a first update that has not moved', () => {
+    const onDismiss = jest.fn();
+    const { drag, release } = mountBar(72, onDismiss, true);
+    // Android can deliver a first update at 0,0; that must not lock it sideways.
+    drag({ translationX: 0, translationY: 0 });
+    drag({ translationX: 0, translationY: -60 });
+    release({ translationX: 0, translationY: -105, velocityY: -500 });
+    expect(onDismiss).toHaveBeenCalledWith('swipe-me', 'swipe');
+  });
+
   it('dismisses a flick that ends with no update in between', () => {
     const onDismiss = jest.fn();
     const { release, config } = mountBar(72, onDismiss, true);

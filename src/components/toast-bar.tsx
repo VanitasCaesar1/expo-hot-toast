@@ -467,8 +467,15 @@ export const ToastBar = React.memo(function ToastBar({
         .onUpdate((event) => {
           // The drag locks to whichever axis it starts along, so a sideways
           // swipe never drifts vertically and a flick up never slides sideways.
+          // It locks only once the finger has moved: on Android the first
+          // update can arrive with no movement on either axis, and 0 >= 0
+          // locked every drag sideways, so a vertical swipe was judged as a
+          // horizontal one of 0 (found with an on-device gesture log).
           if (dragAxis.value === 0) {
-            dragAxis.value = Math.abs(event.translationX ?? 0) >= Math.abs(event.translationY ?? 0) ? 1 : 2;
+            const ax = Math.abs(event.translationX ?? 0);
+            const ay = Math.abs(event.translationY ?? 0);
+            if (Math.max(ax, ay) < 2) return;
+            dragAxis.value = ax >= ay ? 1 : 2;
           }
           if (dragAxis.value === 1) {
             dragX.value = resistUnless(event.translationX, allowRight, allowLeft);
