@@ -27,7 +27,7 @@ function greet() {
     return;
   }
   setTimeout(() => {
-    withToast((toast) => toast('Every button on this page fires a real toast.', { icon: '🍞', duration: 4000 }));
+    withToast((toast) => toast('Every button here fires a real toast.', { icon: '🍞', duration: 4000 }));
   }, 1400);
 }
 
