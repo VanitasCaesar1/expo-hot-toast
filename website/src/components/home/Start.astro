@@ -1,0 +1,453 @@
+---
+/**
+ * Ship your first toast: one card, two ways in. By hand is three numbered
+ * steps, the install command in your package manager; with an agent is one
+ * prompt, previewed so nobody pastes what they have not read (after Clerk's
+ * quickstart). Tabs are radio inputs, so the card needs no JavaScript.
+ */
+import CodePanel from '../CodePanel.astro';
+import Icon from '../Icon.astro';
+import { GlassPanel } from '../glassyui/glass-panel';
+import { url, REPO_URL } from '../../lib/url';
+import { SETUP_PROMPT } from '../../lib/ai';
+
+const managers = [
+  { id: 'npm', command: 'npm install github:VanitasCaesar1/expo-hot-toast' },
+  { id: 'pnpm', command: 'pnpm add github:VanitasCaesar1/expo-hot-toast' },
+  { id: 'yarn', command: 'yarn add github:VanitasCaesar1/expo-hot-toast' },
+  { id: 'bun', command: 'bun add github:VanitasCaesar1/expo-hot-toast' },
+];
+const peers = `npx expo install expo-glass-effect expo-haptics \\
+  react-native-reanimated react-native-worklets \\
+  react-native-gesture-handler react-native-safe-area-context react-native-svg`;
+const app = `import { Toaster, toast } from 'expo-hot-toast';
+
+export default function App() {
+  return (
+    <>
+      <Home />
+      <Toaster />
+    </>
+  );
+}
+
+toast.success('Changes saved');`;
+---
+
+<div class="start-shell inset">
+  <header class="start-head">
+    <h2 id="start" class="display">Ship your first toast.</h2>
+    <p>Three steps by hand, or one prompt for your agent. Either way, a toast in a few minutes.</p>
+  </header>
+
+  <GlassPanel variant="card" className="start-card">
+    <input type="radio" name="start-way" id="way-hand" class="visually-hidden" checked />
+    <input type="radio" name="start-way" id="way-agent" class="visually-hidden" />
+    <div class="ways" role="presentation">
+      <label for="way-hand"><Icon name="terminal" /> By hand</label>
+      <label for="way-agent"><Icon name="robot" /> With an AI agent</label>
+    </div>
+
+    <div class="way way-hand">
+      <ol class="install-steps">
+        <li>
+          <h3>Install the package</h3>
+          <p>Not on npm yet, so it installs from GitHub; it builds after cloning.</p>
+          <div class="managers">
+            {managers.map((m, i) => <input type="radio" name="manager" id={`pm-${m.id}`} class="visually-hidden" checked={i === 0} />)}
+            <div class="manager-tabs">
+              {managers.map((m) => <label for={`pm-${m.id}`}>{m.id}</label>)}
+            </div>
+            {
+              managers.map((m) => (
+                <div class:list={['command', `cmd-${m.id}`]}>
+                  <code>
+                    <span class="prompt">$</span> {m.command}
+                  </code>
+                  <button type="button" class="copy-cmd" data-copy={m.command} aria-label={`Copy the ${m.id} command`}>
+                    <span class="copy-idle"><Icon name="copy" /></span>
+                    <span class="copy-done"><Icon name="check" /></span>
+                  </button>
+                </div>
+              ))
+            }
+          </div>
+        </li>
+        <li>
+          <h3>Add its peers</h3>
+          <p>With <code>npx expo install</code>, so the versions match your Expo SDK.</p>
+          <CodePanel code={peers} lang="sh" file="Terminal" />
+        </li>
+        <li>
+          <h3>Mount the Toaster, then toast</h3>
+          <p>Once, after the rest of the app. Then call <code>toast</code> from anywhere.</p>
+          <CodePanel code={app} lang="tsx" file="App.tsx" />
+        </li>
+      </ol>
+      <div class="way-foot">
+        <a class="text-link" href={url('docs/installation')}>Full installation guide <Icon name="arrow-right" /></a>
+        <a class="text-link" href={url('docs/quick-start')}>Quick start <Icon name="arrow-right" /></a>
+      </div>
+    </div>
+
+    <div class="way way-agent">
+      <p class="agent-intro">
+        Paste this into Claude Code, Cursor or Codex. It installs the package and its peers, wires the app root and swaps
+        your existing toasts, reading the full docs as plain text.
+      </p>
+      <div class="prompt-box">
+        <div class="prompt-bar">
+          <span><Icon name="sparkle" /> Add expo-hot-toast to your app</span>
+          <button type="button" class="copy-prompt" data-copy={SETUP_PROMPT}>
+            <span class="copy-idle">Copy prompt <Icon name="copy" /></span>
+            <span class="copy-done">Copied <Icon name="check" /></span>
+          </button>
+        </div>
+        <div class="prompt-body">
+          <input type="checkbox" id="prompt-open" class="visually-hidden" />
+          <pre>{SETUP_PROMPT}</pre>
+          <label for="prompt-open" class="prompt-toggle"><span class="expand">Expand prompt</span><span class="collapse">Collapse prompt</span></label>
+        </div>
+      </div>
+      <p class="llms">
+        For tools that read docs: <a href={url('llms.txt')}>llms.txt</a> · <a href={url('llms-full.txt')}>llms-full.txt</a> ·
+        <a href={`${REPO_URL}`}>GitHub</a>
+      </p>
+    </div>
+  </GlassPanel>
+</div>
+
+<style>
+  .start-shell {
+    display: grid;
+    gap: 36px;
+    padding-top: 112px;
+  }
+  .start-head {
+    display: grid;
+    gap: 14px;
+    justify-items: center;
+    text-align: center;
+  }
+  .start-head h2 {
+    margin: 0;
+    font-size: clamp(44px, 6.4vw, 88px);
+    line-height: 0.98;
+  }
+  .start-head p {
+    margin: 0;
+    color: var(--muted);
+    font-size: clamp(16px, 1.4vw, 19px);
+  }
+
+  .start-shell :global(.start-card) {
+    width: 100%;
+    max-width: 920px;
+    margin-inline: auto;
+    padding: 8px;
+  }
+  /* The two ways, as a segmented pill. */
+  .ways {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 16px;
+    background: var(--hover);
+  }
+  .ways label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 42px;
+    border-radius: 12px;
+    color: var(--muted);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background 160ms,
+      color 160ms;
+  }
+  .ways label:hover {
+    color: var(--text);
+  }
+  #way-hand:checked ~ .ways label[for='way-hand'],
+  #way-agent:checked ~ .ways label[for='way-agent'] {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow:
+      0 1px 2px var(--hairline),
+      0 4px 14px -6px var(--shadow);
+  }
+  #way-hand:focus-visible ~ .ways label[for='way-hand'],
+  #way-agent:focus-visible ~ .ways label[for='way-agent'] {
+    outline: 2px solid var(--accent);
+  }
+  .way {
+    display: none;
+    padding: 28px clamp(16px, 3vw, 32px) 24px;
+  }
+  #way-hand:checked ~ .way-hand,
+  #way-agent:checked ~ .way-agent {
+    display: block;
+  }
+
+  /* Numbered steps on a rail. */
+  .install-steps {
+    counter-reset: install;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 28px;
+  }
+  .install-steps > li {
+    position: relative;
+    padding-left: 46px;
+    min-width: 0;
+  }
+  .install-steps > li::before {
+    counter-increment: install;
+    content: counter(install);
+    position: absolute;
+    left: 0;
+    top: -2px;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: 600 14px/1 var(--font);
+  }
+  .install-steps > li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 36px;
+    bottom: -22px;
+    width: 1px;
+    background: var(--line);
+  }
+  .install-steps h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .install-steps p {
+    margin: 6px 0 14px;
+    color: var(--muted);
+  }
+  .install-steps p code {
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: var(--hover);
+    font-size: 0.88em;
+  }
+
+  /* Package managers: tabs over one command. */
+  .manager-tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+  .manager-tabs label {
+    padding: 4px 12px;
+    border-radius: 8px;
+    color: var(--muted);
+    font: 500 13px var(--mono);
+    cursor: pointer;
+  }
+  .manager-tabs label:hover {
+    color: var(--text);
+  }
+  .command {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 6px 6px 16px;
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    background: var(--code-panel);
+  }
+  .command code {
+    overflow-x: auto;
+    white-space: nowrap;
+    font-size: 14px;
+  }
+  .command .prompt {
+    color: var(--accent-text);
+  }
+  #pm-npm:checked ~ .manager-tabs label[for='pm-npm'],
+  #pm-pnpm:checked ~ .manager-tabs label[for='pm-pnpm'],
+  #pm-yarn:checked ~ .manager-tabs label[for='pm-yarn'],
+  #pm-bun:checked ~ .manager-tabs label[for='pm-bun'] {
+    background: var(--hover);
+    color: var(--text);
+  }
+  #pm-npm:checked ~ .cmd-npm,
+  #pm-pnpm:checked ~ .cmd-pnpm,
+  #pm-yarn:checked ~ .cmd-yarn,
+  #pm-bun:checked ~ .cmd-bun {
+    display: flex;
+  }
+  .copy-cmd {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--faint);
+    cursor: pointer;
+  }
+  .copy-cmd:hover {
+    color: var(--text);
+    background: var(--hover);
+  }
+  .copy-cmd .copy-done,
+  .copy-cmd[data-copied] .copy-idle,
+  .copy-prompt .copy-done,
+  .copy-prompt[data-copied] .copy-idle {
+    display: none;
+  }
+  .copy-cmd[data-copied] .copy-done {
+    display: inline-flex;
+    color: var(--accent-text);
+  }
+  .copy-prompt[data-copied] .copy-done {
+    display: inline-flex;
+  }
+
+  .way-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 28px;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--hairline);
+  }
+  .text-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--accent-text);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .text-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  /* The agent's prompt, after Clerk's quickstart. */
+  .agent-intro {
+    margin: 0 0 18px;
+    color: var(--muted);
+    max-width: 62ch;
+  }
+  .prompt-box {
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    background: var(--code-panel);
+    overflow: hidden;
+  }
+  .prompt-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 10px 10px 16px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .prompt-bar > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+  }
+  .copy-prompt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: 600 13.5px var(--font);
+    cursor: pointer;
+  }
+  .copy-prompt span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .prompt-body {
+    position: relative;
+  }
+  .prompt-body pre {
+    margin: 0;
+    padding: 16px 18px 56px;
+    max-height: 180px;
+    overflow: hidden;
+    color: var(--muted);
+    font: 13px/1.65 var(--mono);
+    white-space: pre-wrap;
+    mask-image: linear-gradient(#000 40%, transparent);
+    -webkit-mask-image: linear-gradient(#000 40%, transparent);
+  }
+  #prompt-open:checked ~ pre {
+    max-height: none;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+  .prompt-toggle {
+    position: absolute;
+    left: 50%;
+    bottom: 14px;
+    z-index: 1;
+    transform: translateX(-50%);
+    padding: 6px 14px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  #prompt-open:focus-visible ~ .prompt-toggle {
+    outline: 2px solid var(--accent);
+  }
+  .prompt-toggle .collapse,
+  #prompt-open:checked ~ .prompt-toggle .expand {
+    display: none;
+  }
+  #prompt-open:checked ~ .prompt-toggle .collapse {
+    display: inline;
+  }
+  .llms {
+    margin: 16px 0 0;
+    color: var(--faint);
+    font-size: 14px;
+  }
+  .llms a {
+    color: var(--muted);
+  }
+
+  @media (max-width: 640px) {
+    .install-steps > li {
+      padding-left: 40px;
+    }
+    .ways label {
+      font-size: 14px;
+    }
+  }
+</style>

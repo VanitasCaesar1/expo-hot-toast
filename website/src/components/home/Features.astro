@@ -1,0 +1,432 @@
+---
+/**
+ * Built for a phone: a bento of the library's features, each tile showing
+ * its feature with the real library. The tiles are stages: the web embed
+ * mounts an independent Toaster inside every [data-toast-stage], and the
+ * script below plays each one while it is on screen.
+ */
+import { GlassPanel } from '../glassyui/glass-panel';
+import { GlassBadge } from '../glassyui/glass-badge';
+---
+
+<div class="bento inset">
+  <GlassPanel variant="card" className="tile wide" data-tile="queue">
+    <div class="tile-stage" data-toast-stage="f-queue">
+      <button type="button" class="stage-action" data-action="queue">Fire five</button>
+    </div>
+    <div class="tile-copy">
+      <GlassBadge tone="orange" className="spec">visibleToasts: 3</GlassBadge>
+      <h3>A queue, not a pile</h3>
+      <p>Fire five at once: three show, two wait their turn, and each gets its full time once it is on screen.</p>
+    </div>
+  </GlassPanel>
+
+  <GlassPanel variant="card" className="tile" data-tile="swipe">
+    <div class="tile-stage" data-toast-stage="f-swipe">
+      <span class="stage-hint">Drag it sideways, or press and hold</span>
+    </div>
+    <div class="tile-copy">
+      <GlassBadge tone="orange" className="spec">swipe · press and hold</GlassBadge>
+      <h3>Swipe it away, hold to read</h3>
+      <p>Fling a toast to dismiss it. Press and hold to pause every timer in the stack.</p>
+    </div>
+  </GlassPanel>
+
+  <GlassPanel variant="card" className="tile" data-tile="dedupe">
+    <div class="tile-stage" data-toast-stage="f-dedupe">
+      <div class="stage-row">
+        <button type="button" class="stage-action" data-action="dedupe">Call it 20 times</button>
+        <span class="stage-count" data-dedupe-count>0 calls · 0 toasts</span>
+      </div>
+    </div>
+    <div class="tile-copy">
+      <GlassBadge tone="orange" className="spec">dedupeKey: 'draft'</GlassBadge>
+      <h3>Twenty calls, one toast</h3>
+      <p>Repeat a call with the same key while its toast is showing, and you get that toast back.</p>
+    </div>
+  </GlassPanel>
+
+  <GlassPanel variant="card" className="tile" data-tile="check">
+    <div class="tile-stage" data-toast-stage="f-check"></div>
+    <div class="tile-copy">
+      <GlassBadge tone="orange" className="spec">iconPop · iconPopDelay</GlassBadge>
+      <h3>The check draws itself</h3>
+      <p>Icons pop in and the checkmark draws on react-hot-toast’s timing. Under Reduce Motion they arrive finished.</p>
+    </div>
+  </GlassPanel>
+
+  <GlassPanel variant="card" className="tile" data-tile="a11y">
+    <div class="tile-stage a11y-stage">
+      <div class="voiceover" aria-hidden="true">
+        <span class="vo-label">VoiceOver</span>
+        <span class="vo-speech">“Payment failed. Card declined. Alert.”</span>
+      </div>
+      <ul class="settings" aria-label="System settings toasts follow">
+        <li><span class="dot"></span>Reduce Motion</li>
+        <li><span class="dot"></span>Reduce Transparency</li>
+        <li><span class="dot"></span>Larger Text</li>
+        <li><span class="dot"></span>Haptics</li>
+      </ul>
+    </div>
+    <div class="tile-copy">
+      <GlassBadge tone="orange" className="spec">VoiceOver · TalkBack</GlassBadge>
+      <h3>Accessible by default</h3>
+      <p>Announced to screen readers, message and description together, and every system setting followed.</p>
+    </div>
+  </GlassPanel>
+
+  <GlassPanel variant="card" className="tile full" data-tile="tokens">
+    <div class="tile-stage" data-toast-stage="f-tokens"></div>
+    <div class="tile-copy tokens-copy">
+      <div>
+        <GlassBadge tone="orange" className="spec">theme={'{{'} radius {'}}'}</GlassBadge>
+        <h3>Tokens, not overrides</h3>
+        <p>Every colour, size and duration is a token, light and dark, exported as CSS variables for NativeWind or Unistyles. Drag it:</p>
+      </div>
+      <div class="token-controls">
+        <label>
+          <span>radius <output data-token-out="radius">22</output></span>
+          <input type="range" min="0" max="32" value="22" data-token="radius" />
+        </label>
+        <label>
+          <span>paddingVertical <output data-token-out="paddingVertical">14</output></span>
+          <input type="range" min="6" max="24" value="14" data-token="paddingVertical" />
+        </label>
+        <code class="token-code" data-token-code>{'<Toaster theme={{ radius: 22 }} />'}</code>
+      </div>
+    </div>
+  </GlassPanel>
+</div>
+
+<script>
+  import { live, withToast } from '../../lib/live';
+  import { getScheme, onScheme } from '../../lib/theme';
+
+  const IDS = ['f-queue', 'f-swipe', 'f-dedupe', 'f-check', 'f-tokens'];
+  // Small toasts: these stages are a few hundred points wide.
+  const TILE_THEME = { fontSize: 14, lineHeight: 19, iconSize: 20, paddingVertical: 11, paddingHorizontal: 15, maxWidth: 300, gap: 8 };
+  const tokens: Record<string, number> = { radius: 22, paddingVertical: 14 };
+
+  type Api = Awaited<ReturnType<typeof live>>;
+  let api: Api | undefined;
+
+  const setup = (a: Api) => {
+    api = a;
+    for (const id of IDS) {
+      a.configureStage({ position: 'top-center', offset: 18, gap: 8, colorScheme: getScheme(), theme: TILE_THEME }, id);
+    }
+    a.configureStage({ visibleToasts: 3 }, 'f-queue');
+    // The tokens toast sits in the middle of its stage.
+    a.configureStage({ offset: 86 }, 'f-tokens');
+    onScheme((colorScheme) => IDS.forEach((id) => a.configureStage({ colorScheme }, id)));
+  };
+
+  const plays: Record<string, () => void> = {
+    queue: () =>
+      withToast((toast) => {
+        for (let n = 1; n <= 5; n++) {
+          setTimeout(() => toast(`Item ${n} added to cart`, { toasterId: 'f-queue', duration: 1700 }), n * 90);
+        }
+      }),
+    swipe: () =>
+      withToast((toast) => {
+        const show = () =>
+          toast('Swipe me away, or hold me', {
+            id: 'swipe-me',
+            toasterId: 'f-swipe',
+            duration: Infinity,
+            // Gone? It comes back, so there is always one to try.
+            onDismiss: () => setTimeout(show, 1200),
+          });
+        show();
+      }),
+    dedupe: () => {
+      let calls = 0;
+      withToast((toast) => {
+        const counter = document.querySelector('[data-dedupe-count]');
+        for (let n = 0; n < 20; n++) {
+          setTimeout(() => {
+            toast.success('Draft saved', { toasterId: 'f-dedupe', dedupeKey: 'draft', dedupeWindowMs: 4000, duration: 3000 });
+            calls += 1;
+            if (counter) counter.textContent = `${calls} calls · 1 toast`;
+          }, n * 45);
+        }
+      });
+    },
+    check: () => withToast((toast) => toast.success('Changes saved', { toasterId: 'f-check', duration: 2400 })),
+    tokens: () =>
+      withToast((toast) => toast.success('Styled by tokens', { id: 'token-toast', toasterId: 'f-tokens', duration: Infinity })),
+  };
+  // Tiles that keep playing while they are on screen, and how often.
+  const loops: Record<string, number> = { queue: 7000, check: 3200, dedupe: 6500 };
+
+  const timers = new Map<string, number>();
+  const seen = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const name = (entry.target as HTMLElement).dataset.tile ?? '';
+        const play = plays[name];
+        if (!play) continue;
+        if (entry.isIntersecting) {
+          void live().then((a) => {
+            if (!api) setup(a);
+            play();
+            if (loops[name] && !timers.has(name)) timers.set(name, window.setInterval(play, loops[name]));
+          }, () => {});
+        } else if (timers.has(name)) {
+          clearInterval(timers.get(name));
+          timers.delete(name);
+        }
+      }
+    },
+    { threshold: 0.5 },
+  );
+  document.querySelectorAll<HTMLElement>('[data-tile]').forEach((tile) => seen.observe(tile));
+
+  document.querySelector('[data-action="queue"]')?.addEventListener('click', plays.queue);
+  document.querySelector('[data-action="dedupe"]')?.addEventListener('click', plays.dedupe);
+
+  // The token sliders restyle the tile's toast as they move.
+  const code = document.querySelector('[data-token-code]');
+  document.querySelectorAll<HTMLInputElement>('[data-token]').forEach((input) =>
+    input.addEventListener('input', () => {
+      const name = input.dataset.token!;
+      tokens[name] = Number(input.value);
+      const out = document.querySelector(`[data-token-out="${name}"]`);
+      if (out) out.textContent = input.value;
+      if (code) code.textContent = `<Toaster theme={{ radius: ${tokens.radius}, paddingVertical: ${tokens.paddingVertical} }} />`;
+      api?.configureStage({ theme: { ...TILE_THEME, ...tokens } }, 'f-tokens');
+    }),
+  );
+
+</script>
+
+<style>
+  /* A bento: the queue and the tokens get room; the rest share a row. */
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .bento :global(.tile) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .bento :global(.tile.wide) {
+    grid-column: span 2;
+  }
+  .bento :global(.tile.full) {
+    grid-column: 1 / -1;
+    flex-direction: row;
+  }
+  /* Each stage is warm light for the frosted toasts to blur. */
+  .tile-stage {
+    position: relative;
+    height: 210px;
+    margin: 8px 8px 0;
+    border-radius: 18px;
+    overflow: hidden;
+    background:
+      radial-gradient(60% 80% at 20% 10%, rgb(255 140 40 / 0.55), transparent 70%),
+      radial-gradient(60% 90% at 90% 90%, rgb(214 45 74 / 0.45), transparent 70%),
+      var(--stage-base);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+  :root[data-theme='light'] .tile-stage {
+    background:
+      radial-gradient(60% 80% at 20% 10%, rgb(255 170 90 / 0.65), transparent 70%),
+      radial-gradient(60% 90% at 90% 90%, rgb(255 120 140 / 0.45), transparent 70%),
+      var(--stage-base);
+  }
+  /* Room for three toasts above the button. */
+  .bento :global(.tile.wide) .tile-stage {
+    height: 236px;
+  }
+  .bento :global(.tile.full) .tile-stage {
+    flex: 1.1;
+    height: auto;
+    min-height: 220px;
+    margin: 8px 0 8px 8px;
+  }
+  .stage-action {
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    z-index: 1;
+    transform: translateX(-50%);
+    padding: 7px 14px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    background: var(--caption-bg);
+    color: var(--text);
+    font: 500 13px var(--font);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .stage-action:hover {
+    background: var(--surface);
+  }
+  .stage-row {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 16px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .stage-row .stage-action {
+    position: static;
+    transform: none;
+  }
+  .stage-count,
+  .stage-hint {
+    color: var(--caption-text);
+    font: 500 12px var(--mono);
+  }
+  .stage-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 16px;
+    text-align: center;
+  }
+
+  .tile-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 22px 24px;
+  }
+  .tile-copy :global(.spec) {
+    align-self: flex-start;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .tile-copy h3 {
+    margin: 6px 0 0;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .tile-copy p {
+    margin: 0;
+    color: var(--muted);
+    max-width: 46ch;
+  }
+
+  /* Accessibility: what VoiceOver says, and the settings followed. */
+  .a11y-stage {
+    display: grid;
+    align-content: center;
+    gap: 14px;
+    padding: 16px 14px;
+  }
+  .voiceover {
+    display: grid;
+    gap: 4px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgb(0 0 0 / 0.72);
+    color: #fff;
+  }
+  .vo-label {
+    font: 600 11px var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  .vo-speech {
+    font-size: 14.5px;
+  }
+  .settings {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-flow: row wrap;
+    gap: 6px;
+  }
+  .settings li + li {
+    margin: 0;
+  }
+  .settings li {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: var(--caption-bg);
+    color: var(--text);
+    font-size: 12px;
+  }
+  .settings .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #34c759;
+  }
+
+  /* Tokens: the stage beside its controls. */
+  .tokens-copy {
+    flex: 1;
+    justify-content: space-between;
+    gap: 22px;
+  }
+  .token-controls {
+    display: grid;
+    gap: 14px;
+  }
+  .token-controls label {
+    display: grid;
+    gap: 8px;
+    color: var(--muted);
+    font: 13px var(--mono);
+  }
+  .token-controls label span {
+    display: flex;
+    justify-content: space-between;
+  }
+  .token-controls output {
+    color: var(--text);
+  }
+  .token-controls input[type='range'] {
+    width: 100%;
+    accent-color: var(--accent);
+  }
+  .token-code {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--code-panel);
+    border: 1px solid var(--hairline);
+    color: var(--text);
+    font-size: 13px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 960px) {
+    .bento {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .bento :global(.tile.full) {
+      flex-direction: column;
+    }
+    .bento :global(.tile.full) .tile-stage {
+      margin: 8px 8px 0;
+    }
+  }
+  @media (max-width: 640px) {
+    .bento {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .bento :global(.tile.wide) {
+      grid-column: auto;
+    }
+  }
+</style>

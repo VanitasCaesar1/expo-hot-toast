@@ -6,45 +6,22 @@ import Examples from '../components/live/Examples';
 import PositionPicker from '../components/live/Position';
 import Customiser from '../components/live/Customiser';
 import LinkButton from '../components/glass/LinkButton';
-import CopyButton from '../components/glass/CopyButton';
-import CommandBox from '../components/glass/CommandBox';
 import Faq from '../components/glass/Faq';
+import Features from '../components/home/Features.astro';
+import Migrate from '../components/home/Migrate.astro';
+import Start from '../components/home/Start.astro';
 import StarButton from '../components/glass/StarButton';
 import { buildStars } from '../lib/stars';
 import { GlassPanel } from '../components/glassyui/glass-panel';
-import { GlassBadge } from '../components/glassyui/glass-badge';
 import Icon from '../components/Icon.astro';
-import CodePanel from '../components/CodePanel.astro';
-import { url, INSTALL, REPO_URL } from '../lib/url';
+import { url, REPO_URL } from '../lib/url';
 import { SETUP_PROMPT } from '../lib/ai';
 
 const stars = await buildStars();
 
-const migrate = `- import toast, { Toaster } from 'react-hot-toast';
-+ import toast, { Toaster } from 'expo-hot-toast';`;
 
-const setup = `import { Toaster, toast } from 'expo-hot-toast';
 
-export default function App() {
-  return (
-    <>
-      <Home />
-      <Toaster />
-    </>
-  );
-}
 
-toast.success('Changes saved');`;
-
-// Each feature leads with the line of API it is about.
-const features = [
-  { spec: 'visibleToasts: 3', title: 'A queue, not a pile', body: 'Three show per edge. The rest wait their turn, and each gets its full time once it is on screen.' },
-  { spec: 'swipe · press and hold', title: 'Swipe it away, hold to read', body: 'Fling a toast to dismiss it. Press and hold one to pause every timer in the stack.' },
-  { spec: "dedupeKey: 'draft'", title: 'Twenty calls, one toast', body: 'Repeat a call with the same key while its toast is showing and you get that toast back, not a second copy.' },
-  { spec: 'VoiceOver · TalkBack', title: 'Accessible by default', body: 'Announced to screen readers, with Reduce Motion, Reduce Transparency, capped font scaling and a haptic per type.' },
-  { spec: 'iconPop · iconPopDelay', title: 'The check draws itself', body: 'Icons pop in and the checkmark draws on react-hot-toast’s timing. Under Reduce Motion they arrive finished.' },
-  { spec: 'theme={{ radius: 14 }}', title: 'Tokens, not overrides', body: 'Light and dark defaults follow the system. Every token is overridable, and exports as a CSS variable for NativeWind or Unistyles.' },
-];
 
 const faq = [
   {
@@ -165,33 +142,16 @@ const faq = [
     <DemoWindow />
   </section>
 
-  <section class="band" aria-labelledby="built">
+  <section aria-labelledby="built">
     <header class="head inset" data-reveal>
       <h2 id="built" class="display">Built for a phone, not ported to one.</h2>
+      <p>Every tile is the library itself, running on this page. Try them.</p>
     </header>
-    <div class="features inset">
-      {
-        features.map((f, i) => (
-          <div data-reveal style={`--i: ${i % 3}`}>
-            <GlassPanel variant="card" className="feature" interactive>
-              <GlassBadge tone="orange" className="spec">{f.spec}</GlassBadge>
-              <h3>{f.title}</h3>
-              <p>{f.body}</p>
-            </GlassPanel>
-          </div>
-        ))
-      }
-    </div>
+    <Features />
   </section>
 
-  <section class="band migrate inset" aria-labelledby="migrate">
-    <div class="migrate-copy">
-      <h2 id="migrate" class="display">Know <span class="nowrap">react-hot-toast</span> from the web?</h2>
-      <p>It renders to the DOM, so it cannot run in an Expo or React Native app. This is its API rebuilt on native views: the calls you write on the web work here, and <a href={url('docs/coming-from-react-hot-toast')}>the differences fit on one page</a>.</p>
-    </div>
-    <div class="diff" data-reveal>
-      <CodePanel code={migrate} lang="diff" file="Porting a web screen" />
-    </div>
+  <section aria-labelledby="migrate">
+    <Migrate />
   </section>
 
   <section class="faq inset" aria-labelledby="faq">
@@ -202,31 +162,8 @@ const faq = [
     <Faq client:visible items={faq} />
   </section>
 
-  <section class="band start" aria-labelledby="start">
-    <div class="start-inner inset">
-      <h2 id="start" class="display huge" data-reveal>Ship your first toast.</h2>
-      <div class="start-grid">
-        <div class="by-hand">
-          <p class="label">By hand</p>
-          <CommandBox command={INSTALL} />
-          <div class="setup">
-            <CodePanel code={setup} lang="tsx" file="App.tsx" />
-          </div>
-          <LinkButton href={url('docs/installation')} label="Quick start" trailing="arrow-right" variant="prominent" size="lg" />
-        </div>
-        <div class="by-agent">
-          <p class="label">With an AI agent</p>
-          <p>Paste this into Claude Code, Cursor or Codex. It installs the package and its peers, wires the app root and swaps your toasts, using the full docs as plain text.</p>
-          <GlassPanel variant="card" className="prompt-card">
-            <pre class="prompt-preview" aria-label="The setup prompt">{SETUP_PROMPT}</pre>
-          </GlassPanel>
-          <CopyButton text={SETUP_PROMPT} label="Copy prompt" variant="primary" size="lg" />
-          <p class="llms">
-            For tools that read docs: <a href={url('llms.txt')}>llms.txt</a> · <a href={url('llms-full.txt')}>llms-full.txt</a>
-          </p>
-        </div>
-      </div>
-    </div>
+  <section aria-labelledby="start">
+    <Start />
   </section>
   <section class="star inset" aria-labelledby="star">
     <GlassPanel variant="card" className="star-card">
@@ -459,57 +396,6 @@ const faq = [
     max-width: 58ch;
   }
 
-  /* Six glass cards: the API line, the name, one sentence. */
-  .features {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-  }
-  .features > div {
-    min-width: 0;
-  }
-  .features :global(.feature) {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    height: 100%;
-    padding: 26px 26px 30px;
-  }
-  .features :global(.spec) {
-    align-self: flex-start;
-    margin-bottom: 8px;
-    font-family: var(--mono);
-    font-size: 12.5px;
-    white-space: nowrap;
-  }
-  h3 {
-    margin: 0;
-    font-size: 19px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-  }
-  .features p {
-    margin: 0;
-    color: var(--muted);
-    max-width: 34ch;
-  }
-
-  .migrate {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(28px, 4vw, 56px);
-    align-items: center;
-    padding-top: 112px;
-  }
-  .migrate p {
-    margin: 14px 0 0;
-    color: var(--muted);
-    max-width: 44ch;
-  }
-  .migrate a {
-    color: var(--accent-text);
-  }
-
   /* The heading beside one glass card of questions. */
   .faq {
     display: grid;
@@ -526,66 +412,6 @@ const faq = [
     color: var(--accent-text);
   }
 
-  .start-inner {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 22px;
-    justify-items: start;
-    padding-block: 112px 96px;
-  }
-  .start-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(28px, 4vw, 56px);
-    width: 100%;
-  }
-  .by-hand,
-  .by-agent {
-    display: grid;
-    /* A code block's lines must scroll inside it, not widen the column. */
-    grid-template-columns: minmax(0, 1fr);
-    gap: 18px;
-    align-content: start;
-    min-width: 0;
-  }
-  .by-hand :global(.lg-button),
-  .by-agent :global(.lg-button) {
-    justify-self: start;
-  }
-  .by-hand :global(.command-box .lg-button) {
-    justify-self: auto;
-  }
-  .by-hand .label,
-  .by-agent .label {
-    margin: 0;
-    color: var(--accent-text);
-  }
-  .by-agent > p:not(.label) {
-    margin: 0;
-    color: var(--muted);
-    max-width: 46ch;
-  }
-  /* The prompt itself, shown so nobody pastes something they have not read. */
-  .prompt-preview {
-    max-height: 236px;
-    margin: 0;
-    padding: 18px 20px;
-    overflow: auto;
-    color: var(--muted);
-    font: 12.5px/1.6 var(--mono);
-    white-space: pre-wrap;
-    mask-image: linear-gradient(#000 78%, transparent);
-    -webkit-mask-image: linear-gradient(#000 78%, transparent);
-  }
-  .by-agent .llms {
-    margin: 0;
-    color: var(--faint);
-    font-size: 14px;
-  }
-  .by-agent .llms a {
-    color: var(--muted);
-  }
   .ai-link {
     align-self: center;
     margin-top: 14px;
@@ -636,31 +462,17 @@ const faq = [
     flex-wrap: wrap;
     gap: 12px;
   }
-  .huge {
-    font-size: clamp(52px, 8.6vw, 124px);
-    max-width: 12ch;
-    line-height: 0.96;
-    margin-bottom: 12px;
-  }
 
   @media (max-width: 960px) {
     .proof {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .features {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .migrate,
     .faq,
-    .start-grid,
     .star :global(.star-card) {
       grid-template-columns: minmax(0, 1fr);
     }
   }
   @media (max-width: 640px) {
-    .features {
-      grid-template-columns: minmax(0, 1fr);
-    }
     .hero-stage {
       height: 360px;
       border-radius: 26px;

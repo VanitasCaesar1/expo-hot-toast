@@ -39,7 +39,7 @@ interface LiveApi {
   configure: (config: LiveConfig) => void;
   examples: Record<string, () => void>;
   /** Props for the hero's stage Toaster (toasterId "stage"). */
-  configureStage: (config: LiveConfig & { offset?: number; gap?: number }) => void;
+  configureStage: (config: LiveConfig & { offset?: number; gap?: number; visibleToasts?: number }, id?: string) => void;
 }
 
 declare global {
