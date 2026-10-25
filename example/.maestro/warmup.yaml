@@ -1,0 +1,6 @@
+# Starts Maestro's iOS driver before the real flows. On a cold simulator the
+# first test-runner install can outlast the driver's startup window, which
+# failed whichever flow came first; this one is allowed to.
+appId: dev.expohottoast.example
+---
+- launchApp

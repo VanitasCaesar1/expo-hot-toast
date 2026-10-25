@@ -34,6 +34,8 @@ xcrun simctl ui "$UDID" appearance light
 xcrun simctl install "$UDID" "$APP"
 
 status=0
+# A throwaway first flow, so the slow first driver start never fails smoke.
+(cd "$OUT" && maestro --device "$UDID" test ../../example/.maestro/warmup.yaml) || true
 (cd "$OUT" && maestro --device "$UDID" test ../../example/.maestro/smoke.yaml) || status=$?
 (cd "$OUT" && maestro --device "$UDID" test ../../example/.maestro/rich.yaml) || status=$?
 xcrun simctl ui "$UDID" appearance dark
