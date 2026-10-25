@@ -34,6 +34,17 @@ toast(<RichMessage order={order} />, { accessibilityLabel: `Order ${order.id} sh
 Toasts with an action or close button expose the message and each button
 separately, so VoiceOver and TalkBack can reach the buttons.
 
+## Rich toasts
+
+| Toast | What a screen reader hears |
+|---|---|
+| Progress | The message when it starts, and the outcome when it ends. The bar and percentage change too often to read, so they are hidden from it. |
+| Steps | Each step with its place: "Uploading, step 2 of 3". The outcome is read on its own. |
+| Repeats | The message with its count: "No connection. 3 times". Repeats do not announce again. |
+| Expandable | A "Show details" button, reported as expanded or collapsed. The details are read once open. |
+| Undo countdown | An "Undo" button. The draining ring is decoration. |
+| Notification | Its title and body. The avatar is decoration. |
+
 ## Reduce Motion
 
 Toasts fade in and out where they sit, with no travel or scaling, and icons

@@ -482,6 +482,55 @@ describe('expandable and countdown', () => {
   });
 });
 
+describe('screen readers', () => {
+  it('reads each step with its place, and the outcome on its own', () => {
+    const spoken = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
+    render(<Toaster />);
+    let job!: ReturnType<typeof toast.steps>;
+    act(() => {
+      job = toast.steps(['Compressing', 'Uploading', 'Processing']);
+    });
+    act(() => job.next());
+    act(() => job.success('Video published'));
+    expect(spoken.mock.calls.map((call) => call[0])).toEqual([
+      'Compressing, step 1 of 3',
+      'Uploading, step 2 of 3',
+      'Video published',
+    ]);
+  });
+
+  it('keeps a label the caller gave a steps toast', () => {
+    const spoken = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
+    render(<Toaster />);
+    act(() => {
+      toast.steps(['One', 'Two'], { accessibilityLabel: 'Exporting' });
+    });
+    expect(spoken).toHaveBeenLastCalledWith('Exporting');
+  });
+
+  it('reads the repeat count of a deduplicated toast', () => {
+    render(<Toaster />);
+    act(() => {
+      toast.error('No connection', { dedupeKey: 'offline' });
+      toast.error('No connection', { dedupeKey: 'offline' });
+      toast.error('No connection', { dedupeKey: 'offline' });
+    });
+    expect(screen.getByLabelText('No connection. 3 times')).toBeTruthy();
+  });
+
+  it('hides the moving parts of a progress toast from screen readers', () => {
+    render(<Toaster />);
+    act(() => {
+      toast.progress('Uploading');
+    });
+    const hidden = screen.UNSAFE_root.findAll(
+      (node) => typeof node.type === 'string' && node.props.importantForAccessibility === 'no-hide-descendants',
+    );
+    // The bar: its value changes too often to read, so the toast reads its message.
+    expect(hidden.length).toBeGreaterThan(0);
+  });
+});
+
 describe('size changes', () => {
   const withLayout = () => screen.UNSAFE_root.findAll((node) => typeof node.type === 'string' && node.props.layout !== undefined).length;
 

@@ -541,7 +541,12 @@ export const ToastBar = React.memo(function ToastBar({
   const description = toast.description;
   // What a grouped toast reads aloud: the message, then the description.
   const spokenText =
-    [extractText(message), description == null ? undefined : extractText(description)]
+    [
+      extractText(message),
+      description == null ? undefined : extractText(description),
+      // The ×3 badge is for the eye; the grouped toast reads the count.
+      toast.count && toast.count > 1 ? `${toast.count} times` : undefined,
+    ]
       .filter(Boolean)
       .join('. ') || undefined;
   const iconKind = toast.type as ToastIconKind;
@@ -659,6 +664,10 @@ export const ToastBar = React.memo(function ToastBar({
       ]}
       {...slotClass('title')}
       numberOfLines={theme.maxLines}
+      // Android's default "highQuality" break strategy can measure a line a
+      // fraction narrower than it draws it, so the last word wraps onto a line
+      // the measured height has no room for (a HUD showed "Added to").
+      textBreakStrategy="simple"
       // Ungrouped toasts read the message on its own, so a custom label
       // belongs here instead of on the container.
       accessibilityLabel={hasButtons ? toast.accessibilityLabel : undefined}
@@ -714,6 +723,7 @@ export const ToastBar = React.memo(function ToastBar({
         ]}
         {...slotClass('description')}
         numberOfLines={theme.descriptionMaxLines}
+        textBreakStrategy="simple"
         maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
       >
         {description}

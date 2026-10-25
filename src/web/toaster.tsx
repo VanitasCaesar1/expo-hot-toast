@@ -626,7 +626,7 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
       role={assertive ? 'alert' : 'status'}
       aria-live={assertive ? 'assertive' : 'polite'}
       aria-atomic={!hasButtons}
-      aria-label={!hasButtons ? (toast.accessibilityLabel ?? undefined) : undefined}
+      aria-label={!hasButtons ? (toast.accessibilityLabel ?? (toast.count && toast.count > 1 && typeof message === 'string' ? `${message}. ${toast.count} times` : undefined)) : undefined}
       {...handlers}
       style={{
         ...surface,

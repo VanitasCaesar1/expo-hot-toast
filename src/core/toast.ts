@@ -372,19 +372,26 @@ function createToastAPI(): ToastAPI {
   api.steps = (labels: string[], options?: ToastOptions): StepsController => {
     const total = Math.max(labels.length, 1);
     const label = (index: number) => `${index + 1}/${total}`;
+    // "2/3" is for the eye; a screen reader hears "Uploading, step 2 of 3".
+    // A label passed in by the caller is theirs, and is left alone.
+    const ownLabel = options?.accessibilityLabel !== undefined;
+    const spoken = (index: number) => (ownLabel ? options!.accessibilityLabel : `${labels[index] ?? ''}, step ${index + 1} of ${total}`);
     const controller = api.progress(labels[0] ?? '', {
       ...options,
       progressSegments: total,
       timestamp: label(0),
+      accessibilityLabel: spoken(0),
     });
     let step = 0;
     const go = (index: number) => {
       step = Math.min(Math.max(index, 0), total - 1);
       // The bar fills the steps already done, plus half of the current one.
       setProgress(controller.id, (step + 0.5) / total);
-      api.update(controller.id, { message: labels[step], timestamp: label(step) });
+      api.update(controller.id, { message: labels[step], timestamp: label(step), accessibilityLabel: spoken(step) });
     };
     setProgress(controller.id, 0.5 / total);
+    // The outcome is read as itself, not as the last step.
+    const finished = (opts?: ToastOptions) => (ownLabel ? opts : ({ accessibilityLabel: undefined, ...opts } as ToastOptions));
     return {
       id: controller.id,
       get step() {
@@ -393,8 +400,8 @@ function createToastAPI(): ToastAPI {
       next: () => go(step + 1),
       go,
       update: controller.update,
-      success: controller.success,
-      error: controller.error,
+      success: (message, opts) => controller.success(message, finished(opts)),
+      error: (message, opts) => controller.error(message, finished(opts)),
       dismiss: controller.dismiss,
     };
   };
