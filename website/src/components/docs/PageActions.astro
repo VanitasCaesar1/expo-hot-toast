@@ -1,12 +1,13 @@
 ---
 /**
  * Clerk's page actions: copy the page as Markdown, or open it in an AI chat,
- * with a menu of chats and the plain-text versions. No JavaScript beyond
+ * each with its own logo, plus the plain-text versions. No JavaScript beyond
  * closing the menu: links, and the site's delegated [data-copy] handler.
  */
 import Icon from '../Icon.astro';
 import { url } from '../../lib/url';
 import { SITE } from '../../lib/ai';
+import { AI_CHATS, logoSvg } from '../../lib/ai-brands';
 
 interface Props {
   slug: string;
@@ -16,14 +17,8 @@ interface Props {
 
 const { slug, title, markdown } = Astro.props;
 const mdUrl = `${SITE}/docs/md/${slug}.md`;
-const prompt = encodeURIComponent(`Read ${mdUrl}, the expo-hot-toast docs page "${title}", so I can ask you questions about it.`);
-const chats = [
-  { name: 'ChatGPT', href: `https://chatgpt.com/?hints=search&q=${prompt}` },
-  { name: 'Claude', href: `https://claude.ai/new?q=${prompt}` },
-  { name: 'T3 Chat', href: `https://t3.chat/new?q=${prompt}` },
-  { name: 'Perplexity', href: `https://www.perplexity.ai/search/new?q=${prompt}` },
-  { name: 'Grok', href: `https://grok.com/?q=${prompt}` },
-];
+const prompt = `Read ${mdUrl}, the expo-hot-toast docs page "${title}", so I can ask you questions about it.`;
+const [first, ...rest] = AI_CHATS;
 ---
 
 <div class="page-actions">
@@ -32,25 +27,37 @@ const chats = [
     <span class="copy-done"><Icon name="check" /> Copied</span>
   </button>
   <div class="split">
-    <a class="pa-button" href={chats[0]!.href} target="_blank" rel="noopener">
-      <Icon name="sparkle" /> Open in ChatGPT
+    <a class="pa-button" href={first!.url(prompt)} target="_blank" rel="noopener">
+      <span class="ai-logo" set:html={logoSvg(first!.logo)} /> Open in {first!.name}
     </a>
     <details class="pa-menu" data-menu>
       <summary class="pa-button" aria-label="More ways to read this page"><Icon name="caret-down" /></summary>
       <div class="menu">
-        <p class="menu-label">AI chats</p>
+        <p class="menu-label">Ask about this page</p>
         {
-          chats.map((c) => (
-            <a href={c.href} target="_blank" rel="noopener">
-              Open in {c.name}
+          [first!, ...rest].map((c) => (
+            <a href={c.url(prompt)} target="_blank" rel="noopener">
+              <span class="menu-main">
+                <span class="ai-logo" set:html={logoSvg(c.logo)} />
+                Open in {c.name}
+              </span>
               <Icon name="arrow-up-right" />
             </a>
           ))
         }
         <p class="menu-label">Plain text</p>
-        <a href={url(`docs/md/${slug}.md`)}>View as Markdown <Icon name="arrow-up-right" /></a>
-        <a href={url('llms.txt')}>llms.txt <Icon name="arrow-up-right" /></a>
-        <a href={url('llms-full.txt')}>llms-full.txt <Icon name="arrow-up-right" /></a>
+        <a href={url(`docs/md/${slug}.md`)}>
+          <span class="menu-main"><Icon name="markdown-logo" /> View as Markdown</span>
+          <Icon name="arrow-up-right" />
+        </a>
+        <a href={url('llms.txt')}>
+          <span class="menu-main"><Icon name="file-text" /> llms.txt</span>
+          <Icon name="arrow-up-right" />
+        </a>
+        <a href={url('llms-full.txt')}>
+          <span class="menu-main"><Icon name="file-text" /> llms-full.txt</span>
+          <Icon name="arrow-up-right" />
+        </a>
       </div>
     </details>
   </div>

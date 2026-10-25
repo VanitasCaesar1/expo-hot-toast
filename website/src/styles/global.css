@@ -194,6 +194,10 @@ main.frame {
 .astro-code,
 .astro-code span {
   color: var(--shiki-dark);
+}
+/* Shiki's own backgrounds go; the docs' line tints (.line) stay. */
+.astro-code,
+.astro-code span:not(.line) {
   background-color: transparent !important;
 }
 :root[data-theme='light'] .astro-code,

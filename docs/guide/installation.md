@@ -49,7 +49,7 @@ Gestures need a `GestureHandlerRootView` at the root, and the Toaster reads
 safe-area insets from a `SafeAreaProvider`. Expo Router already renders a
 `SafeAreaProvider`; add the other.
 
-```tsx title="App.tsx"
+```tsx title="App.tsx" {3,10}
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'expo-hot-toast';

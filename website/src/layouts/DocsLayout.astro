@@ -8,7 +8,6 @@ import Head from '../components/Head.astro';
 import Sidebar from '../components/docs/Sidebar.astro';
 import Topbar from '../components/docs/Topbar.astro';
 import DocsFooter from '../components/docs/DocsFooter.astro';
-import AskAI from '../components/docs/AskAI';
 import SiteSearch from '../components/glass/SiteSearch';
 import { loadDocs } from '../lib/docs';
 import { url } from '../lib/url';
@@ -56,7 +55,6 @@ const searchPages = loadDocs().map((p) => ({ title: p.title, group: p.group, url
       <DocsFooter />
     </div>
 
-    <AskAI client:idle />
     <SiteSearch client:idle base={url('pagefind/')} pages={searchPages} />
     <div id="root" class="live-root" data-src={toasterScript()}></div>
 

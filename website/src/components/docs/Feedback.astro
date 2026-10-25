@@ -1,8 +1,10 @@
 ---
 /**
- * Clerk's "What did you think of this content?". There is no server to send a
- * vote to, so a vote is thanked with a real toast, and anything worth saying
- * goes to a GitHub issue that names the page.
+ * Clerk's "What did you think of this content?". There is no server to count
+ * votes, so each choice does something real instead: helpful asks for a star,
+ * which is how other people find the library; not helpful, and I have
+ * feedback, open a GitHub issue that names the page. The library itself says
+ * thank you.
  */
 import Icon from '../Icon.astro';
 import { REPO_URL } from '../../lib/url';
@@ -13,18 +15,25 @@ interface Props {
 }
 
 const { title, slug } = Astro.props;
-const issue = `${REPO_URL}/issues/new?title=${encodeURIComponent(`Docs: ${title}`)}&body=${encodeURIComponent(`Page: https://vanitascaesar1.github.io/expo-hot-toast/docs/${slug}\n\nWhat was missing or unclear?\n`)}`;
+const page = `https://vanitascaesar1.github.io/expo-hot-toast/docs/${slug}`;
+const issue = (kind: string, question: string) =>
+  `${REPO_URL}/issues/new?title=${encodeURIComponent(`Docs (${kind}): ${title}`)}&body=${encodeURIComponent(`Page: ${page}\n\n${question}\n`)}`;
+const missing = issue('not helpful', 'What were you looking for, and what was missing or unclear?');
+const feedback = issue('feedback', 'What would make this page better?');
 ---
 
 <section class="feedback" data-feedback>
   <p class="feedback-title">What did you think of this content?</p>
   <div class="feedback-actions">
     <button type="button" data-vote="up"><Icon name="thumbs-up" /> It was helpful</button>
-    <button type="button" data-vote="down"><Icon name="thumbs-down" /> It was not helpful</button>
-    <a href={issue} target="_blank" rel="noopener"><Icon name="chat-teardrop-text" /> I have feedback</a>
+    <a href={missing} target="_blank" rel="noopener" data-vote="down"><Icon name="thumbs-down" /> It was not helpful</a>
+    <a href={feedback} target="_blank" rel="noopener"><Icon name="chat-teardrop-text" /> I have feedback</a>
   </div>
-  <p class="feedback-thanks" hidden>
-    Thank you. <a href={issue} target="_blank" rel="noopener">Tell us what was missing</a>, and we will fix the page.
+  <p class="feedback-thanks" data-thanks="up" hidden>
+    Glad it helped. A <a href={REPO_URL} target="_blank" rel="noopener">star on GitHub</a> is how other people find it.
+  </p>
+  <p class="feedback-thanks" data-thanks="down" hidden>
+    Thank you. The issue that just opened goes straight to the maintainer; say what was missing and the page gets fixed.
   </p>
 </section>
 
@@ -32,18 +41,14 @@ const issue = `${REPO_URL}/issues/new?title=${encodeURIComponent(`Docs: ${title}
   import { configure, withToast } from '../../lib/live';
 
   for (const root of document.querySelectorAll<HTMLElement>('[data-feedback]')) {
-    root.querySelectorAll<HTMLButtonElement>('[data-vote]').forEach((button) =>
-      button.addEventListener('click', () => {
-        const up = button.dataset.vote === 'up';
-        root.dataset.voted = button.dataset.vote;
-        root.querySelectorAll('[data-vote]').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
-        const thanks = root.querySelector<HTMLElement>('.feedback-thanks');
-        if (thanks && !up) thanks.hidden = false;
+    root.querySelectorAll<HTMLElement>('[data-vote]').forEach((choice) =>
+      choice.addEventListener('click', () => {
+        const up = choice.dataset.vote === 'up';
+        root.querySelectorAll('[data-vote]').forEach((b) => b.setAttribute('aria-pressed', String(b === choice)));
+        root.querySelectorAll<HTMLElement>('[data-thanks]').forEach((t) => (t.hidden = t.dataset.thanks !== choice.dataset.vote));
         // The library itself says thank you, from the bottom, clear of the top bar.
         configure({ position: 'bottom-center' });
-        withToast((toast) =>
-          up ? toast.success('Thanks! Glad it helped.') : toast('Thanks for telling us.', { description: 'An issue on GitHub helps us fix the page.' }),
-        );
+        withToast((toast) => (up ? toast.success('Thanks! Glad it helped.') : toast('Thanks for telling us.', { icon: '🙏' })));
       }),
     );
   }

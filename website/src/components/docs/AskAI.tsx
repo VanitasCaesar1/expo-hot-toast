@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AI_CHATS, logoSvg } from '../../lib/ai-brands';
 
 const SITE = 'https://vanitascaesar1.github.io/expo-hot-toast';
 
@@ -9,101 +10,89 @@ const SUGGESTIONS = [
   'How do I turn haptics off?',
 ];
 
-const CHATS = [
-  { name: 'ChatGPT', href: (q: string) => `https://chatgpt.com/?hints=search&q=${q}` },
-  { name: 'Claude', href: (q: string) => `https://claude.ai/new?q=${q}` },
-  { name: 'T3 Chat', href: (q: string) => `https://t3.chat/new?q=${q}` },
-];
+const PICKED = ['chatgpt', 'claude', 't3', 'perplexity'];
 
 /**
- * Ask AI, after Clerk's assistant: a question box that opens your chat of
- * choice with the full docs (llms-full.txt) attached, so the answer comes from
- * the docs rather than from memory. The site has no AI of its own.
+ * Ask AI, the top bar's button and its popover. It opens the chat you pick
+ * with your question and the full docs (llms-full.txt) attached, so the answer
+ * comes from the docs rather than from memory; the site has no AI of its own.
+ * With no question typed, the chat opens ready for one.
  */
 export default function AskAI() {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState('');
+  const root = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    const show = () => setOpen(true);
     const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
-    window.addEventListener('docs:ask', show);
+    const onClick = (event: MouseEvent) => {
+      if (root.current && !root.current.contains(event.target as Node)) setOpen(false);
+    };
     document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onClick);
     return () => {
-      window.removeEventListener('docs:ask', show);
       document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onClick);
     };
   }, []);
   useEffect(() => {
     if (open) field.current?.focus();
   }, [open]);
 
-  const prompt = (q: string) =>
-    encodeURIComponent(`Using the expo-hot-toast docs at ${SITE}/llms-full.txt, answer this question about expo-hot-toast: ${q}`);
+  const prompt = () => {
+    const q = question.trim();
+    return q
+      ? `Using the expo-hot-toast docs at ${SITE}/llms-full.txt, answer this question about expo-hot-toast: ${q}`
+      : `I am using expo-hot-toast. Read its docs at ${SITE}/llms-full.txt so you can answer my questions about it.`;
+  };
+  const chats = AI_CHATS.filter((c) => PICKED.includes(c.id));
 
   return (
-    <>
-      <button type="button" className="ask-fab" aria-label="Ask AI about expo-hot-toast" onClick={() => setOpen((o) => !o)}>
-        <svg viewBox="0 0 256 256" aria-hidden="true">
+    <div className="ask" ref={root}>
+      <button type="button" className="ask-button" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen((o) => !o)}>
+        <svg viewBox="0 0 256 256" aria-hidden="true" className="ask-spark">
           <path
             fill="currentColor"
-            d="M197.58 129.06 146 110l-19-51.62a15.92 15.92 0 0 0-29.88 0L78 110l-51.62 19a15.92 15.92 0 0 0 0 29.88L78 178l19 51.62a15.92 15.92 0 0 0 29.88 0L146 178l51.62-19a15.92 15.92 0 0 0 0-29.88ZM137 164.22a8 8 0 0 0-4.74 4.74L112 223.85 91.78 169a8 8 0 0 0-4.74-4.74L32.15 144 87 123.78a8 8 0 0 0 4.78-4.78L112 64.15 132.22 119a8 8 0 0 0 4.74 4.74L191.85 144ZM144 40a8 8 0 0 1 8-8h16V16a8 8 0 0 1 16 0v16h16a8 8 0 0 1 0 16h-16v16a8 8 0 0 1-16 0V48h-16a8 8 0 0 1-8-8Zm104 48a8 8 0 0 1-8 8h-8v8a8 8 0 0 1-16 0v-8h-8a8 8 0 0 1 0-16h8v-8a8 8 0 0 1 16 0v8h8a8 8 0 0 1 8 8Z"
+            d="M197.58 129.06 146 110l-19-51.62a15.92 15.92 0 0 0-29.88 0L78 110l-51.62 19a15.92 15.92 0 0 0 0 29.88L78 178l19 51.62a15.92 15.92 0 0 0 29.88 0L146 178l51.62-19a15.92 15.92 0 0 0 0-29.88ZM137 164.22a8 8 0 0 0-4.74 4.74L112 223.85 91.78 169a8 8 0 0 0-4.74-4.74L32.15 144 87 123.78a8 8 0 0 0 4.78-4.78L112 64.15 132.22 119a8 8 0 0 0 4.74 4.74L191.85 144Z"
           />
         </svg>
+        <span>Ask AI</span>
       </button>
       {open && (
-        <div className="ask-panel" role="dialog" aria-label="Ask AI">
-          <div className="ask-head">
-            <p>Ask AI</p>
-            <button type="button" aria-label="Close" onClick={() => setOpen(false)}>
-              ×
-            </button>
-          </div>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (question.trim()) window.open(CHATS[0].href(prompt(question.trim())), '_blank', 'noopener');
+        <div className="ask-panel" role="dialog" aria-label="Ask AI about expo-hot-toast">
+          <p className="ask-title">Ask AI about expo-hot-toast</p>
+          <p className="ask-note">Opens your chat with the full docs attached, so the answer comes from them.</p>
+          <textarea
+            ref={field}
+            rows={3}
+            value={question}
+            placeholder="Ask a question…"
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                window.open(chats[0]!.url(prompt()), '_blank', 'noopener');
+              }
             }}
-          >
-            <textarea
-              ref={field}
-              rows={3}
-              value={question}
-              placeholder="Ask anything about expo-hot-toast…"
-              onChange={(event) => setQuestion(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                  event.preventDefault();
-                  event.currentTarget.form?.requestSubmit();
-                }
-              }}
-            />
-            <div className="ask-suggestions">
-              {SUGGESTIONS.map((s) => (
-                <button key={s} type="button" onClick={() => setQuestion(s)}>
-                  {s}
-                </button>
-              ))}
-            </div>
-            <div className="ask-send">
-              {CHATS.map((chat) => (
-                <a
-                  key={chat.name}
-                  className={chat.name === 'ChatGPT' ? 'primary' : undefined}
-                  href={question.trim() ? chat.href(prompt(question.trim())) : undefined}
-                  aria-disabled={!question.trim()}
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Ask {chat.name}
-                </a>
-              ))}
-            </div>
-            <p className="ask-note">Opens your chat with the full docs attached, so answers come from them.</p>
-          </form>
+          />
+          <div className="ask-suggestions">
+            {SUGGESTIONS.map((s) => (
+              <button key={s} type="button" onClick={() => setQuestion(s)}>
+                {s}
+              </button>
+            ))}
+          </div>
+          <div className="ask-send">
+            {chats.map((chat) => (
+              <a key={chat.id} href={chat.url(prompt())} target="_blank" rel="noopener" className={chat.id === 'chatgpt' ? 'primary' : undefined}>
+                <span className="ai-logo" dangerouslySetInnerHTML={{ __html: logoSvg(chat.logo) }} />
+                {chat.name}
+              </a>
+            ))}
+          </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

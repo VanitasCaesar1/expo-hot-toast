@@ -28,7 +28,7 @@ export function SaveButton() {
 Every call returns the toast's id. Pass it back to change the toast instead of
 adding another.
 
-```tsx
+```tsx {3}
 const id = toast.loading('Syncing…');
 // later
 toast.success('Synced', { id });

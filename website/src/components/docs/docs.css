@@ -579,77 +579,144 @@
   border-top: 1px solid var(--line);
 }
 
-/* Code blocks: a header with the file or language, copy, line numbers. */
+/*
+ * Code blocks: a header with the language's logo and the file (or the
+ * language), copy; then the code on a slightly deeper surface, with line
+ * numbers, a lit line on hover, highlighted lines and diff colours.
+ */
 .code-block {
-  margin: 22px 0 26px;
+  margin: 22px 0 28px;
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: var(--docs-radius);
-  background: var(--surface-raised);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow:
+    0 1px 2px var(--hairline),
+    0 12px 28px -18px var(--shadow);
 }
 .code-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 40px;
-  padding: 0 8px 0 16px;
+  height: 44px;
+  padding: 0 8px 0 14px;
   border-bottom: 1px solid var(--line);
+  background: linear-gradient(var(--surface-raised), color-mix(in srgb, var(--surface-raised) 60%, var(--surface)));
+}
+.code-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.code-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--muted);
+}
+.code-icon svg {
+  width: 14px;
+  height: 14px;
 }
 .code-file {
+  overflow: hidden;
   color: var(--text);
   font: 500 13px var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .code-lang {
-  color: var(--faint);
-  font-size: 12.5px;
+  color: var(--muted);
+  font-size: 13px;
   font-weight: 500;
 }
 .code-copy {
   display: inline-flex;
   align-items: center;
-  height: 26px;
-  padding: 0 9px;
-  border: 0;
-  border-radius: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   background: transparent;
-  color: var(--faint);
+  color: var(--muted);
   font: 500 12.5px var(--font);
   cursor: pointer;
 }
+.code-copy > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.code-copy svg {
+  width: 14px;
+  height: 14px;
+}
 .code-copy:hover {
   color: var(--text);
-  background: var(--hover);
+  border-color: var(--line);
+  background: var(--surface);
 }
 .code-copy .copy-done,
 .code-copy[data-copied] .copy-idle {
   display: none;
 }
 .code-copy[data-copied] .copy-done {
-  display: inline;
-  color: var(--accent-text);
+  display: inline-flex;
+  color: #2da44e;
 }
 .code-block pre {
   margin: 0;
-  padding: 16px 0;
+  padding: 14px 0 16px;
   overflow-x: auto;
-  background: var(--surface) !important;
+  background: color-mix(in srgb, var(--surface) 70%, var(--bg)) !important;
   font-size: 13.5px;
-  line-height: 1.7;
+  line-height: 1.75;
+  counter-reset: line;
 }
 .code-block pre code {
   display: block;
   min-width: max-content;
-  padding: 0 18px;
-  counter-reset: line;
+}
+.code-block pre .line {
+  display: inline-block;
+  min-width: 100%;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+.code-block pre .line:hover {
+  background: var(--hover);
 }
 .code-block pre.numbered .line::before {
   counter-increment: line;
   content: counter(line);
   display: inline-block;
-  width: 2ch;
-  margin-right: 18px;
+  width: 2.2ch;
+  margin-right: 20px;
   color: var(--faint);
+  opacity: 0.7;
   text-align: right;
+  user-select: none;
+}
+.code-block pre .line.hl {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.code-block pre .line.add {
+  background: rgb(46 160 67 / 0.13);
+}
+.code-block pre .line.del {
+  background: rgb(248 81 73 / 0.13);
+}
+/* A terminal reads like one: a prompt before the command. */
+.code-block[data-language='sh'] pre .line:first-child::before {
+  content: '$';
+  margin-right: 12px;
+  color: var(--accent-text);
   user-select: none;
 }
 
@@ -1200,7 +1267,7 @@
   margin-top: 2px;
   color: var(--muted);
 }
-.explore-item.brand > .icon {
+.explore-item.logo > .icon {
   color: var(--text);
 }
 .explore-item > span {
@@ -1261,57 +1328,37 @@
 /* Ask AI                                                            */
 /* ---------------------------------------------------------------- */
 
-.ask-fab {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 40;
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--text);
-  color: var(--bg);
-  box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--text) 10%, transparent),
-    0 10px 24px -8px var(--shadow);
-  cursor: pointer;
+.ask {
+  position: relative;
 }
-.ask-fab svg {
-  width: 21px;
-  height: 21px;
+.ask-spark {
+  width: 15px;
+  height: 15px;
 }
+/* The popover hangs from the button. */
 .ask-panel {
-  position: fixed;
-  right: 24px;
-  bottom: 84px;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
   z-index: 40;
-  width: min(400px, calc(100vw - 32px));
+  width: min(440px, calc(100vw - 28px));
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--surface);
-  box-shadow: 0 24px 60px -20px var(--shadow);
+  box-shadow:
+    0 24px 60px -20px var(--shadow),
+    0 2px 8px var(--hairline);
 }
-.ask-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-.ask-head p {
+.ask-title {
   margin: 0;
   font-weight: 600;
+  font-size: 15px;
 }
-.ask-head button {
-  border: 0;
-  background: none;
+.ask-note {
+  margin: 4px 0 12px;
   color: var(--faint);
-  font-size: 22px;
-  line-height: 1;
-  cursor: pointer;
+  font-size: 13px;
 }
 .ask-panel textarea {
   width: 100%;
@@ -1323,15 +1370,16 @@
   font: 14.5px/1.5 var(--font);
   resize: none;
 }
-.ask-panel textarea:focus {
+.ask-panel textarea:focus-visible {
   outline: 2px solid var(--accent-ring);
   outline-offset: 0;
+  border-color: transparent;
 }
 .ask-suggestions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 10px 0 12px;
+  margin: 10px 0 14px;
 }
 .ask-suggestions button {
   padding: 4px 10px;
@@ -1344,35 +1392,58 @@
 }
 .ask-suggestions button:hover {
   color: var(--text);
+  border-color: color-mix(in srgb, var(--line) 50%, var(--text));
 }
 .ask-send {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
 .ask-send a {
-  flex: 1;
-  padding: 8px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 10px;
+  background: var(--bg);
   color: var(--text);
   font-size: 13.5px;
   font-weight: 500;
-  text-align: center;
   text-decoration: none;
+}
+.ask-send a:hover {
+  border-color: color-mix(in srgb, var(--line) 40%, var(--text));
+  background: var(--surface-raised);
 }
 .ask-send a.primary {
   border-color: var(--text);
   background: var(--text);
   color: var(--bg);
 }
-.ask-send a[aria-disabled='true'] {
-  opacity: 0.45;
-  pointer-events: none;
+.ask-send a.primary:hover {
+  opacity: 0.88;
 }
-.ask-note {
-  margin: 10px 0 0;
-  color: var(--faint);
-  font-size: 12px;
+
+/* AI company logos, in the menu and in Ask AI. */
+.ai-logo {
+  display: inline-flex;
+  flex: none;
+}
+.ai-logo svg {
+  width: 16px;
+  height: 16px;
+}
+.menu-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.menu-main .icon {
+  width: 16px !important;
+  height: 16px !important;
+  color: var(--muted) !important;
 }
 
 /* ---------------------------------------------------------------- */
@@ -1481,6 +1552,16 @@
   .ask-button {
     padding: 0 10px;
   }
+  .ask {
+    position: static;
+  }
+  .ask-panel {
+    position: fixed;
+    top: calc(var(--topbar) + 8px);
+    left: 14px;
+    right: 14px;
+    width: auto;
+  }
   .start-cards,
   .explore-grid.two,
   .explore-grid.three,
@@ -1496,9 +1577,5 @@
   }
   .step > h2::before {
     left: -38px;
-  }
-  .ask-fab {
-    right: 16px;
-    bottom: 16px;
   }
 }
