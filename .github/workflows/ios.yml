@@ -78,6 +78,10 @@ jobs:
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
       - name: Run on the simulator
+        env:
+          # A cold simulator can still be migrating data after it reports
+          # booted, and Maestro's iOS driver then missed its default window.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '300000'
         run: bash example/scripts/ios-smoke.sh
 
       - uses: actions/upload-artifact@v7
