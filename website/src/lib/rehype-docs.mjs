@@ -123,7 +123,8 @@ function codeBlock(pre, fence) {
   }
   const icon = ICONS[language];
   return el('figure', { className: ['code-block'], dataLanguage: language }, [
-    el('figcaption', { className: ['code-head'] }, [
+    // The header (language, Copy) stays out of the search index.
+    el('figcaption', { className: ['code-head'], dataPagefindIgnore: 'all' }, [
       el('span', { className: ['code-title'] }, [
         ...(icon ? [el('span', { className: ['code-icon'] }, [{ type: 'raw', value: icon }])] : []),
         el('span', { className: [title ? 'code-file' : 'code-lang'] }, [{ type: 'text', value: label }]),

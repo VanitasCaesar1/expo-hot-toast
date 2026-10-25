@@ -573,6 +573,12 @@
   font-size: 0.84em;
   white-space: nowrap;
 }
+@media (max-width: 520px) {
+  .prose :not(pre) > code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
 .prose hr {
   margin: 40px 0;
   border: 0;
@@ -740,6 +746,16 @@
 }
 .table-frame tr:last-child td {
   border-bottom: 0;
+}
+/* Inline code may wrap in a cell, so a long token such as backdrop-filter
+   does not push the table past the column and clip its last column. */
+.prose .table-frame code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+/* A table written with empty headers (| | |) is a list of pairs: no empty band. */
+.table-frame thead:not(:has(th:not(:empty))) {
+  display: none;
 }
 .table-frame th {
   background: var(--surface-raised);
@@ -989,6 +1005,7 @@
 }
 .welcome h1 {
   margin: 0 0 18px;
+  text-wrap: balance;
   font-size: clamp(30px, 3.6vw, 40px);
   font-weight: 600;
   letter-spacing: -0.025em;
@@ -1440,5 +1457,21 @@
   }
   .step > h2::before {
     left: -38px;
+  }
+}
+
+/* Steps on a phone: the number beside the heading, the body full width. */
+@media (max-width: 520px) {
+  .step {
+    padding-left: 0;
+  }
+  .step::before {
+    display: none;
+  }
+  .step > h2 {
+    padding-left: 38px;
+  }
+  .step > h2::before {
+    left: 0;
   }
 }
