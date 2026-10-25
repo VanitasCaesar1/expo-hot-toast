@@ -52,10 +52,18 @@ Flick a toast toward its edge, the way you dismiss a notification: up for a
 toast at the top of the screen, down for one at the bottom. About two thirds of
 its height is enough, or a quick flick.
 
-Or drag it to the right, past 72 px. A fast fling sideways in either direction
-also dismisses. Dragging away from the edge, or to the left, resists, so a
-toast you push the wrong way springs back. Each drag follows the direction it
-starts in.
+Or drag it to the right (left in right-to-left layouts), past 72 px, or fling
+it that way. Dragging away from the edge, or the other way sideways, resists,
+so a toast you push the wrong way springs back. Each drag follows the direction
+it starts in.
+
+A Material snackbar, the default on Android, is swiped sideways in either
+direction instead, as Material 3 has it. `swipeDirections` picks the
+directions for any toast:
+
+```tsx
+toast('Message archived', { swipeDirections: ['left', 'right', 'down'] });
+```
 
 Change the sideways distance, or turn swiping off, on the Toaster:
 

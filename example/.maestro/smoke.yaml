@@ -117,10 +117,10 @@ appId: dev.expohottoast.example
           start: "50%, 12%"
           end: "50%, 1%"
           duration: 150
-# Android's Material snackbars rise from the bottom, so the flick toward the
-# toast's own edge is down. An element swipe from a toast this close to the
-# edge travels too little to count, so this is an explicit flick from the
-# snackbar (around 92% down) to the bottom edge.
+# Android's Material snackbars rise from the bottom and are swiped sideways,
+# as Material 3 has it. The downward flick first is a probe, not a check: down
+# is not a snackbar direction, so the recording should show a short resisted
+# drag. (An earlier run showed no movement at all from a flick this low.)
 - runFlow:
     when:
       platform: Android
@@ -129,6 +129,10 @@ appId: dev.expohottoast.example
           start: "50%, 92%"
           end: "50%, 99%"
           duration: 150
+      - swipe:
+          from:
+            text: "Payment received"
+          direction: LEFT
 - extendedWaitUntil:
     notVisible: "Payment received"
     timeout: 5000

@@ -570,6 +570,22 @@ describe('swipe directions', () => {
     expect(onDismiss).toHaveBeenCalledWith('swipe-me', 'swipe');
   });
 
+  it('swipes a Material snackbar sideways, to the left as well', () => {
+    const onDismiss = jest.fn();
+    const bar = mountBar(72, onDismiss, false, { variant: 'snackbar' });
+    bar.drag({ translationX: -140, velocityX: 0 });
+    bar.release({ translationX: -140, velocityX: 0 });
+    expect(onDismiss).toHaveBeenCalledWith('swipe-me', 'swipe');
+  });
+
+  it('does not dismiss a Material snackbar flicked down', () => {
+    const onDismiss = jest.fn();
+    const bar = mountBar(72, onDismiss, false, { variant: 'snackbar' });
+    bar.drag({ translationY: 60 });
+    bar.release({ translationY: 60, velocityY: 0 });
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
   it('turns the gesture off for a toast that is not dismissible', () => {
     const bar = mountBar(72, jest.fn(), true, { dismissible: false });
     expect(bar.config.enabled).toBe(false);

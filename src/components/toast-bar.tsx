@@ -278,8 +278,11 @@ export const ToastBar = React.memo(function ToastBar({
   // end (right, or left in a right-to-left layout), and toward the toast's own
   // edge. Same closure reason again for declaring them here.
   const dismissible = toast.dismissible !== false;
+  // A Material snackbar is swiped sideways, either way, as Material 3 has it;
+  // everything else toward its edge, and toward the end of the line.
   const directions: SwipeDirection[] =
-    toast.swipeDirections ?? [I18nManager.isRTL ? 'left' : 'right', atTop ? 'up' : 'down'];
+    toast.swipeDirections ??
+    (variant === 'snackbar' ? ['left', 'right'] : [I18nManager.isRTL ? 'left' : 'right', atTop ? 'up' : 'down']);
   const allowRight = directions.includes('right');
   const allowLeft = directions.includes('left');
   const allowEdge = directions.includes(atTop ? 'up' : 'down');

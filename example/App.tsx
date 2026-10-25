@@ -335,7 +335,7 @@ function Screen() {
           <Row
             colors={colors}
             title="Cancel and confirm"
-            detail="cancel"
+            detail="cancel + action"
             onPress={() =>
               toast('Delete 3 photos?', {
                 duration: E2E ? 60000 : 8000,
