@@ -18,6 +18,11 @@ function useProgress(progress: Mutable<number>, write: (value: number) => void):
   }, [progress]);
 }
 
+/**
+ * The progress bar: a rounded track under the toast's text. Steps become
+ * separate pills that fill in turn. Writes its own style on every progress
+ * event, so nothing re-renders.
+ */
 export function ProgressBar({
   progress,
   color,
@@ -37,26 +42,30 @@ export function ProgressBar({
   className?: string;
   barClassName?: string;
 }) {
-  const track = React.useRef<HTMLDivElement>(null);
-  const fill = React.useRef<HTMLDivElement>(null);
+  const count = segments && segments > 1 ? segments : 1;
+  const root = React.useRef<HTMLDivElement>(null);
   useProgress(progress, (value) => {
-    if (!track.current || !fill.current) return;
+    const el = root.current;
+    if (!el) return;
+    const fills = el.querySelectorAll<HTMLElement>('.eht-fill');
     if (isIndeterminate(value)) {
-      track.current.setAttribute('data-indeterminate', '');
-      fill.current.style.transform = '';
-    } else {
-      track.current.removeAttribute('data-indeterminate');
-      fill.current.style.transform = `scaleX(${value})`;
+      el.setAttribute('data-indeterminate', '');
+      fills.forEach((f) => (f.style.transform = ''));
+      return;
     }
+    el.removeAttribute('data-indeterminate');
+    fills.forEach((f, i) => {
+      const part = Math.min(Math.max(value * count - i, 0), 1);
+      f.style.transform = `scaleX(${part})`;
+    });
   });
   return (
-    <div ref={track} className={cx('eht-track', className)} style={{ background: trackColor, ...style }} aria-hidden>
-      <div ref={fill} className={cx('eht-fill', barClassName)} style={{ background: color, ...barStyle }} />
-      {segments && segments > 1
-        ? Array.from({ length: segments - 1 }, (_, i) => (
-            <span key={i} className="eht-gap" style={{ left: `${((i + 1) / segments) * 100}%` }} />
-          ))
-        : null}
+    <div ref={root} className={cx('eht-bar', className)} style={style} aria-hidden>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="eht-track" style={{ background: trackColor }}>
+          <div className={cx('eht-fill', barClassName)} style={{ background: color, ...barStyle }} />
+        </div>
+      ))}
     </div>
   );
 }

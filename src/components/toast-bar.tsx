@@ -711,7 +711,7 @@ export const ToastBar = React.memo(function ToastBar({
   // The title line: the message, a repeat count, and a time or step label.
   const titleLine =
     (toast.count ?? 1) > 1 || toast.timestamp !== undefined || hasProgress ? (
-      <View style={[styles.titleLine, hud && styles.centeredRow]}>
+      <View style={[styles.titleLine, hud && styles.centeredRow, hasProgress && !hud && styles.stretch]}>
         {messageText}
         {(toast.count ?? 1) > 1 ? (
           <CountBadge
@@ -731,7 +731,8 @@ export const ToastBar = React.memo(function ToastBar({
           </Text>
         ) : null}
         {hasProgress && !hud ? (
-          <ProgressPercent progress={progress!} style={[styles.timestamp, { color: muted, fontSize: theme.descriptionFontSize }]} />
+          // At the line's trailing edge, so the number never jostles the title.
+          <ProgressPercent progress={progress!} style={[styles.timestamp, styles.trailing, { color: muted, fontSize: theme.descriptionFontSize }]} />
         ) : null}
       </View>
     ) : (
@@ -764,13 +765,41 @@ export const ToastBar = React.memo(function ToastBar({
       description
     );
 
+  // The progress bar sits under the text as a rounded inset track, inside the
+  // toast's shape, rather than as a strip pinned to its bottom edge.
+  const inlineBar =
+    hasProgress && !ring ? (
+      <ProgressBar
+        inline
+        progress={progress!}
+        color={accent}
+        trackColor={withAlpha(theme.color, 0.14)}
+        segments={toast.progressSegments}
+        reduceMotion={reduceMotion}
+        style={[styles.inlineBar, slotStyle('progressTrack') as StyleProp<ViewStyle>]}
+        barStyle={slotStyle('progressBar') as StyleProp<ViewStyle>}
+      />
+    ) : null;
+
   const texts =
-    descriptionNode == null && titleLine === messageText ? (
+    descriptionNode == null && titleLine === messageText && inlineBar == null ? (
       messageText
     ) : (
-      <View style={[styles.texts, hud && styles.centeredColumn, hud && styles.stretch]}>
+      <View
+        style={[
+          styles.texts,
+          hud && styles.centeredColumn,
+          hud && styles.stretch,
+          // A full-width toast (a snackbar, a banner, a card) gives its text
+          // the free space, so the buttons sit at the trailing edge.
+          theme.fill && !hud && styles.grow,
+          // A bar needs some length to read as progress.
+          inlineBar != null && !hud && styles.withBar,
+        ]}
+      >
         {titleLine}
         {descriptionNode}
+        {inlineBar}
       </View>
     );
 
@@ -793,7 +822,13 @@ export const ToastBar = React.memo(function ToastBar({
       style={({ pressed }) => [
         styles.action,
         { paddingHorizontal: theme.actionPaddingHorizontal },
-        kind === 'cancel' && { backgroundColor: withAlpha(theme.color, 0.08) },
+        // A soft tonal pill, so the action reads as a button at a glance. The
+        // Material snackbar keeps Material's text button.
+        variant !== 'snackbar' && styles.actionTonal,
+        variant !== 'snackbar' && {
+          backgroundColor: kind === 'cancel' ? withAlpha(theme.color, 0.08) : withAlpha(spec.color ?? theme.actionColor, 0.14),
+        },
+        variant === 'snackbar' && kind === 'cancel' && { backgroundColor: withAlpha(theme.color, 0.08) },
         pressed && styles.actionPressed,
         slotStyle(kind) as StyleProp<ViewStyle>,
       ]}
@@ -920,32 +955,6 @@ export const ToastBar = React.memo(function ToastBar({
 
   const content = children ? children({ icon: defaultIcon, message, description }) : builtIn;
 
-  const progressBar =
-    hasProgress && !ring && !hud ? (
-      <ProgressBar
-        progress={progress!}
-        color={accent}
-        trackColor={withAlpha(theme.color, 0.12)}
-        segments={toast.progressSegments}
-        reduceMotion={reduceMotion}
-        style={[
-          // Inset from the rounded corners, so the bar sits inside the shape.
-          { left: Math.min(theme.radius * 0.6, 18), right: Math.min(theme.radius * 0.6, 18), bottom: 6, borderRadius: 2 },
-          slotStyle('progressTrack') as StyleProp<ViewStyle>,
-        ]}
-        barStyle={slotStyle('progressBar') as StyleProp<ViewStyle>}
-      />
-    ) : hasProgress && hud && !ring ? (
-      <ProgressBar
-        progress={progress!}
-        color={accent}
-        trackColor={withAlpha(theme.color, 0.12)}
-        segments={toast.progressSegments}
-        reduceMotion={reduceMotion}
-        style={[{ left: 26, right: 26, bottom: 14, borderRadius: 2 }, slotStyle('progressTrack') as StyleProp<ViewStyle>]}
-        barStyle={slotStyle('progressBar') as StyleProp<ViewStyle>}
-      />
-    ) : null;
 
   const surface = (
     <GlassSurface
@@ -1054,8 +1063,6 @@ export const ToastBar = React.memo(function ToastBar({
                     },
                 // A snackbar, banner or card stretches to the stack's width.
                 theme.fill && styles.fill,
-                // Room under a progress bar, so it never sits on the text.
-                !unstyled && hasProgress && !ring && { paddingBottom: theme.paddingVertical + 6 },
                 // A banner reaches under the status bar or home indicator.
                 !unstyled && edgeInset > 0 && (atTop ? { paddingTop: theme.paddingVertical + edgeInset } : { paddingBottom: theme.paddingVertical + edgeInset }),
                 // Applied last so a consumer's `style` can override any token,
@@ -1084,7 +1091,6 @@ export const ToastBar = React.memo(function ToastBar({
               >
                 {content}
               </Animated.View>
-              {progressBar}
             </Animated.View>
           </Pressable>
         </Animated.View>
@@ -1234,6 +1240,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   // The HUD's column: icon, text, buttons, centred.
+  actionTonal: {
+    paddingVertical: 6,
+  },
+  trailing: {
+    marginLeft: 'auto',
+  },
+  grow: {
+    flexGrow: 1,
+  },
+  withBar: {
+    minWidth: 180,
+  },
+  inlineBar: {
+    marginTop: 8,
+  },
   hudText: {
     alignSelf: 'stretch',
   },

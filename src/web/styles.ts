@@ -254,36 +254,33 @@ export const css = /* css */ `
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
+.eht-bar {
+  display: flex;
+  gap: 4px;
+  align-self: stretch;
+  margin-top: 8px;
+}
 .eht-track {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 3px;
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
   overflow: hidden;
   pointer-events: none;
 }
 .eht-fill {
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 100%;
-  border-radius: 2px;
+  inset: 0;
+  border-radius: inherit;
   transform-origin: left center;
   transform: scaleX(0);
   transition: transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-.eht-track[data-indeterminate] .eht-fill {
+.eht-bar[data-indeterminate] .eht-fill {
   width: 34%;
+  right: auto;
   transform: none;
   animation: eht-sweep 1300ms cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
-}
-.eht-gap {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  margin-left: -1px;
-  background: rgba(0, 0, 0, 0.25);
 }
 .eht-ring-arc {
   transition: stroke-dashoffset 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -335,12 +332,10 @@ export const css = /* css */ `
 }
 
 /* A collapsed stack shows only the edges of the toasts behind the front one. */
-.eht-item[data-tucked] .eht-content,
-.eht-item[data-tucked] .eht-track {
+.eht-item[data-tucked] .eht-content {
   opacity: 0;
 }
-.eht-content,
-.eht-track {
+.eht-content {
   transition: opacity 200ms ease;
 }
 
@@ -363,7 +358,7 @@ export const css = /* css */ `
   .eht-draw {
     stroke-dashoffset: 0;
   }
-  .eht-track[data-indeterminate] .eht-fill,
+  .eht-bar[data-indeterminate] .eht-fill,
   .eht-ring[data-indeterminate] {
     animation-duration: 3000ms;
   }

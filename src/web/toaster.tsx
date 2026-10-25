@@ -192,9 +192,26 @@ function frostStyle(theme: ToastTheme, tint: string | undefined): React.CSSPrope
       `inset -1.5px -2px 1px -2px ${fade(light, 50)}`,
       'inset 2px 0 3px -1px rgb(80 160 255 / 0.06)',
       'inset -2px 0 3px -1px rgb(255 90 150 / 0.06)',
-      `0 ${theme.shadowOffsetY}px ${theme.shadowRadius * 2}px ${fade(theme.shadowColor, theme.shadowOpacity * 100)}`,
+      ...depth(theme),
     ].join(', '),
   };
+}
+
+/**
+ * The lift under a toast, in three layers rather than one blur: a tight
+ * contact shadow, a soft mid shadow, and a wide ambient one. The theme's
+ * shadow tokens scale them.
+ */
+function depth(theme: ToastTheme): string[] {
+  const o = theme.shadowOpacity;
+  const c = theme.shadowColor;
+  const y = theme.shadowOffsetY;
+  const r = theme.shadowRadius;
+  return [
+    `0 1px 2px ${fade(c, o * 50)}`,
+    `0 ${Math.round(y * 0.6)}px ${Math.round(r * 0.9)}px ${fade(c, o * 60)}`,
+    `0 ${y * 2}px ${r * 3}px -${Math.round(r * 0.6)}px ${fade(c, o * 110)}`,
+  ];
 }
 
 function opaqueStyle(theme: ToastTheme): React.CSSProperties {
@@ -202,7 +219,7 @@ function opaqueStyle(theme: ToastTheme): React.CSSProperties {
     background: theme.fallbackBackground,
     boxShadow: [
       theme.borderWidth > 0 || theme.border !== 'transparent' ? `inset 0 0 0 ${Math.max(theme.borderWidth, 1)}px ${theme.border}` : '',
-      `0 ${theme.shadowOffsetY}px ${theme.shadowRadius * 2}px ${fade(theme.shadowColor, theme.shadowOpacity * 100)}`,
+      ...depth(theme),
     ]
       .filter(Boolean)
       .join(', '),
@@ -291,6 +308,7 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
   const descriptionColor = rich ? withAlpha(rich.color, 0.82) : theme.descriptionColor;
   const unstyled = toast.unstyled === true;
   const hud = variant === 'hud';
+  const fill = theme.fill;
 
   const slot = (part: ToastSlot) => flatten(toast.styles?.[part]);
   const slotClass = (part: ToastSlot) => toast.classNames?.[part];
@@ -354,7 +372,7 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
     fontFamily: theme.fontFamily,
   };
   const titleLine = (
-    <div className="eht-title-line">
+    <div className="eht-title-line" style={progress && !ring && !hud ? { alignSelf: 'stretch' } : undefined}>
       <p
         className={cx('eht-title', slotClass('title'))}
         style={{ ...(toast.classNames?.title ? null : textBase), WebkitLineClamp: theme.maxLines || undefined, textAlign: hud ? 'center' : undefined, ...flatten(toast.textStyle), ...slot('title') }}
@@ -371,12 +389,21 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
           {toast.timestamp}
         </span>
       ) : null}
-      {progress && !ring && !hud ? <ProgressPercent progress={progress} style={{ color: descriptionColor }} /> : null}
+      {progress && !ring && !hud ? <ProgressPercent progress={progress} style={{ color: descriptionColor, marginLeft: 'auto' }} /> : null}
     </div>
   );
   const texts =
     message == null && description == null ? null : (
-      <div className="eht-texts" style={hud ? { alignItems: 'center' } : undefined}>
+      <div
+        className="eht-texts"
+        style={{
+          ...(hud ? { alignItems: 'center', alignSelf: 'stretch' } : null),
+          // A full-width toast gives its text the free space, so the buttons
+          // sit at the trailing edge; a bar needs some length to read.
+          ...(fill && !hud ? { flexGrow: 1 } : null),
+          ...(progress && !ring && !hud ? { minWidth: 180 } : null),
+        }}
+      >
         {titleLine}
         {description != null ? (
           <p
@@ -397,6 +424,18 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
           >
             {description}
           </p>
+        ) : null}
+        {progress && !ring ? (
+          <ProgressBar
+            progress={progress}
+            color={accent}
+            trackColor={withAlpha(theme.color, 0.14)}
+            segments={toast.progressSegments}
+            style={slot('progressTrack')}
+            barStyle={slot('progressBar')}
+            className={slotClass('progressTrack')}
+            barClassName={slotClass('progressBar')}
+          />
         ) : null}
       </div>
     );
@@ -419,7 +458,16 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
         fontSize: theme.fontSize,
         fontFamily: theme.actionFontFamily ?? theme.fontFamily,
         fontWeight: kind === 'cancel' ? (theme.fontWeight as React.CSSProperties['fontWeight']) : 600,
-        background: kind === 'cancel' ? withAlpha(theme.color, 0.08) : undefined,
+        // A soft tonal pill, so the action reads as a button at a glance. The
+        // Material snackbar keeps Material's text button.
+        background:
+          kind === 'cancel'
+            ? withAlpha(theme.color, 0.08)
+            : variant !== 'snackbar'
+              ? withAlpha(spec.color ?? theme.actionColor, 0.14)
+              : undefined,
+        paddingTop: variant !== 'snackbar' ? 6 : undefined,
+        paddingBottom: variant !== 'snackbar' ? 6 : undefined,
         ...slot(kind),
       }}
     >
@@ -525,7 +573,6 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
     return () => observer.disconnect();
   }, []);
 
-  const fill = theme.fill;
   const tint = rich ? rich.tint : glassConfig.tintColor;
   const surface: React.CSSProperties = unstyled
     ? {}
@@ -696,7 +743,7 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
           // Each side on its own: React clears a side given as undefined next to
           // the shorthand, which dropped the bottom padding.
           paddingTop: unstyled ? undefined : theme.paddingVertical,
-          paddingBottom: unstyled ? undefined : theme.paddingVertical + (progress && !ring ? 6 : 0),
+          paddingBottom: unstyled ? undefined : theme.paddingVertical,
           paddingLeft: unstyled ? undefined : theme.paddingHorizontal,
           paddingRight: unstyled ? undefined : theme.paddingHorizontal,
           maxWidth: fill ? undefined : `min(${theme.maxWidth}px, var(--eht-avail, 100vw))`,
@@ -704,18 +751,6 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
       >
         {content}
       </div>
-      {progress && !ring ? (
-        <ProgressBar
-          progress={progress}
-          color={accent}
-          trackColor={withAlpha(theme.color, 0.12)}
-          segments={toast.progressSegments}
-          style={hud ? { left: 26, right: 26, bottom: 14, borderRadius: 2 } : slot('progressTrack')}
-          barStyle={slot('progressBar')}
-          className={slotClass('progressTrack')}
-          barClassName={slotClass('progressBar')}
-        />
-      ) : null}
     </div>
   );
 });
@@ -979,12 +1014,9 @@ export function Toaster({
                       pauseOnHover={pauseOnHover}
                     />
                   );
-                return (
-                  <ToastBarContext.Provider
-                    key={t.id}
-                    value={{ theme: toastTheme, preset, icons, glass, onDismiss, onPauseStart: startPause, onPauseEnd: endPause, atTop: anchoredTop, panThreshold, pauseOnHover }}
-                  >
+                const item = (
                     <ToastItem
+                      key={t.id}
                       toast={t}
                       atTop={anchoredTop}
                       gap={bucket.startsWith('banner') ? 0 : gap}
@@ -995,7 +1027,19 @@ export function Toaster({
                       onMeasure={collapsible ? onMeasure : undefined}
                       onHover={collapsible ? onHover : undefined}
                     />
+                );
+                // The context is for a <ToastBar> drawn by a render prop. The
+                // built-in bar gets its props directly: a provider with a new
+                // value each render re-rendered every toast on any change.
+                return children ? (
+                  <ToastBarContext.Provider
+                    key={t.id}
+                    value={{ theme: toastTheme, preset, icons, glass, onDismiss, onPauseStart: startPause, onPauseEnd: endPause, atTop: anchoredTop, panThreshold, pauseOnHover }}
+                  >
+                    {item}
                   </ToastBarContext.Provider>
+                ) : (
+                  item
                 );
                 });
               })()}

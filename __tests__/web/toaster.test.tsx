@@ -82,12 +82,12 @@ describe('expo-hot-toast/web', () => {
     expect(fill.style.transform).toBe('scaleX(0.4)');
     expect(container.querySelector('.eht-percent')!.textContent).toBe('40%');
     job.set('indeterminate');
-    expect(container.querySelector('.eht-track')!.hasAttribute('data-indeterminate')).toBe(true);
+    expect(container.querySelector('.eht-bar')!.hasAttribute('data-indeterminate')).toBe(true);
     // The same element: setting progress did not replace the toast.
     expect(byText('Uploading')).toBe(before);
     show(() => job.success('Uploaded'));
     expect(byText('Uploaded')).toBeTruthy();
-    expect(container.querySelector('.eht-track')).toBeNull();
+    expect(container.querySelector('.eht-bar')).toBeNull();
   });
 
   it('opens expandable details', () => {

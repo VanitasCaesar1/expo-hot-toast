@@ -18,33 +18,37 @@ export function resolvePreset(preset: ToasterPreset = 'auto'): Exclude<ToasterPr
 }
 
 /**
- * Material 3's snackbar tokens: the inverse surface and its text, the inverse
- * primary for the action, corner radius 4dp, elevation 3 (drawn as 6 here, as
- * Android renders elevation lighter than the spec's shadow), 14sp body text.
- * The baseline palette; pass `theme` to bring in your own colours.
+ * Material 3's snackbar, from the current baseline tokens: the inverse surface
+ * and its text, the inverse primary for the action, 14sp body text. Two
+ * deliberate departures, for a less stock look: 12dp corners (the spec's 4dp
+ * reads as dated next to Android 16's rounder shapes) and a softer, wider
+ * shadow. Pass `theme` to bring in your own colours, or `radius: 4` for the
+ * spec's corners.
  */
 export function materialTheme(scheme: 'light' | 'dark'): ToastThemeOverride {
   const light = scheme === 'light';
   return {
-    fallbackBackground: light ? '#313033' : '#E6E1E5',
-    background: light ? 'rgba(49,48,51,0.94)' : 'rgba(230,225,229,0.94)',
+    fallbackBackground: light ? '#322F35' : '#E6E0E9',
+    background: light ? 'rgba(50,47,53,0.96)' : 'rgba(230,224,233,0.96)',
     border: 'transparent',
     borderWidth: 0,
-    color: light ? '#F4EFF4' : '#313033',
-    descriptionColor: light ? 'rgba(244,239,244,0.78)' : 'rgba(49,48,51,0.74)',
+    color: light ? '#F5EFF7' : '#322F35',
+    descriptionColor: light ? 'rgba(245,239,247,0.72)' : 'rgba(50,47,53,0.72)',
     actionColor: light ? '#D0BCFF' : '#6750A4',
     closeButtonBackground: 'transparent',
-    radius: 4,
+    radius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
     maxWidth: 600,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '400',
-    elevation: 6,
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
-    shadowOffsetY: 3,
+    descriptionFontSize: 13,
+    descriptionLineHeight: 18,
+    elevation: 4,
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffsetY: 4,
     fill: true,
   };
 }

@@ -230,7 +230,7 @@ describe('Toaster: icons, haptics map, animation, preset', () => {
       act(() => {
         toast('Archived');
       });
-      expect(radius).toBe(4);
+      expect(radius).toBe(12);
       expect(fill).toBe(true);
       // Placed against the bottom: the stack is positioned by `bottom`.
       const stacks = nodesWithStyle((s) => s.position === 'absolute' && typeof s.bottom === 'number');
@@ -667,7 +667,7 @@ describe('adapters', () => {
   });
 
   it('materialTheme flips with the scheme', () => {
-    expect(materialTheme('light').fallbackBackground).toBe('#313033');
-    expect(materialTheme('dark').fallbackBackground).toBe('#E6E1E5');
+    expect(materialTheme('light').fallbackBackground).toBe('#322F35');
+    expect(materialTheme('dark').fallbackBackground).toBe('#E6E0E9');
   });
 });

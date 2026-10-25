@@ -20,7 +20,7 @@ A preset is the look a Toaster starts from:
 ```
 
 `auto` gives each platform its own convention: on Android, a Material 3
-snackbar (full width less a margin, 4dp corners, the inverse surface, rising
+snackbar (full width less a margin, 12dp corners, the inverse surface, rising
 from the bottom); on iOS and the web, the glass pill at the top. `theme` is laid
 over the preset, so you only override what differs.
 

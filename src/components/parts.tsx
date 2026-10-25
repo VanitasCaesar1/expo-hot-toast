@@ -50,12 +50,46 @@ export interface ProgressBarProps {
   segments?: number;
   reduceMotion: boolean;
   height?: number;
+  /**
+   * In the layout, under the text, as a rounded track (the default look),
+   * rather than pinned along the toast's bottom edge. Steps become separate
+   * pills that fill in turn.
+   */
+  inline?: boolean;
   style?: StyleProp<ViewStyle>;
   barStyle?: StyleProp<ViewStyle>;
 }
 
-/** A bar along the toast's bottom edge: determinate, segmented, or sweeping. */
-export function ProgressBar({ progress, color, trackColor, segments, reduceMotion, height = 3, style, barStyle }: ProgressBarProps) {
+/** One step of a segmented inline bar: full once passed, filling while current. */
+function Segment({ index, count, progress, color, trackColor, height, barStyle }: {
+  index: number;
+  count: number;
+  progress: SharedValue<number>;
+  color: string;
+  trackColor: string;
+  height: number;
+  barStyle?: StyleProp<ViewStyle>;
+}) {
+  const width = useSharedValue(0);
+  const fill = useAnimatedStyle(() => {
+    const p = isIndeterminate(progress.value) ? 0 : progress.value;
+    const part = Math.min(Math.max(p * count - index, 0), 1);
+    return { width: width.value * part };
+  });
+  return (
+    <View
+      style={[styles.segment, { height, borderRadius: height / 2, backgroundColor: trackColor }]}
+      onLayout={(event) => {
+        width.value = event.nativeEvent.layout.width;
+      }}
+    >
+      <Animated.View style={[styles.fill, { backgroundColor: color, borderRadius: height / 2 }, fill, barStyle]} />
+    </View>
+  );
+}
+
+/** A progress bar: determinate, segmented, or sweeping; inline or along the bottom edge. */
+export function ProgressBar({ progress, color, trackColor, segments, reduceMotion, inline = false, height = inline ? 4 : 3, style, barStyle }: ProgressBarProps) {
   const smooth = useSmooth(progress);
   const sweep = useSweep(reduceMotion);
   const width = useSharedValue(0);
@@ -69,17 +103,27 @@ export function ProgressBar({ progress, color, trackColor, segments, reduceMotio
     return { width: width.value * smooth.value, transform: [{ translateX: 0 }] };
   });
 
+  if (inline && segments && segments > 1) {
+    return (
+      <View style={[styles.segments, style]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {Array.from({ length: segments }, (_, i) => (
+          <Segment key={i} index={i} count={segments} progress={smooth} color={color} trackColor={trackColor} height={height} barStyle={barStyle} />
+        ))}
+      </View>
+    );
+  }
+
   return (
     <View
-      style={[styles.track, { height, backgroundColor: trackColor }, style]}
+      style={[styles.track, inline && styles.trackInline, { height, backgroundColor: trackColor }, inline && { borderRadius: height / 2 }, style]}
       onLayout={(event) => {
         width.value = event.nativeEvent.layout.width;
       }}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      <Animated.View style={[styles.fill, { backgroundColor: color }, fill, barStyle]} />
-      {segments && segments > 1
+      <Animated.View style={[styles.fill, { backgroundColor: color }, inline && { borderRadius: height / 2 }, fill, barStyle]} />
+      {!inline && segments && segments > 1
         ? Array.from({ length: segments - 1 }, (_, i) => (
             // Gaps between steps, cut through the track in the toast's own colour.
             <View key={i} style={[styles.gap, { left: `${((i + 1) / segments) * 100}%` }]} />
@@ -263,6 +307,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    overflow: 'hidden',
+  },
+  trackInline: {
+    position: 'relative',
+    left: undefined,
+    right: undefined,
+    bottom: undefined,
+    alignSelf: 'stretch',
+  },
+  segments: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    gap: 4,
+  },
+  segment: {
+    flex: 1,
     overflow: 'hidden',
   },
   fill: {
