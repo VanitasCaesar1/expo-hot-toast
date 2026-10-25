@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import type { StyleProp, ViewStyle, TextStyle } from 'react-native';
 import type { WithTimingConfig } from 'react-native-reanimated';
 import type { GlassStyle } from 'expo-glass-effect';
@@ -388,6 +388,27 @@ export interface GlassConfig {
   containerize?: boolean;
   /** GlassContainer spacing in px. Defaults to the Toaster `gap`. */
   containerSpacing?: number;
+}
+
+/**
+ * A blur view to draw toasts on where neither Liquid Glass nor the web's frost
+ * is available: Android, and iOS before 26. The library does not depend on a
+ * blur package; pass the component you already use, with its props:
+ *
+ * ```tsx
+ * import { BlurView } from 'expo-blur';
+ * <Toaster blur={{ component: BlurView, props: { intensity: 40, blurMethod: 'dimezisBlurViewSdk31Plus', blurTarget } }} />
+ * ```
+ *
+ * The component is drawn behind the toast's content, filling its shape, with
+ * `tint` set to the colour scheme unless `props` sets one, and the translucent
+ * `background` token laid over it. Reduce Transparency, and `glass: false` on a
+ * toast, still give the opaque surface.
+ */
+export interface ToastBlur {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  component: ComponentType<any>;
+  props?: Record<string, unknown>;
 }
 
 export interface ToastTheme {

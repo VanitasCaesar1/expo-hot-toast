@@ -9,6 +9,7 @@ import type {
   DismissReason,
   GlassConfig,
   Toast,
+  ToastBlur,
   ToastHaptic,
   ToastPosition,
   ToastThemeOverride,
@@ -97,6 +98,12 @@ export interface ToasterProps {
   animation?: ToastAnimation;
   /** Icons for each type, and the close button, in place of the built-in glyphs. */
   icons?: ToastIcons;
+  /**
+   * A blur view for Android and iOS before 26, where there is no Liquid Glass:
+   * `{ component: BlurView, props: { intensity, blurMethod, blurTarget } }`.
+   * Without it they draw the opaque surface. See `ToastBlur`.
+   */
+  blur?: ToastBlur;
   /**
    * Collapse each stack: older toasts tuck behind the newest, showing only
    * their edges, and the stack fans out while it is pressed. Default false.
@@ -220,6 +227,7 @@ export function Toaster({
   preset: presetProp = 'auto',
   animation,
   icons,
+  blur: blurProp,
   ContainerComponent,
   children,
 }: ToasterProps) {
@@ -244,6 +252,7 @@ export function Toaster({
     } as ToastThemeOverride;
   }, [preset, scheme, animation, themeOverride]);
   const theme = useToastTheme(layered, colorScheme);
+  const blur = useStableBlur(blurProp);
   const reduceMotion = useReduceMotion();
   const screenReader = useScreenReaderEnabled();
   const reduceTransparency = useReduceTransparency();
@@ -552,6 +561,7 @@ export function Toaster({
                 onMeasure={stacked ? handleMeasure : undefined}
                 preset={preset}
                 icons={icons}
+                blur={blur}
                 // Only an Undo countdown needs to know; passing it to every toast
                 // would re-render them all whenever one is pressed.
                 paused={t.action?.countdown ? timersPaused : false}
@@ -620,6 +630,31 @@ const ToastSlot = React.memo(function ToastSlot({ toast, glass: toasterGlass, ch
     <ToastBar toast={resolved} {...bar} />
   );
 });
+
+/**
+ * The blur setting, kept as the same object while its component and props are
+ * unchanged, so an inline `blur={{ … }}` does not re-render every toast. Props
+ * compare shallowly: a `blurTarget` ref is the same object from render to render.
+ */
+function useStableBlur(blur: ToastBlur | undefined): ToastBlur | undefined {
+  const ref = React.useRef(blur);
+  const prev = ref.current;
+  const same =
+    prev === blur ||
+    (prev !== undefined &&
+      blur !== undefined &&
+      prev.component === blur.component &&
+      shallowSame(prev.props, blur.props));
+  if (!same) ref.current = blur;
+  return ref.current;
+}
+
+function shallowSame(a: Record<string, unknown> | undefined, b: Record<string, unknown> | undefined): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((k) => Object.is(a[k], b[k]));
+}
 
 /** A value-based key for a glass setting, so an equal object counts as unchanged. */
 function glassKey(glass: boolean | GlassConfig): string {

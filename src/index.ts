@@ -118,6 +118,7 @@ export type {
   ToastExpandable,
   ToastAvatar,
   SwipeDirection,
+  ToastBlur,
   ToastHaptic,
   ToastTheme,
   ToastThemeOverride,

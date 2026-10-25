@@ -7,7 +7,7 @@ import {
   isLiquidGlassAvailable,
 } from 'expo-glass-effect';
 import type { GlassStyle } from 'expo-glass-effect';
-import type { GlassConfig } from '../core/types';
+import type { GlassConfig, ToastBlur } from '../core/types';
 import type { ToastTheme } from '../core/types';
 
 /**
@@ -47,12 +47,17 @@ const WEB_FROST =
 
 export const FROST_SUPPORTED = WEB_FROST;
 
-export type GlassSurfaceMode = 'glass' | 'frost' | 'opaque';
+export type GlassSurfaceMode = 'glass' | 'frost' | 'blur' | 'opaque';
 
 export interface GlassSurfaceProps extends ViewProps {
   theme: ToastTheme;
   /** `false` opts this toast out of glass entirely. */
   glass?: boolean | GlassConfig;
+  /**
+   * A blur view for platforms with neither Liquid Glass nor frost (Android,
+   * iOS before 26). Without it they get the opaque surface.
+   */
+  blur?: ToastBlur;
   /** True when the user has Reduce Transparency on. Forces opaque. */
   reduceTransparency?: boolean;
   /** Set while the toast is interactive (press-and-hold). */
@@ -111,6 +116,7 @@ function readGlassConfig(
 export const GlassSurface = React.memo(function GlassSurface({
   theme,
   glass,
+  blur,
   reduceTransparency = false,
   pressed = false,
   visible = true,
@@ -128,8 +134,15 @@ export const GlassSurface = React.memo(function GlassSurface({
   const config = readGlassConfig(glass);
   const wantsGlass = glass !== false && config.style !== 'none';
   const translucent = wantsGlass && !reduceTransparency;
-  const mode: GlassSurfaceMode =
-    translucent && GLASS_SUPPORTED ? 'glass' : translucent && FROST_SUPPORTED ? 'frost' : 'opaque';
+  const mode: GlassSurfaceMode = !translucent
+    ? 'opaque'
+    : GLASS_SUPPORTED
+      ? 'glass'
+      : FROST_SUPPORTED
+        ? 'frost'
+        : blur
+          ? 'blur'
+          : 'opaque';
   const shape: ViewStyle = {
     borderRadius: radius ?? theme.radius,
     borderCurve: 'continuous',
@@ -174,6 +187,28 @@ export const GlassSurface = React.memo(function GlassSurface({
   if (mode === 'frost') {
     return (
       <View {...rest} style={[shape, frostStyle(theme, config.tintColor), style]}>
+        {children}
+      </View>
+    );
+  }
+
+  if (mode === 'blur') {
+    const Blur = blur!.component;
+    return (
+      <View {...rest} style={[styles.blur, shape, { borderColor: theme.border, borderWidth: theme.borderWidth }, style]}>
+        <Blur
+          tint={colorScheme ?? 'default'}
+          {...blur!.props}
+          pointerEvents="none"
+          style={StyleSheet.absoluteFill}
+        />
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: theme.background }]}
+        />
+        {config.tintColor ? (
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: config.tintColor }]} />
+        ) : null}
         {children}
       </View>
     );
@@ -261,6 +296,12 @@ function frostStyle(theme: ToastTheme, tintColor: string | undefined): ViewStyle
 }
 
 const styles = StyleSheet.create({
+  // A blur view does not follow its parent's corner radius by itself, so this
+  // rung clips. It has no shadow to lose: a shadow under a translucent surface
+  // would show through it.
+  blur: {
+    overflow: 'hidden',
+  },
   opaque: {
     // Deliberately not `overflow: hidden`. The background already follows the
     // corner radius, and on iOS clipping also clips the layer's own shadow — so

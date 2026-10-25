@@ -67,6 +67,9 @@ Initial release. Not yet published to npm; `main` previously pointed at
 - **Theme adapters**: `themeFromColors()` derives a theme from a few semantic
   colours, and `fromNavigationTheme()` from a React Navigation theme.
 - **Bold Text** (iOS) steps every weight in the toast up one notch.
+- **`<Toaster blur>`**: pass a blur view (such as expo-blur's `BlurView`, with
+  its props) and Android and iOS before 26 draw toasts on a blur instead of the
+  opaque surface. No new dependency.
 - **Surfaces fade with their content** everywhere but Liquid Glass, which
   cannot fade and dematerializes instead. Before, the text left first and an
   empty frosted or opaque pill shrank away for the rest of the exit.

@@ -38,6 +38,7 @@ order: 3
 | `preset` | `'auto'`, `'glass'` or `'material'` | `'auto'` | The look to start from: a Material 3 snackbar on Android, the glass pill elsewhere; see [Customising](./customizing.md#presets) |
 | `animation` | `'hot'`, `'slide'`, `'fade'`, `'pop'` or `'none'` | `'hot'` | How toasts come and go |
 | `icons` | `{ success?, error?, info?, warning?, loading?, blank?, close? }` | none | Icons in place of the built-in glyphs |
+| `blur` | `{ component, props? }` | none | A blur view, such as expo-blur's, for Android and iOS before 26; see [Customising](./customizing.md#blur-on-android) |
 | `toastOptions` | [`ToastOptions`](./toast-options.md), plus per-type buckets | none | Defaults for every toast in this Toaster |
 | `theme` | partial [theme tokens](./theme-tokens.md) | none | Token overrides |
 | `colorScheme` | `'light'` or `'dark'` | the system's | Force light or dark tokens |

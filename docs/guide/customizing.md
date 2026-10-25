@@ -182,6 +182,42 @@ toast('Copied', { haptics: false });
 Android has no weighted impacts, so `light`, `medium`, `heavy`, `rigid` and
 `soft` play the notification pattern for the toast's outcome there.
 
+## Blur on Android
+
+Android and iOS before 26 have no Liquid Glass, so toasts there draw an opaque
+surface. To draw them on a blur instead, pass a blur view you already use. The
+library does not depend on one:
+
+```tsx title="App.tsx"
+import { useRef } from 'react';
+import { BlurTargetView, BlurView } from 'expo-blur';
+import { Toaster } from 'expo-hot-toast';
+
+export default function App() {
+  const blurTarget = useRef(null);
+  return (
+    <>
+      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+        <Navigation />
+      </BlurTargetView>
+      <Toaster
+        blur={{
+          component: BlurView,
+          props: { intensity: 40, blurMethod: 'dimezisBlurViewSdk31Plus', blurTarget },
+        }}
+      />
+    </>
+  );
+}
+```
+
+On Android, expo-blur blurs what is inside a `BlurTargetView`, so wrap your
+screens in one and keep the Toaster outside it. The blur fills the toast's
+shape, takes the colour scheme as its `tint` unless `props` sets one, and has
+the translucent `background` token over it. Reduce Transparency, and
+`glass: false` on a toast, still give the opaque surface. On iOS 26 Liquid Glass
+is used and the blur is ignored.
+
 ## Matching your app's theme
 
 If your app has a theme, toasts can take their colours from it instead of

@@ -29,7 +29,7 @@ safe-area-context 5.7.
 - **No morphing between toasts.** iOS 26 can morph one glass shape into
   another, but React Native has no way to drive that with glass yet, so toasts
   enter and leave separately.
-- **Android draws an opaque surface.** It does not imitate glass. By default it is a Material 3 snackbar; `preset="glass"` gives the opaque pill instead.
+- **Android draws an opaque surface.** It does not imitate glass. By default it is a Material 3 snackbar; `preset="glass"` gives the opaque pill instead. You can [pass a blur view](./customizing.md#blur-on-android) to draw toasts on a blur.
 - **The web draws frosted glass, not Liquid Glass.** Browsers have no
   equivalent of Apple's material, so the web gets a CSS backdrop blur. Browsers
   without `backdrop-filter` get the opaque surface.

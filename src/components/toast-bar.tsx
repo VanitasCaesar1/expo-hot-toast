@@ -12,7 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import type { DismissReason, SwipeDirection, Toast, ToastSlot, ToastTheme, ToastType } from '../core/types';
+import type { DismissReason, SwipeDirection, Toast, ToastBlur, ToastSlot, ToastTheme, ToastType } from '../core/types';
 import { resolveValue } from '../core/store';
 import { defaultTheme, mergeTheme } from '../core/defaults';
 import { resolvePreset, resolveVariant, variantMotion, variantTheme } from '../core/presets';
@@ -57,6 +57,8 @@ export interface ToastBarContextValue {
   paused?: boolean;
   /** Extra top or bottom padding for a banner against the screen edge: the safe-area inset. */
   edgeInset?: number;
+  /** The Toaster's blur view, for platforms without glass or frost. */
+  blur?: ToastBlur;
 }
 
 /** Icons for each type, and the close button, replacing the built-in glyphs. */
@@ -123,6 +125,12 @@ export interface ToastBarProps {
   preset?: Exclude<ToasterPreset, 'auto'>;
   /** Default: the Toaster's icon set. */
   icons?: ToastIcons;
+  /** Default: the Toaster's blur view. */
+  blur?: ToastBlur;
+  /** True while the Toaster's timers are paused. Default: the Toaster's. */
+  paused?: boolean;
+  /** Extra padding against the screen edge, for a banner. Default: the Toaster's. */
+  edgeInset?: number;
   children?: (props: {
     icon: React.ReactNode;
     message: React.ReactNode;
@@ -155,6 +163,9 @@ export const ToastBar = React.memo(function ToastBar({
   onMeasure: onMeasureProp,
   preset: presetProp,
   icons: iconsProp,
+  blur: blurProp,
+  paused: pausedProp,
+  edgeInset: edgeInsetProp,
   children,
 }: ToastBarProps) {
   const slot = React.useContext(ToastBarContext);
@@ -174,8 +185,9 @@ export const ToastBar = React.memo(function ToastBar({
     return tokens || motion ? mergeTheme(toasterTheme, { ...tokens, motion }) : toasterTheme;
   }, [toasterTheme, variant, reduceMotion]);
   const icons = iconsProp ?? slot?.icons;
-  const paused = slot?.paused ?? false;
-  const edgeInset = slot?.edgeInset ?? 0;
+  const blur = blurProp ?? slot?.blur;
+  const paused = pausedProp ?? slot?.paused ?? false;
+  const edgeInset = edgeInsetProp ?? slot?.edgeInset ?? 0;
   const unstyled = toast.unstyled === true;
   const boldText = useBoldText();
   // `richColors` recolours success and error toasts by outcome: the surface,
@@ -886,6 +898,7 @@ export const ToastBar = React.memo(function ToastBar({
     <GlassSurface
       theme={theme}
       glass={glass}
+      blur={blur}
       // The material carries its own corner radius. expo-glass-effect
       // reads `borderRadius` off the GlassView itself to configure
       // UIKit's corner shape; clipping a square glass view with a

@@ -364,6 +364,8 @@ describe('shapes', () => {
     });
     expect(screen.getByText('You are offline')).toBeTruthy();
     expect(nodesWithStyle((s) => s.position === 'absolute' && s.top === 0).length).toBeGreaterThan(0);
+    // The banner's own 12 of padding, plus the 47 of the status bar.
+    expect(nodesWithStyle((s) => s.paddingTop === 12 + 47).length).toBeGreaterThan(0);
   });
 
   it('the island is a black capsule near the top', () => {
@@ -441,6 +443,63 @@ describe('expandable and countdown', () => {
     const undo = screen.getByLabelText('Undo');
     // The ring is an SVG drawn before the label, inside the button.
     expect(undo.findAll((n) => String(n.type).includes('Svg') || String(n.type).includes('RNSVG')).length).toBeGreaterThan(0);
+  });
+});
+
+describe('blur', () => {
+  const FakeBlur = (props: Record<string, unknown>) => <Text testID="fake-blur">{String(props.tint)}</Text>;
+
+  it('draws the blur view where there is no glass, with the scheme as its tint', () => {
+    render(<Toaster colorScheme="dark" blur={{ component: FakeBlur, props: { intensity: 40 } }} />);
+    act(() => {
+      toast('Blurred');
+    });
+    const blur = screen.getByTestId('fake-blur');
+    expect(blur.props.children).toBe('dark');
+    expect(screen.UNSAFE_getByType(FakeBlur).props.intensity).toBe(40);
+  });
+
+  it('a tint in props wins over the scheme', () => {
+    render(<Toaster blur={{ component: FakeBlur, props: { tint: 'prominent' } }} />);
+    act(() => {
+      toast('Blurred');
+    });
+    expect(screen.getByTestId('fake-blur').props.children).toBe('prominent');
+  });
+
+  it('is skipped for a toast with glass off', () => {
+    render(<Toaster blur={{ component: FakeBlur }} />);
+    act(() => {
+      toast('Opaque', { glass: false });
+    });
+    expect(screen.queryByTestId('fake-blur')).toBeNull();
+  });
+
+  it('is skipped under Reduce Transparency', async () => {
+    jest.spyOn(AccessibilityInfo, 'isReduceTransparencyEnabled').mockResolvedValue(true);
+    render(<Toaster blur={{ component: FakeBlur }} />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => {
+      toast('Opaque');
+    });
+    expect(screen.queryByTestId('fake-blur')).toBeNull();
+  });
+
+  it('an inline blur setting does not re-render the toasts', () => {
+    let renders = 0;
+    const Counted = (props: Record<string, unknown>) => {
+      renders += 1;
+      return <FakeBlur {...props} />;
+    };
+    const { rerender } = render(<Toaster blur={{ component: Counted, props: { intensity: 40 } }} />);
+    act(() => {
+      toast('Blurred');
+    });
+    const before = renders;
+    rerender(<Toaster blur={{ component: Counted, props: { intensity: 40 } }} />);
+    expect(renders).toBe(before);
   });
 });
 
