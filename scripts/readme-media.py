@@ -12,7 +12,8 @@ START is where each scripted demo begins in each file (the long-press that
 starts it). Find it by stepping through frames: playDemo shows its first toast
 at 1.0 s, playRichDemo at 0.8 s. Update per CI run.
 
-Writes docs/media/{demo,rich}-{light,dark}.webp. Needs ffmpeg, img2webp
+Writes docs/media/{demo,rich}-{light,dark}.webp. The README uses rich-dark in both
+themes: CI's light iOS recordings of the rich demo kept stalling mid-demo. Needs ffmpeg, img2webp
 (brew install webp) and Pillow.
 """
 

@@ -95,10 +95,7 @@ await toast.promise(upload(photo), {
 ## More than a line of text
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/media/rich-dark.webp" />
-    <img src="./docs/media/rich-light.webp" width="636" alt="Upload progress, steps, Undo with a countdown, a notification, the island, a HUD and a banner, on iPhone and Android" />
-  </picture>
+  <img src="./docs/media/rich-dark.webp" width="636" alt="Upload progress, steps, Undo with a countdown, a notification, the island, a HUD and a banner, on iPhone and Android" />
   <br />
   <sub>Progress, steps, Undo with a countdown, a notification, the island, a HUD and a banner. Recorded in CI.</sub>
 </p>
