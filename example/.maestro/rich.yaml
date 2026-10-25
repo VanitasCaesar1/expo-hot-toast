@@ -211,9 +211,16 @@ appId: dev.expohottoast.example
     waitToSettleTimeoutMs: 300
 - assertVisible: ".*Added to Library.*"
 - takeScreenshot: 28-hud
-- tapOn:
-    text: ".*Added to Library.*"
-    waitToSettleTimeoutMs: 300
+# A vertical swipe, mid-screen and clear of every system edge: the HUD is
+# flicked up, its default direction. On Android this once scrolled the screen
+# behind instead, and a flick that ended without an update snapped back.
+- swipe:
+    start: "50%, 50%"
+    end: "50%, 36%"
+    duration: 150
+- extendedWaitUntil:
+    notVisible: ".*Added to Library.*"
+    timeout: 4000
 
 # The island at the top.
 - scrollUntilVisible:

@@ -123,6 +123,15 @@ describe('expo-hot-toast/web', () => {
     expect(container.querySelector('.eht-item')?.getAttribute('data-state')).toBe('leaving');
   });
 
+  it('dismisses a flick with no move events before the release', () => {
+    mount();
+    show(() => toast('Flick'));
+    const el = byText('Flick')!;
+    pointer(el, 'pointerdown', 100, 50, 1000);
+    pointer(el, 'pointerup', 220, 50, 1040);
+    expect(container.querySelector('.eht-item')?.getAttribute('data-state')).toBe('leaving');
+  });
+
   it('springs back from a short drag', () => {
     mount();
     show(() => toast('Stay'));

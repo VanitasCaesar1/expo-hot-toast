@@ -610,7 +610,18 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
       const d = drag.current;
       drag.current = null;
       toastRef.current?.removeAttribute('data-dragging');
-      if (!d || d.axis === 0) return;
+      if (!d) return;
+      // A flick whose moves all fell under the slop still counts if the
+      // release went far enough: choose its axis from the release.
+      if (d.axis === 0) {
+        const rawX = e.clientX - d.x;
+        const rawY = e.clientY - d.y;
+        if (Math.abs(rawX) < 12 && Math.abs(rawY) < 12) return;
+        d.axis = Math.abs(rawX) >= Math.abs(rawY) ? 1 : 2;
+        dragged.current = true;
+        if (d.axis === 1) d.dx = resist(rawX, allow.right, allow.left);
+        else d.dy = resist(rawY, allow.down, allow.up);
+      }
       const { vx, vy } = releaseVelocity(d.samples, { t: now(e), x: e.clientX, y: e.clientY });
       if (d.axis === 1) {
         const velocity = vx;

@@ -519,6 +519,15 @@ describe('ToastBar — vertical swipe', () => {
     expect(onDismiss).toHaveBeenCalledWith('swipe-me', 'swipe');
   });
 
+  it('dismisses a flick that ends with no update in between', () => {
+    const onDismiss = jest.fn();
+    const { release, config } = mountBar(72, onDismiss, true);
+    // Activation, then the release: no onUpdate, as a fast flick on Android delivers.
+    (config.onStart as () => void)();
+    release({ translationX: 0, translationY: -55, velocityY: -427 });
+    expect(onDismiss).toHaveBeenCalledWith('swipe-me', 'swipe');
+  });
+
   it('dismisses a short, fast flick toward the edge', () => {
     const onDismiss = jest.fn();
     const { drag, release } = mountBar(72, onDismiss, true);

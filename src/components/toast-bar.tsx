@@ -468,7 +468,7 @@ export const ToastBar = React.memo(function ToastBar({
           // The drag locks to whichever axis it starts along, so a sideways
           // swipe never drifts vertically and a flick up never slides sideways.
           if (dragAxis.value === 0) {
-            dragAxis.value = Math.abs(event.translationX) >= Math.abs(event.translationY) ? 1 : 2;
+            dragAxis.value = Math.abs(event.translationX ?? 0) >= Math.abs(event.translationY ?? 0) ? 1 : 2;
           }
           if (dragAxis.value === 1) {
             dragX.value = resistUnless(event.translationX, allowRight, allowLeft);
@@ -477,6 +477,13 @@ export const ToastBar = React.memo(function ToastBar({
           }
         })
         .onEnd((event) => {
+          // A fast flick on Android can activate and end with no update in
+          // between, so no axis was ever chosen; a device probe saw a 55dp
+          // flick up snap back as a sideways drag of 0. Choose it from the
+          // release instead.
+          if (dragAxis.value === 0) {
+            dragAxis.value = Math.abs(event.translationX ?? 0) >= Math.abs(event.translationY ?? 0) ? 1 : 2;
+          }
           if (dragAxis.value === 2) {
             // A toast is short, so the vertical distance is shorter too: about
             // two thirds of its own height, or a flick in an allowed direction.
