@@ -15,8 +15,9 @@ import { Toaster, toast } from 'expo-hot-toast';
  * Every full-page layer passes touches through (`box-none`); only the toasts
  * themselves take the pointer, so the page under them stays usable.
  *
- * A page can also give an element the `data-toast-stage` attribute: a second,
- * independent Toaster (toasterId "stage") mounts inside it, for the hero.
+ * A page can also mark elements with `data-toast-stage="<id>"` (an empty value
+ * means "stage"): an independent Toaster with that toasterId mounts inside
+ * each one, for the hero and the feature tiles.
  */
 export type EmbedConfig = Omit<ComponentProps<typeof Toaster>, 'children' | 'ContainerComponent'>;
 
@@ -29,8 +30,8 @@ declare global {
       configure: (config: EmbedConfig) => void;
       /** Examples that need React elements, which the page cannot build. */
       examples: Record<string, () => void>;
-      /** Props for the stage Toaster. */
-      configureStage: (config: EmbedConfig) => void;
+      /** Props for a stage's Toaster; `id` defaults to "stage". */
+      configureStage: (config: EmbedConfig, id?: string) => void;
     };
   }
 }
@@ -62,8 +63,8 @@ const examples: Record<string, () => void> = {
 export default function Embed() {
   const initial = typeof window.__EHT_EMBED__ === 'object' ? window.__EHT_EMBED__.config : undefined;
   const [config, setConfig] = useState<EmbedConfig>(initial ?? {});
-  const [stageConfig, setStageConfig] = useState<EmbedConfig>({});
-  const [stage, setStage] = useState<HTMLElement | null>(null);
+  const [stageConfigs, setStageConfigs] = useState<Record<string, EmbedConfig>>({});
+  const [stages, setStages] = useState<HTMLElement[]>([]);
   scheme = config.colorScheme ?? 'light';
 
   useEffect(() => {
@@ -71,9 +72,10 @@ export default function Embed() {
       toast,
       configure: (next) => setConfig((current) => ({ ...current, ...next })),
       examples,
-      configureStage: (next) => setStageConfig((current) => ({ ...current, ...next })),
+      configureStage: (next, id = 'stage') =>
+        setStageConfigs((current) => ({ ...current, [id]: { ...current[id], ...next } })),
     };
-    setStage(document.querySelector<HTMLElement>('[data-toast-stage]'));
+    setStages([...document.querySelectorAll<HTMLElement>('[data-toast-stage]')]);
     window.dispatchEvent(new Event('expo-hot-toast:ready'));
     return () => {
       delete window.expoHotToast;
@@ -84,7 +86,10 @@ export default function Embed() {
     <GestureHandlerRootView style={styles.root} pointerEvents="box-none">
       <SafeAreaInsetsContext.Provider value={NO_INSETS}>
         <Toaster {...config} />
-        {stage && createPortal(<Toaster {...stageConfig} toasterId="stage" />, stage)}
+        {stages.map((element) => {
+          const id = element.dataset.toastStage || 'stage';
+          return createPortal(<Toaster {...stageConfigs[id]} toasterId={id} />, element, id);
+        })}
       </SafeAreaInsetsContext.Provider>
     </GestureHandlerRootView>
   );
