@@ -424,7 +424,14 @@ const faq = [
     display: inline-flex;
     color: var(--accent-text);
   }
+  /* The star card continues the start section above it, so it shares that
+     section's centred 920px column rather than the full page width. */
+  .star {
+    margin-top: 20px;
+  }
   .star :global(.star-card) {
+    max-width: 920px;
+    margin-inline: auto;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 28px 48px;
