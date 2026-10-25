@@ -167,6 +167,17 @@ Initial release. Not yet published to npm; `main` previously pointed at
 
 ### Fixed
 
+- **Bursts no longer break the stack.** Firing many toasts at once could
+  leave the screen blank, flicker and draw ghosts:
+  - a dismissed toast kept its slot through its exit, so a burst could fill
+    every slot with toasts on their way out; it now gives the slot up at once;
+  - a toast pushed back by newer ones vanished with no exit and reappeared
+    later; it now leaves with an exit and enters again when it returns;
+  - `dropPolicy: 'oldest'` dropped the newest arrival, so in a burst each new
+    toast was dismissed the moment it arrived; it now drops the oldest;
+  - in a `stacked` Toaster a leaving toast counted as the front, tucking the
+    real front away behind it.
+
 Upstream `react-hot-toast` v2.6.1 defects, each with a regression test in
 `__tests__/`:
 

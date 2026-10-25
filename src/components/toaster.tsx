@@ -213,6 +213,30 @@ export function stackShifts(
   });
 }
 
+/**
+ * `stackShifts` for a stack that holds leaving toasts too. `live[i]` is toast
+ * i's place among the live toasts, or undefined for one that is leaving; a
+ * leaving toast is pinned at the front edge, behind the front.
+ */
+export function stackShiftsFor(
+  heights: number[],
+  live: Array<number | undefined>,
+  gap: number,
+  atTop: boolean,
+  peek: number = STACK_PEEK,
+): number[] {
+  const frontAt = live.findIndex((n) => n === 0);
+  const front = frontAt >= 0 ? (heights[frontAt] ?? 0) : 0;
+  let before = 0;
+  return heights.map((height, i) => {
+    const laidOut = before + height;
+    before += height + gap;
+    const n = live[i];
+    const target = n === undefined ? height : front + n * peek;
+    return atTop ? target - laidOut : laidOut - target;
+  });
+}
+
 const isTop = (position: ToastPosition) => position.startsWith('top');
 const isCenter = (position: ToastPosition) => position.includes('center');
 const isRight = (position: ToastPosition) => position.includes('right');
@@ -327,7 +351,7 @@ export function Toaster({
   );
   React.useEffect(() => {
     toasts.forEach((t) => {
-      if (!t.visible) return;
+      if (!t.visible || t.queued) return;
       const last = seen.current.get(t.id);
       if (
         last &&
@@ -489,9 +513,18 @@ export function Toaster({
         // glass views that share a container, so a container holding a single
         // toast merged nothing: the stack drew as separate chips.
         const Stack = containerized ? GlassContainer : View;
+        // The collapsed stack counts live toasts only. A leaving or pushed-out
+        // toast still takes its place in the layout until it unmounts, but it
+        // is not the front: counting it tucked the new front away behind a
+        // toast that was fading out. It is pinned at the front edge instead.
+        const liveIndex = new Map<string, number>();
+        bucket.forEach((t) => {
+          if (t.visible && !t.queued) liveIndex.set(t.id, liveIndex.size);
+        });
         const shifts = collapsed
-          ? stackShifts(
+          ? stackShiftsFor(
               bucket.map((t) => heights.current.get(t.id) ?? ASSUMED_TOAST_HEIGHT),
+              bucket.map((t) => liveIndex.get(t.id)),
               resolvedGap,
               anchoredTop,
             )
@@ -543,7 +576,10 @@ export function Toaster({
               },
             ]}
           >
-            {bucket.map((t, depth) => (
+            {bucket.map((t, i) => {
+              const live = liveIndex.get(t.id);
+              const depth = live ?? 99;
+              return (
               <ToastSlot
                 key={t.id}
                 toast={t}
@@ -565,9 +601,11 @@ export function Toaster({
                   stacked
                     ? placementFor(
                         depth,
-                        shifts?.[depth] ?? 0,
-                        collapsed ? 1 - Math.min(depth, 3) * STACK_SCALE_STEP : 1,
-                        collapsed && depth > 0,
+                        shifts?.[i] ?? 0,
+                        collapsed && live !== undefined ? 1 - Math.min(live, 3) * STACK_SCALE_STEP : 1,
+                        // A leaving toast hides its content too: behind the
+                        // front, it showed through the glass.
+                        collapsed && (live === undefined || live > 0),
                       )
                     : undefined
                 }
@@ -590,7 +628,8 @@ export function Toaster({
               >
                 {children}
               </ToastSlot>
-            ))}
+              );
+            })}
           </Stack>
           </View>
         );
@@ -689,7 +728,8 @@ function glassKey(glass: boolean | GlassConfig): string {
  * `visible` and run its own animation instead.
  */
 function CustomToast({ toast: t, motion }: { toast: Toast; motion: ToastSlotProps['theme']['motion'] }) {
-  const isVisible = t.visible;
+  // A toast pushed out by newer ones leaves like a dismissed one.
+  const isVisible = t.visible && !t.queued;
   // Starts at 0 and is driven from an effect, so the first frame fades in
   // rather than appearing at full opacity.
   const opacity = useSharedValue(0);

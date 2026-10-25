@@ -95,6 +95,23 @@ describe('<Toaster stacked>', () => {
     expect(contentOpacity('second')).toBe(0);
   });
 
+  it('brings the next toast to the front the moment the front one is dismissed', () => {
+    jest.useFakeTimers();
+    render(<Toaster stacked />);
+    let front = '';
+    act(() => {
+      toast('first');
+      toast('second');
+      front = toast('third');
+    });
+    act(() => {
+      toast.dismiss(front);
+    });
+    // 'third' is leaving; 'second' is the front now, not tucked behind it.
+    expect(contentOpacity('second')).toBeUndefined();
+    expect(contentOpacity('first')).toBe(0);
+  });
+
   it('is not collapsed without the prop', () => {
     render(<Toaster />);
     three();

@@ -223,6 +223,19 @@ describe('expo-hot-toast/web', () => {
     expect(items()[1]!.hasAttribute('data-tucked')).toBe(true);
   });
 
+  it('brings the next toast to the front of a stack the moment the front one leaves', () => {
+    mount({ stacked: true });
+    let front = '';
+    show(() => toast('one'));
+    show(() => toast('two'));
+    show(() => (front = toast('three')));
+    show(() => toast.dismiss(front));
+    const item = (text: string) => [...container.querySelectorAll<HTMLElement>('.eht-item')].find((i) => i.textContent?.includes(text))!;
+    expect(item('three').getAttribute('data-state')).toBe('leaving');
+    expect(item('two').hasAttribute('data-tucked')).toBe(false);
+    expect(item('one').hasAttribute('data-tucked')).toBe(true);
+  });
+
   it('renders on the server without a window', () => {
     toast('Server');
     expect(() => renderToString(<Toaster />)).not.toThrow();

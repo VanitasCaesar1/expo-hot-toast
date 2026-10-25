@@ -299,7 +299,9 @@ export const ToastBar = React.memo(function ToastBar({
   // with a sign flip threaded through three separate calculations; inverting
   // once here keeps it honest.
   const direction = (atTop ? -1 : 1) * (reverseOrder ? -1 : 1);
-  const isVisible = toast.visible;
+  // A toast pushed out of the visible slots by newer ones leaves like a
+  // dismissed one, and enters again when it returns.
+  const isVisible = toast.visible && !toast.queued;
 
   // Each wrapper is full width, so the toast's own horizontal alignment has to
   // follow its position. Always centring it put top-left and top-right toasts in

@@ -117,13 +117,13 @@ describe('dismiss reasons', () => {
 
     state = reducer(state, { type: ActionType.ADD_TOAST, toast: make('c') });
 
-    // The store array is newest-first, so 'c' arrived last and is the one the
-    // policy sacrifices. It stays in the array so its exit can still play.
-    const evicted = state.toasts.find((t) => t.id === 'c');
+    // The default policy, 'oldest', sacrifices 'a', the first to arrive. It
+    // stays in the array so its exit can still play.
+    const evicted = state.toasts.find((t) => t.id === 'a');
     expect(evicted!.dismissed).toBe(true);
     expect(evicted!.dismissReason).toBe('overflow');
     expect(state.toasts).toHaveLength(3);
-    expect(state.toasts.find((t) => t.id === 'a')!.dismissed).toBe(false);
+    expect(state.toasts.find((t) => t.id === 'c')!.dismissed).toBe(false);
   });
 
   it('leaves everything alone while the queue is within capacity', () => {
@@ -209,13 +209,13 @@ describe('onDismiss callback', () => {
     const onDismiss = jest.fn();
 
     // visibleToasts 1 + maxPending 0 leaves no buffer at all, so the second
-    // toast is evicted the moment it arrives.
+    // toast's arrival evicts the oldest.
     setSettings({ visibleToasts: 1, maxPending: 0 });
 
     render(<Toaster />);
     act(() => {
-      toast('kept', { duration: 60_000 });
       toast('victim', { duration: 60_000, onDismiss });
+      toast('kept', { duration: 60_000 });
     });
     act(() => {
       jest.advanceTimersByTime(1);

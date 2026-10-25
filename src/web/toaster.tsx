@@ -806,7 +806,8 @@ function ToastItem({
       cancelAnimationFrame(second);
     };
   }, []);
-  const state = !toast.visible ? 'leaving' : entered ? 'visible' : 'entering';
+  // A toast pushed out by newer ones leaves like a dismissed one.
+  const state = !toast.visible || toast.queued ? 'leaving' : entered ? 'visible' : 'entering';
   const direction = atTop ? -1 : 1;
   const vars = {
     '--eht-enter': `${motion.enter}ms`,
@@ -980,19 +981,38 @@ export function Toaster({
               style={{ ...layout.style, flexDirection: anchoredTop === !reverseOrder ? 'column' : 'column-reverse' }}
             >
               {(() => {
-                const shifts = collapsed
-                  ? stackShifts(list.map((t) => heights.get(t.id) ?? 56), bucket.startsWith('banner') ? 0 : gap, anchoredTop)
-                  : undefined;
-                return list.map((t, depth) => {
-                const { theme: toastTheme, motion } = themeFor(t);
-                const placement: StackPlacement | undefined = collapsible
-                  ? {
+                // The stack is laid out from the live toasts only. A leaving or
+                // pushed-out toast collapses to nothing and gives up its gap,
+                // so it neither moves the others nor counts as the front:
+                // counting it tucked the new front away behind a ghost.
+                const isLive = (t: Toast) => t.visible && !t.queued;
+                const stackGap = bucket.startsWith('banner') ? 0 : gap;
+                const placements = new Map<string, StackPlacement>();
+                if (collapsible) {
+                  const live = list.filter(isLive);
+                  const shifts = collapsed ? stackShifts(live.map((t) => heights.get(t.id) ?? 56), stackGap, anchoredTop) : undefined;
+                  live.forEach((t, depth) =>
+                    placements.set(t.id, {
                       shift: shifts?.[depth] ?? 0,
                       scale: collapsed ? 1 - Math.min(depth, 3) * STACK_SCALE_STEP : 1,
                       tucked: collapsed && depth > 0,
                       depth,
+                    }),
+                  );
+                  // Leaving ones fade out at the front edge, behind the front,
+                  // their content hidden so it cannot show through the glass.
+                  let before = 0;
+                  for (const t of list) {
+                    if (isLive(t)) {
+                      before += (heights.get(t.id) ?? 56) + stackGap;
+                    } else {
+                      placements.set(t.id, { shift: collapsed ? (anchoredTop ? -before : before) : 0, scale: 1, tucked: collapsed, depth: 99 });
                     }
-                  : undefined;
+                  }
+                }
+                return list.map((t) => {
+                const { theme: toastTheme, motion } = themeFor(t);
+                const placement = placements.get(t.id);
                 const bar =
                   t.type === 'custom' ? (
                     <div style={{ pointerEvents: 'auto' }}>{resolveValue(t.message, t)}</div>

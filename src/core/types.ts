@@ -311,6 +311,12 @@ export interface Toast extends Omit<ToastOptions, 'duration' | 'id' | 'icon'> {
   count?: number;
 
   visible: boolean;
+  /**
+   * Still live, but pushed out of the visible slots by newer toasts. A
+   * renderer plays its exit, as for a dismissed toast; it returns, entering
+   * again, when a slot frees. Set by `useToaster` only.
+   */
+  queued?: boolean;
   dismissed: boolean;
   /** Why it left the screen. First cause wins; it is the informative one. */
   dismissReason?: DismissReason;

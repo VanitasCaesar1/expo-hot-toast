@@ -97,7 +97,8 @@ describe('reducer', () => {
     // The point of the fix: the victim is still present so React can animate it
     // out. rht's .slice(0, limit) drops it from the array, which unmounts it with
     // no exit animation at all.
-    const victim = state.toasts.find((t) => t.id === 'd');
+    // The default 'oldest' policy: 'a' arrived first.
+    const victim = state.toasts.find((t) => t.id === 'a');
     expect(victim).toBeDefined();
     expect(victim!.visible).toBe(false);
     expect(victim!.dismissed).toBe(true);
@@ -105,7 +106,7 @@ describe('reducer', () => {
     expect(state.toasts.filter((t) => !t.dismissed)).toHaveLength(3);
   });
 
-  it("'newest' sacrifices the far end of the array instead", () => {
+  it("'newest' sacrifices the latest arrival instead", () => {
     const newest: ToasterState = {
       ...overflowing,
       settings: { ...overflowing.settings, dropPolicy: 'newest' },
@@ -117,8 +118,8 @@ describe('reducer', () => {
     state = reducer(state, { type: ActionType.ADD_TOAST, toast: baseToast({ id: 'd' }) });
 
     expect(state.toasts.filter((t) => t.dismissReason === 'overflow')).toHaveLength(1);
-    expect(state.toasts.find((t) => t.id === 'a')!.dismissReason).toBe('overflow');
-    expect(state.toasts.find((t) => t.id === 'd')!.dismissed).toBe(false);
+    expect(state.toasts.find((t) => t.id === 'd')!.dismissReason).toBe('overflow');
+    expect(state.toasts.find((t) => t.id === 'a')!.dismissed).toBe(false);
   });
 
   it('upsert updates in place instead of appending', () => {
@@ -453,16 +454,16 @@ describe('routing', () => {
   });
 
   it('honours a configurable visible cap and flags what does not fit', () => {
-    // visibleToasts 1 + maxPending 0 leaves no buffer, so the second toast
-    // overflows immediately rather than waiting for one to retire.
+    // visibleToasts 1 + maxPending 0 leaves no buffer, so the second toast's
+    // arrival pushes the oldest out rather than waiting for it to retire.
     setSettings({ visibleToasts: 1, maxPending: 0 }, 'tiny');
     const one = toast('one', { toasterId: 'tiny' });
     toast('two', { toasterId: 'tiny' });
 
     const state = getState('tiny');
     expect(state.toasts).toHaveLength(2);
-    expect(state.toasts.find((t) => t.id === one)!.visible).toBe(true);
-    expect(state.toasts.find((t) => t.id !== one)!.visible).toBe(false);
+    expect(state.toasts.find((t) => t.id === one)!.visible).toBe(false);
+    expect(state.toasts.find((t) => t.id !== one)!.visible).toBe(true);
   });
 });
 

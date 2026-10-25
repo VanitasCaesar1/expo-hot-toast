@@ -82,9 +82,11 @@ function applyDropPolicy(toasts: Toast[], settings: ToasterSettings): Toast[] {
   if (live <= capacity) return toasts;
 
   const excess = live - capacity;
-  const candidates = toasts.filter((t) => !t.dismissed && t.visible);
-  // Newest-first array, so index 0 is the front of the stack.
-  const frontToBack = [...candidates].reverse();
+  // The store is newest-first, so this is already front to back: index 0 is
+  // the newest toast, the end the oldest. It was once reversed here, which
+  // made 'oldest' drop the newest arrival: in a burst every new toast was
+  // dismissed the moment it arrived, and the screen showed none of them.
+  const frontToBack = toasts.filter((t) => !t.dismissed && t.visible);
   const doomed = new Set(
     (settings.dropPolicy === 'oldest'
       ? frontToBack.slice(-excess)

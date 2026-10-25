@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import type { AppStateStatus } from 'react-native';
 import {
@@ -243,52 +243,106 @@ export function useToaster({
    * ordering both depend on knowing how deep in the stack a toast sits, and that
    * is only knowable after the limit has been applied.
    */
+  /**
+   * When each toast was pushed out of the visible slots by newer ones. For
+   * one exit's length it is still rendered, flagged `queued`, so it leaves
+   * like a dismissed toast instead of vanishing on the spot.
+   */
+  const displacedAt = useRef(new Map<string, number>()).current;
+  // Bumped when a displaced toast's exit is over, to drop it from the render.
+  const [exitTick, setExitTick] = useState(0);
+
   const { visible, pending } = useMemo(() => {
     const cap = state.settings.visibleToasts;
+    const now = Date.now();
     // depth of the front toast per position. Used both as the running count and
     // as the toast's own depth, so the stagger and the drop ordering can see how
     // far back in the stack a toast sits.
     const filled = new Map<ToastPosition, number>();
+    // Depth counts every toast drawn ahead, leaving ones included, so a toast
+    // keeps its staggered deadline while the one in front plays its exit.
+    const ahead = new Map<ToastPosition, number>();
     const vis: Toast[] = [];
     const pen: Toast[] = [];
 
-    for (const toast of toasts) {
-      const depth = filled.get(toast.resolvedPosition) ?? 0;
-
-      if (depth >= cap) {
-        // A toast pushed back out of the visible slice by a newer one forgets
-        // when it was first shown. Otherwise its clock keeps running while it
-        // waits, and on promotion it is retired on the very tick it reappears.
-        visibleSince.delete(toast.id);
-        pen.push(toast);
-        continue;
-      }
-
-      filled.set(toast.resolvedPosition, depth + 1);
-      if (!visibleSince.has(toast.id)) visibleSince.set(toast.id, Date.now());
+    const stamp = (toast: Toast, depth: number, queued: boolean): Toast => {
+      if (toast.depth === depth && !queued && !toast.queued) return toast;
       let byDepth = deep.get(toast);
       if (!byDepth) {
         byDepth = new Map();
         deep.set(toast, byDepth);
       }
-      let stamped = toast.depth === depth ? toast : byDepth.get(depth);
+      const key = queued ? -1 - depth : depth;
+      let stamped = byDepth.get(key);
       if (!stamped) {
-        stamped = { ...toast, depth };
-        byDepth.set(depth, stamped);
+        stamped = { ...toast, depth, queued: queued || undefined };
+        byDepth.set(key, stamped);
       }
-      vis.push(stamped);
+      return stamped;
+    };
+
+    for (const toast of toasts) {
+      const pos = toast.resolvedPosition;
+      const used = filled.get(pos) ?? 0;
+      const depth = ahead.get(pos) ?? 0;
+
+      // A dismissed toast is leaving: it no longer holds a slot, so the next
+      // toast moves up at once instead of waiting for the exit to finish. It
+      // is still rendered, in place, if it was on screen.
+      if (toast.dismissed) {
+        if (visibleSince.has(toast.id) || displacedAt.has(toast.id)) {
+          vis.push(stamp(toast, depth, false));
+          ahead.set(pos, depth + 1);
+        }
+        continue;
+      }
+
+      if (used >= cap) {
+        // Pushed out by newer toasts. It forgets when it was first shown, or
+        // its clock keeps running while it waits and it is retired on the tick
+        // it returns; and it leaves with an exit rather than vanishing.
+        if (visibleSince.delete(toast.id)) displacedAt.set(toast.id, now);
+        const since = displacedAt.get(toast.id);
+        if (since !== undefined && now - since < exitDuration) vis.push(stamp(toast, depth, true));
+        pen.push(toast);
+        continue;
+      }
+
+      filled.set(pos, used + 1);
+      ahead.set(pos, depth + 1);
+      displacedAt.delete(toast.id);
+      if (!visibleSince.has(toast.id)) visibleSince.set(toast.id, now);
+      vis.push(stamp(toast, depth, false));
     }
 
-    // Prune ids that have left the store, or this grows forever.
-    if (visibleSince.size > toasts.length) {
+    // Prune ids that have left the store, or these grow forever.
+    if (visibleSince.size + displacedAt.size > toasts.length) {
       const live = new Set(toasts.map((t) => t.id));
       visibleSince.forEach((_at, id) => {
         if (!live.has(id)) visibleSince.delete(id);
       });
+      displacedAt.forEach((_at, id) => {
+        if (!live.has(id)) displacedAt.delete(id);
+      });
     }
 
     return { visible: vis, pending: pen };
-  }, [toasts, state.settings.visibleToasts, visibleSince, deep]);
+    // `exitTick` re-runs this once a displaced toast's exit is over.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toasts, state.settings.visibleToasts, visibleSince, deep, displacedAt, exitDuration, exitTick]);
+
+  // Once the earliest displaced toast's exit is over, re-render to drop it.
+  useEffect(() => {
+    if (!visible.some((t) => t.queued)) return undefined;
+    const now = Date.now();
+    let next = Infinity;
+    displacedAt.forEach((at) => {
+      next = Math.min(next, at + exitDuration - now);
+    });
+    if (!Number.isFinite(next)) return undefined;
+    const timer = setTimeout(() => setExitTick((n) => n + 1), Math.max(next, 0) + 16);
+    return () => clearTimeout(timer);
+  }, [visible, displacedAt, exitDuration]);
 
   /**
    * Background recovery. On iOS and Android a suspended app freezes timers but
@@ -313,7 +367,7 @@ export function useToaster({
           // Visible toasts only, with the same budget as the timers below. A
           // pending toast has not been seen yet, so it cannot have expired.
           visible.forEach((t) => {
-            if (!t.visible || t.duration === Infinity) return;
+            if (!t.visible || t.queued || t.duration === Infinity) return;
             if (remaining(t, visibleSince, motion, now) <= 0) {
               toast.dismiss(t.id, toasterId, 'timeout');
             }
@@ -344,7 +398,7 @@ export function useToaster({
 
     const now = Date.now();
     const timers = visible
-      .filter((t) => t.visible && t.duration !== Infinity)
+      .filter((t) => t.visible && !t.queued && t.duration !== Infinity)
       .map((t) => {
         const budget = remaining(t, visibleSince, motion, now);
 

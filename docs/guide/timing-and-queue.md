@@ -47,8 +47,11 @@ longer, so a stack clears one toast at a time rather than all on one frame.
 
 ## The visible limit
 
-Three toasts show per position. Further toasts wait, and move into place as
-space frees.
+Three toasts show per position, newest at the front. A newer toast pushes the
+oldest one showing back into the queue: it plays its exit, waits with its timer
+paused, and comes back, with its full time, when space frees. A dismissed toast
+gives up its place as soon as it starts to leave, so the next one moves up
+while it plays its exit.
 
 ```tsx
 <Toaster visibleToasts={5} />
@@ -58,7 +61,8 @@ space frees.
 
 Up to `maxPending` toasts (10 by default) wait beyond the visible ones. Past
 that, one is dropped: it plays its exit and reports the reason `'overflow'` to
-its `onDismiss`. `dropPolicy` picks which one.
+its `onDismiss`. `dropPolicy` picks which one: `'oldest'`, the default, drops
+the toast that has waited longest; `'newest'` drops the latest arrival.
 
 ```tsx
 <Toaster

@@ -515,23 +515,24 @@ describe('useToaster — pending buffer', () => {
       toast.dismiss(id, 'default', 'timeout');
     });
 
-    // Dismissed is not the same as gone. The toast still occupies its slot so
-    // React can play the exit, and promotion waits on the removal.
-    expect(result.current.toasts.map((t) => t.message)).toEqual(['newest']);
-    expect(result.current.pending.map((t) => t.message)).toEqual(['behind it']);
-    // Still in the store, not merely in the render: the promotion below is a
-    // consequence of the exit finishing and the store shrinking, not of the
-    // dismissal flag.
+    // A leaving toast gives up its slot at once: the next one moves up while
+    // the dismissed one is still drawn, playing its exit in place. Waiting for
+    // the exit left the slot empty, and a burst could empty every slot.
+    expect(result.current.toasts.map((t) => [t.message, t.dismissed])).toEqual([
+      ['newest', true],
+      ['behind it', false],
+    ]);
+    expect(result.current.pending).toHaveLength(0);
     expect(getState().toasts).toHaveLength(2);
+    // Its removal, and the promoted toast's own countdown.
+    expect(jest.getTimerCount()).toBe(2);
 
     act(() => {
       jest.advanceTimersByTime(400);
     });
 
+    // Removed, so the promoted toast is the front of the stack.
     expect(result.current.toasts.map((t) => t.message)).toEqual(['behind it']);
-    expect(result.current.pending).toHaveLength(0);
-    // Promotion is a re-slice of the live list, so the promoted toast takes
-    // depth 0 and arms a fresh countdown of its own.
     expect(only(result.current.toasts).depth).toBe(0);
     expect(jest.getTimerCount()).toBe(1);
   });
@@ -558,9 +559,6 @@ describe('useToaster — pending buffer', () => {
 
   it('arms a countdown for a queued toast the moment it is promoted', () => {
     const DURATION = 4000;
-    // The front toast's exit window. The queued toast spends exactly this long
-    // waiting, because promotion cannot happen before the store shrinks.
-    const QUEUED_FOR = 400;
     const { result } = renderHook(() =>
       useToaster({ visibleToasts: 1, maxPending: 10, exitDuration: 400 }),
     );
@@ -575,13 +573,12 @@ describe('useToaster — pending buffer', () => {
     act(() => {
       toast.dismiss(front.id, 'default', 'programmatic');
     });
-    act(() => {
-      jest.advanceTimersByTime(QUEUED_FOR);
-    });
 
-    expect(result.current.toasts.map((t) => t.message)).toEqual(['queued']);
-    // A timer exists now, where none did while it was queued.
-    expect(jest.getTimerCount()).toBe(1);
+    // Promoted the moment the front toast is dismissed.
+    const queued = () => result.current.toasts.find((t) => t.message === 'queued')!;
+    expect(queued().dismissed).toBe(false);
+    // Its countdown, beside the front toast's removal; none while it waited.
+    expect(jest.getTimerCount()).toBe(2);
 
     // The countdown is the toast's *full* deadline, run from the promotion rather
     // than from creation. The time it spent queued is time it was not on screen,
@@ -593,13 +590,13 @@ describe('useToaster — pending buffer', () => {
     act(() => {
       jest.advanceTimersByTime(remaining - EPSILON);
     });
-    expect(only(result.current.toasts).dismissed).toBe(false);
+    expect(queued().dismissed).toBe(false);
 
     act(() => {
       jest.advanceTimersByTime(EPSILON + EPSILON);
     });
-    expect(only(result.current.toasts).dismissed).toBe(true);
-    expect(only(result.current.toasts).dismissReason).toBe('timeout');
+    expect(queued().dismissed).toBe(true);
+    expect(queued().dismissReason).toBe('timeout');
   });
 
   it('gives a promoted toast a full duration even after it waited longer than that duration', () => {
@@ -613,7 +610,7 @@ describe('useToaster — pending buffer', () => {
     const DURATION = 2000;
     const WAITED = 5000;
     const { result } = renderHook(() =>
-      useToaster({ visibleToasts: 1, maxPending: 10, exitDuration: WAITED }),
+      useToaster({ visibleToasts: 1, maxPending: 10, exitDuration: 400 }),
     );
 
     act(() => {
@@ -622,41 +619,76 @@ describe('useToaster — pending buffer', () => {
     });
     expect(result.current.pending.map((t) => t.message)).toEqual(['queued']);
 
-    const front = only(result.current.toasts);
+    // The front toast stays up longer than the queued toast's whole duration.
     act(() => {
-      toast.dismiss(front.id, 'default', 'programmatic');
-    });
-
-    // Stopped one tick short of the removal, so the promotion can be observed on
-    // its own rather than inferred from whatever the next advance happens to do.
-    act(() => {
-      jest.advanceTimersByTime(WAITED - EPSILON);
+      jest.advanceTimersByTime(WAITED);
     });
     expect(result.current.pending.map((t) => t.message)).toEqual(['queued']);
 
-    // Lands exactly on the tick that promotes it, at t = WAITED.
+    const front = result.current.toasts.find((t) => t.message === 'front')!;
     act(() => {
-      jest.advanceTimersByTime(EPSILON);
+      toast.dismiss(front.id, 'default', 'programmatic');
     });
-    expect(result.current.toasts.map((t) => t.message)).toEqual(['queued']);
+    const queued = () => result.current.toasts.find((t) => t.message === 'queued')!;
     // The promotion tick is not a retirement tick. Nothing about a long wait may
     // shorten the toast's window: it is up, undismissed, and with no reason yet.
-    expect(only(result.current.toasts).dismissed).toBe(false);
-    expect(only(result.current.toasts).visible).toBe(true);
-    expect(only(result.current.toasts).dismissReason).toBeUndefined();
+    expect(queued().dismissed).toBe(false);
+    expect(queued().visible).toBe(true);
+    expect(queued().dismissReason).toBeUndefined();
 
     // And it then gets its whole duration, measured from here.
     const remaining = deadline(DURATION);
     act(() => {
       jest.advanceTimersByTime(remaining - EPSILON);
     });
-    expect(only(result.current.toasts).dismissed).toBe(false);
+    expect(queued().dismissed).toBe(false);
 
     act(() => {
       jest.advanceTimersByTime(EPSILON + EPSILON);
     });
-    expect(only(result.current.toasts).dismissed).toBe(true);
-    expect(only(result.current.toasts).dismissReason).toBe('timeout');
+    expect(queued().dismissed).toBe(true);
+    expect(queued().dismissReason).toBe('timeout');
+  });
+});
+
+describe('useToaster — bursts', () => {
+  it('lets a toast pushed out by a newer one leave with an exit, then drops it', () => {
+    const { result } = renderHook(() => useToaster({ visibleToasts: 1, maxPending: 10, exitDuration: 400 }));
+    act(() => {
+      toast('first', { duration: 60_000 });
+    });
+    act(() => {
+      toast('second', { duration: 60_000 });
+    });
+
+    // Still drawn, flagged queued, so a renderer plays its exit.
+    expect(result.current.toasts.map((t) => [t.message, !!t.queued])).toEqual([
+      ['second', false],
+      ['first', true],
+    ]);
+    expect(result.current.pending.map((t) => t.message)).toEqual(['first']);
+
+    act(() => {
+      jest.advanceTimersByTime(450);
+    });
+    // Its exit is over: it waits off screen, its timer paused.
+    expect(result.current.toasts.map((t) => t.message)).toEqual(['second']);
+    expect(result.current.pending.map((t) => t.message)).toEqual(['first']);
+  });
+
+  it('never fills the slots with leaving toasts in a burst that overflows the queue', () => {
+    const { result } = renderHook(() => useToaster({ visibleToasts: 3, maxPending: 10, exitDuration: 400 }));
+    act(() => {
+      for (let n = 0; n < 18; n++) toast(`t${n}`, { duration: 60_000 });
+    });
+    const live = result.current.toasts.filter((t) => !t.dismissed && !t.queued);
+    // Three on screen, the three newest; the oldest were dropped, not the new ones.
+    expect(live.map((t) => t.message)).toEqual(['t17', 't16', 't15']);
+    expect(getState().toasts.filter((t) => t.dismissReason === 'overflow').map((t) => t.message)).toEqual(
+      ['t4', 't3', 't2', 't1', 't0'],
+    );
+    // Dropped toasts that were never shown are not drawn at all.
+    expect(result.current.toasts.some((t) => t.dismissReason === 'overflow')).toBe(false);
   });
 });
 
@@ -693,10 +725,9 @@ describe('useToaster — overflow', () => {
     push('default', ['a', 'b', 'c']);
     push('default', ['d']);
 
-    // The array is newest-first, so 'd' arrived last and is the one the policy
-    // sacrifices. It is flagged rather than spliced out — silently vanishing is
-    // the upstream bug this replaces.
-    const victim = getState().toasts.find((t) => t.message === 'd');
+    // 'oldest' sacrifices 'a', the first to arrive. It is flagged rather than
+    // spliced out — silently vanishing is the upstream bug this replaces.
+    const victim = getState().toasts.find((t) => t.message === 'a');
     expect(victim!.dismissed).toBe(true);
     expect(victim!.dismissReason).toBe('overflow');
     expect(getState().toasts).toHaveLength(4);
@@ -719,18 +750,18 @@ describe('useToaster — overflow', () => {
         .map((t) => t.message);
 
     // One toast over capacity in each region; the policy decides which end pays.
-    expect(survivors('byOldest')).toEqual(['c', 'b', 'a']);
-    expect(survivors('byNewest')).toEqual(['d', 'c', 'b']);
+    expect(survivors('byOldest')).toEqual(['d', 'c', 'b']);
+    expect(survivors('byNewest')).toEqual(['c', 'b', 'a']);
     expect(
       getState('byOldest')
         .toasts.filter((t) => t.dismissReason === 'overflow')
         .map((t) => t.message),
-    ).toEqual(['d']);
+    ).toEqual(['a']);
     expect(
       getState('byNewest')
         .toasts.filter((t) => t.dismissReason === 'overflow')
         .map((t) => t.message),
-    ).toEqual(['a']);
+    ).toEqual(['d']);
   });
 });
 
@@ -1021,21 +1052,16 @@ describe('useToaster — demotion and re-promotion', () => {
     });
     expect(result.current.pending.map((t) => t.message)).toEqual(['first']);
 
-    // `second` times out, then its exit window passes and `first` is promoted.
+    // `second` times out, and `first` is promoted as it starts to leave.
     act(() => {
       jest.advanceTimersByTime(deadline(2000) + EPSILON);
     });
-    act(() => {
-      jest.advanceTimersByTime(defaultMotion.exit + EPSILON);
-    });
-
-    expect(result.current.toasts.map((t) => [t.message, t.dismissed])).toEqual([
-      ['first', false],
-    ]);
+    const first = () => result.current.toasts.find((t) => t.message === 'first')!;
+    expect(first().dismissed).toBe(false);
     act(() => {
       jest.advanceTimersByTime(deadline(3000) - EPSILON * 2);
     });
-    expect(result.current.toasts[0]!.dismissed).toBe(false);
+    expect(first().dismissed).toBe(false);
   });
 });
 
