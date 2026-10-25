@@ -95,10 +95,3 @@ export function withToast(fire: (toast: Toast, api: LiveApi) => void): void {
     (error: unknown) => console.warn(error),
   );
 }
-
-/** Starts loading once the page is idle, so the first click is instant. */
-export function preload(): void {
-  const start = () => void live().catch(() => {});
-  if ('requestIdleCallback' in window) requestIdleCallback(start, { timeout: 2500 });
-  else setTimeout(start, 1200);
-}

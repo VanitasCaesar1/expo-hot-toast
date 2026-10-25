@@ -88,13 +88,18 @@ export default function HeroToast() {
       timer = window.setTimeout(tick, STEP);
     };
 
-    void live().then(
-      (api) => {
-        api.configureStage(STAGE_TOASTER);
-        timer = window.setTimeout(tick, 500);
-      },
-      () => {},
-    );
+    // The library's web build is large; it loads once the page has painted.
+    const start = () =>
+      void live().then(
+        (api) => {
+          api.configureStage(STAGE_TOASTER);
+          timer = window.setTimeout(tick, 300);
+        },
+        () => {},
+      );
+    // Safari has no requestIdleCallback.
+    const hasIdle = typeof window.requestIdleCallback === 'function';
+    const idle = hasIdle ? window.requestIdleCallback(start, { timeout: 1200 }) : setTimeout(start, 400);
 
     // Off screen, the reel stops and so does the art, which keeps scrolling cheap.
     const seen = new IntersectionObserver(([entry]) => {
@@ -107,6 +112,8 @@ export default function HeroToast() {
     stage.addEventListener('pointerenter', enter);
     stage.addEventListener('pointerleave', leave);
     return () => {
+      if (hasIdle) window.cancelIdleCallback(idle as number);
+      else clearTimeout(idle);
       clearTimeout(timer);
       seen.disconnect();
       stage.removeEventListener('pointerenter', enter);
