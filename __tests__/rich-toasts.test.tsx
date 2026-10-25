@@ -482,6 +482,34 @@ describe('expandable and countdown', () => {
   });
 });
 
+describe('size changes', () => {
+  const withLayout = () => screen.UNSAFE_root.findAll((node) => typeof node.type === 'string' && node.props.layout !== undefined).length;
+
+  it('glides the surface to a new size, as well as the stack', async () => {
+    render(<Toaster />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => {
+      toast.loading('Saving');
+    });
+    // The wrapper (the sibling push) and the surface (its own size).
+    expect(withLayout()).toBe(2);
+  });
+
+  it('snaps under Reduce Motion', async () => {
+    jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
+    render(<Toaster />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => {
+      toast.loading('Saving');
+    });
+    expect(withLayout()).toBe(1);
+  });
+});
+
 describe('blur', () => {
   const FakeBlur = (props: Record<string, unknown>) => <Text testID="fake-blur">{String(props.tint)}</Text>;
 

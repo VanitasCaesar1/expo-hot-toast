@@ -987,7 +987,12 @@ export const ToastBar = React.memo(function ToastBar({
               onMeasure?.(toast.id, event.nativeEvent.layout.height);
             }}
           >
-            <View
+            <Animated.View
+              // The surface glides to a new size when its content changes (a
+              // loading toast becoming its outcome, details opening, a message
+              // updated) instead of jumping. Its place in the stack is the
+              // wrapper's to animate; this only moves within it.
+              layout={reduceMotion ? undefined : LinearTransition.duration(motion.queueShift).easing(motion.enterEasing)}
               style={[
                 styles.surfaceWrap,
                 {
@@ -1035,7 +1040,7 @@ export const ToastBar = React.memo(function ToastBar({
                 {content}
               </Animated.View>
               {progressBar}
-            </View>
+            </Animated.View>
           </Pressable>
         </Animated.View>
       </Animated.View>
