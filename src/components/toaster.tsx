@@ -164,8 +164,20 @@ function bucketOf(t: Toast, position: ToastPosition, preset: Exclude<ToasterPres
  * on Android put it over the status bar.
  */
 function islandTop(insetTop: number): number {
-  return Platform.OS === 'ios' && insetTop > 50 ? 11 : insetTop + 8;
+  return hasDynamicIsland(insetTop) ? 11 : insetTop + 8;
 }
+
+/** iPhones with a Dynamic Island have a top inset over 50pt. */
+function hasDynamicIsland(insetTop: number): boolean {
+  return Platform.OS === 'ios' && insetTop > 50;
+}
+
+/**
+ * The camera cutout's height. On a Dynamic Island iPhone the island toast
+ * starts inside the island and keeps its content below the cutout, as an
+ * expanded Live Activity does: centred in it, the text sat behind the cutout.
+ */
+const DYNAMIC_ISLAND_HEIGHT = 37;
 
 /** How far each toast behind the front one peeks out of a collapsed stack, in px. */
 export const STACK_PEEK = 10;
@@ -567,7 +579,13 @@ export function Toaster({
                 // would re-render them all whenever one is pressed.
                 paused={t.action?.countdown ? timersPaused : false}
                 edgeInset={
-                  candidate === 'banner-top' ? insets.top : candidate === 'banner-bottom' && keyboardInset === 0 ? insets.bottom : 0
+                  candidate === 'banner-top'
+                    ? insets.top
+                    : candidate === 'banner-bottom' && keyboardInset === 0
+                      ? insets.bottom
+                      : candidate === 'island' && hasDynamicIsland(insets.top)
+                        ? DYNAMIC_ISLAND_HEIGHT
+                        : 0
                 }
               >
                 {children}

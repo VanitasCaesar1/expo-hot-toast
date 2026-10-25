@@ -549,7 +549,10 @@ export const ToastBar = React.memo(function ToastBar({
   // A per-toast `style.borderRadius` wins over the token, same as for the
   // wrapper it is applied to.
   const surfaceRadius =
-    (StyleSheet.flatten(toast.style)?.borderRadius as number | undefined) ?? theme.radius;
+    (StyleSheet.flatten(toast.style)?.borderRadius as number | undefined) ??
+    // Grown down out of the Dynamic Island, the island takes the expanded
+    // island's corners rather than a pill's.
+    (variant === 'island' && edgeInset > 0 ? 36 : theme.radius);
 
   const message = resolveValue(toast.message, toast);
   const description = toast.description;
@@ -1037,7 +1040,7 @@ export const ToastBar = React.memo(function ToastBar({
                 unstyled
                   ? { maxWidth: theme.maxWidth, gap: theme.gap }
                   : {
-                      borderRadius: theme.radius,
+                      borderRadius: surfaceRadius,
                       // iOS renders a continuous corner curve as one smooth arc
                       // across adjoining corners; a plain borderRadius leaves a
                       // visible crease where they meet.

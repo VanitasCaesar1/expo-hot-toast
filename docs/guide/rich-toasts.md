@@ -195,8 +195,9 @@ The HUD draws a large icon above the message and scales in where it is.
 toast.island('AirPods Pro connected', { type: 'success' });
 ```
 
-A black capsule that grows out of the Dynamic Island on iPhones that have one,
-in either appearance, as the island itself is always black. Elsewhere it sits
+A black capsule, in either appearance, as the island itself is always black.
+On iPhones with a Dynamic Island it grows down out of the island and keeps its
+content below the camera, as an expanded Live Activity does. Elsewhere it sits
 just below the notch or status bar.
 
 ## Everything at once
