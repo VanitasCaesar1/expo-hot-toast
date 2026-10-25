@@ -24,10 +24,10 @@ import sys
 from pathlib import Path
 
 START = {
-    ('ios', 'dark'): None,
-    ('ios', 'light'): None,
-    ('android', 'dark'): None,
-    ('android', 'light'): None,
+    ('ios', 'dark'): 116.2,
+    ('ios', 'light'): 72.8,
+    ('android', 'dark'): 24.7,
+    ('android', 'light'): 24.6,
 }
 # The banner, last, appears at 22 s for 2.6 s.
 LENGTH = 25.4

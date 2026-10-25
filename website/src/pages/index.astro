@@ -11,6 +11,7 @@ import Features from '../components/home/Features.astro';
 import Migrate from '../components/home/Migrate.astro';
 import Start from '../components/home/Start.astro';
 import Rich from '../components/home/Rich.astro';
+import RichPhones from '../components/home/RichPhones.astro';
 import StarButton from '../components/glass/StarButton';
 import { buildStars } from '../lib/stars';
 import { GlassPanel } from '../components/glassyui/glass-panel';
@@ -88,10 +89,13 @@ const faq = [
   </section>
 
   <section aria-labelledby="more">
-    <header class="head inset" data-reveal>
-      <h2 id="more" class="display">More than a line of text.</h2>
-      <p>Uploads, steps, Undo with a countdown, notifications, a HUD and the island. Each is one call, and each tile is the library itself, playing on this page.</p>
-      <a class="head-link" href={url('docs/rich-toasts')}>Rich toasts guide <Icon name="arrow-right" /></a>
+    <header class="head head-split inset" data-reveal>
+      <div>
+        <h2 id="more" class="display">More than a line of text.</h2>
+        <p>Uploads, steps, Undo with a countdown, notifications, a HUD and the island. Each is one call. The tiles below are the library itself, playing on this page; beside this, the same calls on a phone.</p>
+        <a class="head-link" href={url('docs/rich-toasts')}>Rich toasts guide <Icon name="arrow-right" /></a>
+      </div>
+      <RichPhones />
     </header>
     <Rich />
   </section>
@@ -364,6 +368,17 @@ const faq = [
     margin: 14px 0 0;
     color: var(--muted);
     max-width: 58ch;
+  }
+  .head-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 32px 56px;
+    align-items: center;
+  }
+  @media (max-width: 960px) {
+    .head-split {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
   .head-link {
     display: inline-flex;

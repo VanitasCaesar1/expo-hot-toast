@@ -1,0 +1,116 @@
+---
+/**
+ * The rich toasts on a phone: the scripted demo (playRichDemo in the example
+ * app), recorded by CI on the iOS simulator and the Android emulator. The
+ * clips follow the site's theme; the page's script plays them while visible.
+ */
+import { url } from '../../lib/url';
+
+const phones = [
+  { id: 'ios', label: 'iPhone', detail: 'iOS 26.5, Liquid Glass' },
+  { id: 'android', label: 'Android', detail: 'Android 15, Material 3' },
+];
+---
+
+<div class="phones" data-rich-phones>
+  {
+    phones.map((p) => (
+      <figure class="phone">
+        <div class="screen">
+          <video
+            muted
+            loop
+            playsinline
+            preload="none"
+            src={url(`media/${p.id}-rich-dark.mp4`)}
+            poster={url(`media/${p.id}-rich-dark.jpg`)}
+            data-dark={url(`media/${p.id}-rich-dark.mp4`)}
+            data-light={url(`media/${p.id}-rich-light.mp4`)}
+            data-poster-dark={url(`media/${p.id}-rich-dark.jpg`)}
+            data-poster-light={url(`media/${p.id}-rich-light.jpg`)}
+            aria-label={`Screen recording of the rich toasts on ${p.label}`}
+          />
+        </div>
+        <figcaption>
+          <strong>{p.label}</strong>
+          <span>{p.detail}</span>
+        </figcaption>
+      </figure>
+    ))
+  }
+  <p class="phones-note">Screen recordings from CI, not mockups.</p>
+</div>
+
+<script>
+  import { getScheme, onScheme } from '../../lib/theme';
+
+  const videos = [...document.querySelectorAll<HTMLVideoElement>('[data-rich-phones] video')];
+  const swap = (scheme: 'light' | 'dark') => {
+    for (const v of videos) {
+      const src = v.dataset[scheme];
+      if (!src || v.getAttribute('src') === src) continue;
+      const playing = !v.paused;
+      v.poster = v.dataset[scheme === 'dark' ? 'posterDark' : 'posterLight'] ?? '';
+      v.src = src;
+      if (playing) void v.play().catch(() => {});
+    }
+  };
+  swap(getScheme());
+  onScheme(swap);
+</script>
+
+<style>
+  .phones {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    align-items: start;
+    justify-self: end;
+    width: min(100%, 380px);
+  }
+  .phone {
+    margin: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .screen {
+    aspect-ratio: 9 / 19.5;
+    border-radius: 30px;
+    overflow: hidden;
+    padding: 6px;
+    background: #0b0b0c;
+    box-shadow:
+      0 0 0 1px var(--hairline),
+      0 24px 50px -24px rgb(0 0 0 / 0.55);
+  }
+  .screen video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 24px;
+    background: #111;
+  }
+  figcaption {
+    display: grid;
+    gap: 2px;
+    font-size: 13px;
+  }
+  figcaption strong {
+    font-weight: 600;
+  }
+  figcaption span {
+    color: var(--muted);
+  }
+  .phones-note {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--muted);
+    font: 12px var(--mono);
+  }
+  @media (max-width: 960px) {
+    .phones {
+      justify-self: start;
+    }
+  }
+</style>
