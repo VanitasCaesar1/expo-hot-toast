@@ -4,6 +4,9 @@ import Icon from '../../components/Icon.astro';
 import { GROUPS, loadDocs, renderDocs } from '../../lib/docs';
 import { pageMarkdown } from '../../lib/ai';
 import { url, REPO_URL } from '../../lib/url';
+import { GlassPanel } from '../../components/glassyui/glass-panel';
+import CopyButton from '../../components/glass/CopyButton';
+import LinkButton from '../../components/glass/LinkButton';
 
 export async function getStaticPaths() {
   const pages = await renderDocs(loadDocs(), url('docs/'));
@@ -24,6 +27,7 @@ const next = pages[index + 1];
 <Base title={`${page.title}: expo-hot-toast docs`} description={page.description}>
   <div class="docs">
     <aside class="sidebar">
+      <GlassPanel variant="card" className="sidebar-card">
       <nav aria-label="Docs">
         {
           groups.map((g) => (
@@ -44,6 +48,7 @@ const next = pages[index + 1];
           ))
         }
       </nav>
+      </GlassPanel>
     </aside>
 
     <article class="prose" data-pagefind-body>
@@ -51,25 +56,26 @@ const next = pages[index + 1];
       <h1 class="display">{page.title}</h1>
       {page.description && <p class="lede">{page.description}</p>}
       <div class="page-tools">
-        <button type="button" class="tool" data-copy={markdown}>
-          <span class="idle-label"><Icon name="copy" /> Copy page</span>
-          <span class="done-label"><Icon name="check" /> Copied</span>
-        </button>
-        <a class="tool" href={url(`docs/md/${page.slug}.md`)}>Markdown</a>
-        <a class="tool" href={url('llms.txt')}>llms.txt</a>
+        <CopyButton client:visible text={markdown} label="Copy page" variant="soft" size="sm" />
+        <LinkButton client:visible href={url(`docs/md/${page.slug}.md`)} label="Markdown" variant="soft" size="sm" />
+        <LinkButton client:visible href={url('llms.txt')} label="llms.txt" variant="soft" size="sm" />
       </div>
       <Fragment set:html={page.html} />
       <footer class="pager">
         {prev ? (
           <a href={url(`docs/${prev.slug}`)}>
-            <span class="label">Previous</span>
-            {prev.title}
+            <GlassPanel variant="card" interactive className="pager-card">
+              <span class="label">Previous</span>
+              {prev.title}
+            </GlassPanel>
           </a>
         ) : <span />}
         {next && (
           <a class="next" href={url(`docs/${next.slug}`)}>
-            <span class="label">Next</span>
-            {next.title}
+            <GlassPanel variant="card" interactive className="pager-card">
+              <span class="label">Next</span>
+              {next.title}
+            </GlassPanel>
           </a>
         )}
       </footer>
@@ -98,18 +104,24 @@ const next = pages[index + 1];
 <style>
   .docs {
     display: grid;
-    grid-template-columns: 240px minmax(0, 1fr) 200px;
+    grid-template-columns: 264px minmax(0, 1fr) 200px;
   }
   .sidebar {
-    border-right: 1px solid var(--line);
+    padding: 24px 0 24px var(--pad);
+  }
+  .sidebar :global(.sidebar-card) {
+    position: sticky;
+    top: 96px;
   }
   .sidebar nav,
   .toc nav {
-    position: sticky;
-    top: 64px;
-    max-height: calc(100dvh - 64px);
+    max-height: calc(100dvh - 120px);
     overflow-y: auto;
-    padding: 36px 24px;
+    padding: 24px 20px;
+  }
+  .toc nav {
+    position: sticky;
+    top: 84px;
   }
   .sidebar section + section {
     margin-top: 28px;
@@ -127,23 +139,29 @@ const next = pages[index + 1];
   }
   .sidebar a {
     display: block;
-    padding: 6px 10px;
-    margin-inline: -10px;
-    border-left: 2px solid transparent;
+    padding: 6px 12px;
+    margin-inline: -12px;
+    border-radius: 12px;
     color: var(--muted);
     font-size: 15px;
     text-decoration: none;
+    transition:
+      color 160ms,
+      background 160ms;
   }
   .sidebar a:hover {
     color: var(--text);
+    background: rgb(255 255 255 / 0.05);
   }
   .sidebar a[aria-current='page'] {
     color: var(--text);
-    border-left-color: var(--accent);
-    background: var(--surface);
+    background: rgb(255 173 59 / 0.12);
+    box-shadow: inset 0 0 0 1px rgb(255 173 59 / 0.3);
   }
-  .toc {
-    border-left: 1px solid var(--line);
+  /* The page tools are buttons, not prose links. */
+  .prose .page-tools :global(a) {
+    color: var(--text);
+    text-decoration: none;
   }
   .toc a {
     display: block;
@@ -198,37 +216,7 @@ const next = pages[index + 1];
     gap: 8px;
     margin-bottom: 36px;
     padding-bottom: 28px;
-    border-bottom: 1px solid var(--line);
-  }
-  .tool {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 32px;
-    padding: 0 12px;
-    border: 1px solid var(--line);
-    background: transparent;
-    color: var(--muted) !important;
-    font: 500 12.5px var(--mono);
-    text-decoration: none;
-    cursor: pointer;
-  }
-  .tool:hover {
-    color: var(--text) !important;
-    border-color: color-mix(in srgb, var(--line) 50%, var(--text));
-  }
-  .tool span {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .tool .done-label,
-  .tool[data-copied] .idle-label {
-    display: none;
-  }
-  .tool[data-copied] .done-label {
-    display: inline-flex;
-    color: var(--accent);
+    border-bottom: 1px solid rgb(255 255 255 / 0.08);
   }
   .prose :global(p),
   .prose :global(li) {
@@ -254,8 +242,13 @@ const next = pages[index + 1];
     margin: 22px 0;
     padding: 18px 20px;
     overflow-x: auto;
-    border: 1px solid var(--line);
-    background: var(--surface) !important;
+    /* Markdown renders plain <pre>, so code takes the glass card's frost here. */
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 18px;
+    background: rgb(14 14 13 / 0.62) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    backdrop-filter: blur(16px) saturate(150%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
     font-size: 14px;
     line-height: 1.6;
   }
@@ -266,7 +259,9 @@ const next = pages[index + 1];
     font-size: 14.5px;
     display: block;
     overflow-x: auto;
-    border: 1px solid var(--line);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 16px;
+    background: rgb(14 14 13 / 0.45);
   }
   .prose :global(th),
   .prose :global(td) {
@@ -301,24 +296,19 @@ const next = pages[index + 1];
   .pager {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1px;
+    gap: 12px;
     margin-top: 64px;
-    background: var(--line);
-    border: 1px solid var(--line);
-  }
-  .pager > * {
-    background: var(--bg);
   }
   .pager a {
-    display: grid;
-    gap: 4px;
-    padding: 18px 20px;
     color: var(--text);
     text-decoration: none;
     font-size: 17px;
   }
-  .pager a:hover {
-    background: var(--surface);
+  .pager :global(.pager-card) {
+    display: grid;
+    gap: 4px;
+    height: 100%;
+    padding: 18px 22px;
   }
   .pager .label {
     color: var(--faint);
@@ -337,7 +327,7 @@ const next = pages[index + 1];
 
   @media (max-width: 1100px) {
     .docs {
-      grid-template-columns: 220px minmax(0, 1fr);
+      grid-template-columns: 240px minmax(0, 1fr);
     }
     .toc {
       display: none;
@@ -347,12 +337,14 @@ const next = pages[index + 1];
     .docs {
       grid-template-columns: minmax(0, 1fr);
     }
+    /* On a phone the header's search lists every page, so the sidebar goes. */
     .sidebar {
-      border-right: 0;
-      border-bottom: 1px solid var(--line);
+      display: none;
+    }
+    .sidebar :global(.sidebar-card) {
+      position: static;
     }
     .sidebar nav {
-      position: static;
       max-height: none;
       padding: 20px var(--pad);
       display: flex;

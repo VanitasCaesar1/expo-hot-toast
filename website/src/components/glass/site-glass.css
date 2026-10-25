@@ -1,0 +1,136 @@
+/*
+ * The site in Glassy UI. Glassy's tokens, turned to the site's amber, and the
+ * small amount of layout its components need here.
+ */
+
+:root[data-lg-theme='dark'] {
+  --lg-accent: #ffad3b;
+  --lg-switch-on: #ff9f0a;
+  --lg-focus-ring: #ffad3b;
+  /* Prominent buttons are amber glass instead of blue: the same recolouring
+     filter, turned to the flame's hue, still capped so white text holds. */
+  --lg-prominent-fill: #c25e00;
+  --lg-prominent-tint: grayscale(1) contrast(0.5) brightness(0.4) sepia(1) hue-rotate(-14deg) saturate(7)
+    brightness(1.2);
+  --lg-prominent-glow: 255 205 150;
+  --lg-prominent-shade: 64 26 0;
+  --lg-foreground: #f3f1ec;
+  --lg-muted-foreground: rgb(243 241 236 / 0.62);
+}
+
+.glyph {
+  display: inline-flex;
+}
+.glyph svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Header. */
+.site-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+.site-brand img {
+  display: block;
+  width: 30px;
+  height: 30px;
+}
+.site-search .lg-kbd {
+  margin-left: 4px;
+}
+/* A phone's capsule holds the mark, the menu and two round buttons. */
+@media (max-width: 440px) {
+  .site-name {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .site-search .button-label,
+  .site-search .lg-kbd,
+  .site-github .button-label {
+    display: none;
+  }
+}
+
+/* A link button that shrinks to its glyph on phones. */
+@media (max-width: 600px) {
+  [data-compact] .button-label {
+    display: none;
+  }
+}
+
+/* Search results. */
+.search-hit {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.search-title {
+  color: var(--lg-foreground);
+  font-weight: 500;
+}
+.search-excerpt {
+  color: var(--lg-muted-foreground);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.search-excerpt mark {
+  background: none;
+  color: var(--accent);
+}
+
+/* FAQ. Glassy draws the chevron with Tailwind sizes, which this site lacks. */
+.faq-list {
+  display: grid;
+  gap: 10px;
+}
+.faq-list .lg-accordion-chevron {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.faq-list .lg-accordion-trigger {
+  width: 100%;
+  justify-content: space-between;
+  text-align: left;
+  font-size: 16px;
+}
+.faq-list .lg-accordion-content p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 68ch;
+}
+
+/* An install command on a glass pill. */
+.command-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 6px 6px 20px;
+  min-width: 0;
+}
+.command-box code {
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--text);
+}
+.command-box .prompt {
+  color: var(--accent);
+}
+
+/* The command palette's field is the focus; the site's outline ring would box it. */
+[cmdk-input]:focus-visible {
+  outline: none;
+}

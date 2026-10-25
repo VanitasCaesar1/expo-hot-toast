@@ -3,9 +3,9 @@
 @import '@fontsource-variable/geist-mono';
 
 /*
- * One dark theme for the whole site, locked: the product footage is the colour,
- * the page is a frame for it. Square corners everywhere except the phones, and
- * a visible hairline grid that holds every section.
+ * One dark theme for the whole site, built from Glassy UI's glass components.
+ * Glass needs colour behind it to bend, so the page sits on a warm ambient
+ * light: the heat of the flame mark, low enough to keep text readable.
  */
 :root {
   color-scheme: dark;
@@ -47,7 +47,22 @@ html {
   }
 }
 
+/* The ambient light behind every glass surface on the page. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(55vw 45vh at 88% -8%, rgb(255 140 40 / 0.2), transparent 70%),
+    radial-gradient(45vw 55vh at -12% 38%, rgb(214 45 74 / 0.12), transparent 70%),
+    radial-gradient(55vw 55vh at 108% 92%, rgb(255 173 59 / 0.1), transparent 70%);
+}
+
 body {
+  /* Nothing decorative (a glow, a ribbon) may widen the page on a phone. */
+  overflow-x: clip;
   margin: 0;
   color: var(--text);
   font-family: var(--font);
@@ -82,16 +97,15 @@ video {
   max-width: 100%;
 }
 
-/* The framed column every section sits in: hairlines down both sides. */
+/* The column every section sits in, clear of the floating header. */
 .frame {
   width: 100%;
   max-width: var(--page);
   margin-inline: auto;
-  border-inline: 1px solid var(--line);
 }
 
-.band {
-  border-top: 1px solid var(--line);
+main.frame {
+  padding-top: 84px;
 }
 
 .inset {
@@ -112,55 +126,6 @@ video {
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-/* Buttons: square, mono, uppercase. One filled (primary), one outlined. */
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  height: 48px;
-  padding: 0 22px;
-  border: 1px solid var(--line);
-  background: transparent;
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background 160ms,
-    border-color 160ms,
-    transform 160ms var(--ease-out);
-}
-
-.button:hover {
-  border-color: var(--faint);
-}
-
-.button:active {
-  transform: translateY(1px);
-}
-
-.button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
-}
-
-.button.primary:hover {
-  background: #ffbd61;
-  border-color: #ffbd61;
-}
-
-.button svg {
-  width: 16px;
-  height: 16px;
 }
 
 /* Shiki: the dark tokens only; the site has one theme. */

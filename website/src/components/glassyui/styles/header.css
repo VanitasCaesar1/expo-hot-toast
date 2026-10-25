@@ -1,0 +1,283 @@
+@layer components {
+  /* A slab of glass floating clear of the page, with its menu outside the
+     material's paint clip. Container queries also fit embedded headers. */
+  .lg-header {
+    position: fixed;
+    inset: 14px 0 auto;
+    z-index: 40;
+    box-sizing: border-box;
+    width: min(920px, calc(100vw - 32px));
+    height: 56px;
+    margin-inline: auto;
+    border-radius: 999px;
+    color: var(--lg-foreground);
+    container-type: inline-size;
+  }
+
+  .lg-header[data-position='static'] {
+    position: relative;
+    inset: auto;
+    z-index: auto;
+    width: 100%;
+    max-width: 920px;
+  }
+
+  /* Frosted as lightly as the other slabs, so the page shows through and bends
+     at the rim. The --lg-header-* tint and dimming keep the links legible. */
+  .lg-header > .lg-header-glass {
+    --lg-panel-radius: 999px;
+    --lg-glass-blur: calc(var(--lg-slab-blur) * 1px);
+    --lg-lens-blur: var(--lg-slab-blur);
+    --lg-lens-body-brightness: var(--lg-header-brightness);
+    --lg-lens-rim-brightness: var(--lg-header-rim-brightness);
+    --lg-glass-contrast: 1;
+    --lg-glass-sat: 1.5;
+    --lg-glass-brightness: var(--lg-header-brightness);
+    --lg-panel-elevation-shadow:
+      0 2px 4px -2px rgb(52 62 84 / 0.18), 0 4px 14px -3px rgb(52 62 84 / 0.2);
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .lg-header > .lg-header-glass::before {
+    background-color: var(--lg-header-tint);
+  }
+
+  /* A condensing header opens out across the top of the page with no glass and gathers into
+     the capsule once the page scrolls. GlassHeader springs --lg-header-spread (1 open, 0 the
+     capsule) and --lg-header-material (the glass, 0 to 1) while it moves; at rest its
+     data-condensed state sets them. The open bar is never narrower than the capsule, so the
+     links stay on one side of the menu breakpoint throughout. */
+  .lg-header[data-condense-on-scroll] {
+    --lg-header-spread: 1;
+    --lg-header-material: 0;
+    --lg-header-capsule-width: min(920px, calc(100vw - 32px));
+    --lg-header-bar-width: max(var(--lg-header-capsule-width), min(1200px, calc(100% - 48px)));
+  }
+
+  .lg-header[data-condensed='true'] {
+    --lg-header-spread: 0;
+    --lg-header-material: 1;
+  }
+
+  .lg-header[data-position='fixed'][data-condense-on-scroll] {
+    width: calc(
+      var(--lg-header-capsule-width) +
+        (var(--lg-header-bar-width) - var(--lg-header-capsule-width)) * var(--lg-header-spread)
+    );
+  }
+
+  /* Before the script runs, as on a page opened at an anchor, the scroll position alone picks
+     the shape: a custom property animates discretely, so it switches halfway, 8px down. */
+  @supports (animation-timeline: scroll()) {
+    .lg-header[data-condense-on-scroll]:not([data-condensed]) {
+      animation: lg-header-condensed linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0px 16px;
+    }
+  }
+
+  @keyframes lg-header-condensed {
+    to {
+      --lg-header-spread: 0;
+      --lg-header-material: 1;
+    }
+  }
+
+  /* The glass fades on its own layers, never on an ancestor: an ancestor's opacity would cut
+     the frost off from the page it bends. The spring sets the shadow every frame, so the
+     surface's own shadow transition stays out of its way. */
+  .lg-header[data-condense-on-scroll] > .lg-header-glass {
+    --lg-panel-elevation-shadow:
+      0 2px 4px -2px rgb(52 62 84 / calc(0.18 * var(--lg-header-material))),
+      0 4px 14px -3px rgb(52 62 84 / calc(0.2 * var(--lg-header-material)));
+    transition: none;
+  }
+
+  .lg-header[data-condense-on-scroll] > .lg-header-glass::before,
+  .lg-header[data-condense-on-scroll] > .lg-header-glass::after {
+    opacity: var(--lg-header-material);
+  }
+
+  .lg-header[data-condense-on-scroll] > .lg-header-glass > .lg-noise {
+    opacity: calc(var(--lg-noise-alpha) * var(--lg-header-material));
+  }
+
+  /* The forced-colours outline edges the glass, so it goes with it: the open bar has none.
+     Increased contrast edges it with the ring above, which fades with the glass. */
+  @media (forced-colors: active) {
+    .lg-header[data-condense-on-scroll] > .lg-header-glass {
+      outline-width: calc(1px * var(--lg-header-material)) !important;
+    }
+  }
+
+  /* A small button at the end sits as far from the rim as from the top and bottom, so it nests
+     in the capsule's curve, and the brand starts as far in as that button's label. */
+  .lg-header-bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 100%;
+    padding: 0 12px 0 24px;
+  }
+
+  .lg-header-brand {
+    flex: none;
+    min-width: 0;
+    margin-inline-end: auto;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+  }
+
+  .lg-header-brand a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .lg-header-links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .lg-header-desktop {
+    margin-inline: auto;
+  }
+
+  .lg-header-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 999px;
+    color: var(--lg-muted-foreground);
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      color var(--lg-motion-duration) ease,
+      background-color var(--lg-motion-duration) ease;
+  }
+
+  /* Colour alone marks hover and the current page in the bar: a fill would lay a pale patch
+     over the glass and whatever the page shows through it. The opaque menu keeps its fill. */
+  .lg-header-links a:hover,
+  .lg-header-links a[aria-current='page'] {
+    color: var(--lg-foreground);
+  }
+
+  .lg-header :is(a, summary):focus-visible {
+    outline: 2px solid var(--lg-focus-ring);
+    outline-offset: 2px;
+  }
+
+  .lg-header-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .lg-header-menu {
+    display: none;
+  }
+
+  .lg-header-menu summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+
+  .lg-header-menu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .lg-header-menu-links {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 10px;
+    z-index: 1;
+    flex-direction: column;
+    align-items: stretch;
+    box-sizing: border-box;
+    width: min(240px, calc(100cqw - 20px));
+    max-height: calc(100dvh - 96px);
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid var(--lg-border);
+    border-radius: 20px;
+    background: var(--lg-opaque-surface);
+    box-shadow: var(--lg-shadow-raised);
+  }
+
+  .lg-header-menu-links a {
+    justify-content: flex-start;
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 12px;
+  }
+
+  .lg-header-menu-links a:hover,
+  .lg-header-menu-links a[aria-current='page'] {
+    background: var(--lg-control-surface);
+  }
+
+  .lg-header-menu:not([open]) > nav {
+    display: none;
+  }
+
+  @container (max-width: 780px) {
+    .lg-header-bar {
+      gap: 8px;
+    }
+
+    .lg-header-desktop {
+      display: none;
+    }
+
+    .lg-header-menu {
+      display: block;
+    }
+  }
+
+  /* The narrowest phones close up the items and the margins, so the bar still fits and an icon
+     button at the end still nests in the curve. */
+  @container (max-width: 320px) {
+    .lg-header-bar {
+      gap: 4px;
+      padding: 0 10px 0 20px;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .lg-header[data-position='fixed'] {
+      top: 8px;
+      width: calc(100vw - 20px);
+    }
+
+    /* On a phone the open bar reaches the screen's edges and the capsule draws in from them. */
+    .lg-header[data-condense-on-scroll] {
+      --lg-header-capsule-width: calc(100vw - 20px);
+      --lg-header-bar-width: 100%;
+    }
+  }
+}

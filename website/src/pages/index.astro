@@ -6,10 +6,15 @@ import HeroToast from '../components/live/HeroToast';
 import Examples from '../components/live/Examples';
 import PositionPicker from '../components/live/Position';
 import Customiser from '../components/live/Customiser';
-import CopyInstall from '../components/CopyInstall.astro';
+import LinkButton from '../components/glass/LinkButton';
+import CopyButton from '../components/glass/CopyButton';
+import CommandBox from '../components/glass/CommandBox';
+import Faq from '../components/glass/Faq';
+import { GlassPanel } from '../components/glassyui/glass-panel';
+import { GlassBadge } from '../components/glassyui/glass-badge';
 import Icon from '../components/Icon.astro';
 import CodePanel from '../components/CodePanel.astro';
-import { url } from '../lib/url';
+import { url, INSTALL } from '../lib/url';
 import { SETUP_PROMPT } from '../lib/ai';
 
 const migrate = `- import toast, { Toaster } from 'react-hot-toast';
@@ -78,7 +83,7 @@ const faq = [
       <p class="lede enter" style="--i: 2">The react-hot-toast API, drawn with Apple's own material on iOS 26, frosted glass on the web and a designed surface on Android.</p>
       <div class="ctas enter" style="--i: 3">
         <HeroToast client:load />
-        <a class="button primary" href={url('docs/installation')}>Quick start <Icon name="arrow-right" /></a>
+        <LinkButton client:visible href={url('docs/installation')} label="Quick start" trailing="arrow-right" variant="primary" size="lg" />
       </div>
       <button type="button" class="ai-link enter" style="--i: 4" data-copy={SETUP_PROMPT}>
         <span class="idle-label">Using an AI agent? Copy a setup prompt <Icon name="copy" /></span>
@@ -95,18 +100,22 @@ const faq = [
     </div>
   </section>
 
-  <section class="band platforms" aria-label="Built for">
-    <span title="Expo"><Icon name="expo" label="Expo" /></span>
-    <span title="React Native"><Icon name="react" label="React Native" /></span>
-    <span title="iOS"><Icon name="apple" label="iOS" /></span>
-    <span title="Android"><Icon name="android" label="Android" /></span>
-  </section>
-
-  <section class="proof grid" aria-label="How it is checked">
-    <div data-reveal style="--i: 0"><span class="display stat">350+</span><p>Tests across logic and components, on every change.</p></div>
-    <div data-reveal style="--i: 1"><span class="display stat">iOS 26</span><p>The example app runs on an iOS 26 simulator in CI.</p></div>
-    <div data-reveal style="--i: 2"><span class="display stat">Android</span><p>And on an Android emulator, every row driven by Maestro.</p></div>
-    <div data-reveal style="--i: 3"><span class="display stat">MIT</span><p>Open source, with a typed API and no runtime dependencies.</p></div>
+  <section class="proof inset" aria-label="How it is checked">
+    {
+      [
+        { stat: '350+', body: 'Tests across logic and components, on every change.' },
+        { stat: 'iOS 26', body: 'The example app runs on an iOS 26 simulator in CI.' },
+        { stat: 'Android', body: 'And on an Android emulator, every row driven by Maestro.' },
+        { stat: 'Web', body: 'Built for the web in CI. Every toast on this page runs on it.' },
+      ].map((p, i) => (
+        <div data-reveal style={`--i: ${i}`}>
+          <GlassPanel variant="card" className="stat-card">
+            <span class="display stat">{p.stat}</span>
+            <p>{p.body}</p>
+          </GlassPanel>
+        </div>
+      ))
+    }
   </section>
 
   <section class="band live" aria-labelledby="try">
@@ -151,21 +160,23 @@ const faq = [
     <header class="head inset" data-reveal>
       <h2 id="built" class="display">Built for a phone, not ported to one.</h2>
     </header>
-    <div class="features grid">
+    <div class="features inset">
       {
         features.map((f, i) => (
-          <article data-reveal style={`--i: ${i % 3}`}>
-            <code class="spec">{f.spec}</code>
-            <h3>{f.title}</h3>
-            <p>{f.body}</p>
-          </article>
+          <div data-reveal style={`--i: ${i % 3}`}>
+            <GlassPanel variant="card" className="feature" interactive>
+              <GlassBadge tone="orange" className="spec">{f.spec}</GlassBadge>
+              <h3>{f.title}</h3>
+              <p>{f.body}</p>
+            </GlassPanel>
+          </div>
         ))
       }
     </div>
   </section>
 
-  <section class="band migrate" aria-labelledby="migrate">
-    <div class="inset">
+  <section class="band migrate inset" aria-labelledby="migrate">
+    <div class="migrate-copy">
       <h2 id="migrate" class="display">Know <span class="nowrap">react-hot-toast</span> from the web?</h2>
       <p>It renders to the DOM, so it cannot run in an Expo or React Native app. This is its API rebuilt on native views: the calls you write on the web work here, and <a href={url('docs/coming-from-react-hot-toast')}>the differences fit on one page</a>.</p>
     </div>
@@ -178,41 +189,30 @@ const faq = [
     <header class="head inset" data-reveal>
       <h2 id="faq" class="display">Questions</h2>
     </header>
-    <div class="faq">
-      {
-        faq.map((f) => (
-          <details>
-            <summary class="inset">
-              {f.q}
-              <Icon name="plus" />
-            </summary>
-            <p class="inset">{f.a}</p>
-          </details>
-        ))
-      }
+    <div class="faq inset">
+      <Faq client:visible items={faq} />
     </div>
   </section>
 
-  <section class="band start dots-wrap" aria-labelledby="start">
+  <section class="band start" aria-labelledby="start">
     <div class="start-inner inset">
       <h2 id="start" class="display huge" data-reveal>Ship your first toast.</h2>
       <div class="start-grid">
         <div class="by-hand">
           <p class="label">By hand</p>
-          <CopyInstall showCommand />
+          <CommandBox client:visible command={INSTALL} />
           <div class="setup">
             <CodePanel code={setup} lang="tsx" file="App.tsx" />
           </div>
-          <a class="button primary" href={url('docs/installation')}>Quick start <Icon name="arrow-right" /></a>
+          <LinkButton client:visible href={url('docs/installation')} label="Quick start" trailing="arrow-right" variant="prominent" size="lg" />
         </div>
         <div class="by-agent">
           <p class="label">With an AI agent</p>
           <p>Paste this into Claude Code, Cursor or Codex. It installs the package and its peers, wires the app root and swaps your toasts, using the full docs as plain text.</p>
-          <pre class="prompt-preview" aria-label="The setup prompt">{SETUP_PROMPT}</pre>
-          <button type="button" class="button copy-button" data-copy={SETUP_PROMPT}>
-            <span class="idle-label"><Icon name="copy" /> Copy prompt</span>
-            <span class="done-label"><Icon name="check" /> Copied</span>
-          </button>
+          <GlassPanel variant="card" className="prompt-card">
+            <pre class="prompt-preview" aria-label="The setup prompt">{SETUP_PROMPT}</pre>
+          </GlassPanel>
+          <CopyButton client:visible text={SETUP_PROMPT} label="Copy prompt" variant="primary" size="lg" />
           <p class="llms">
             For tools that read docs: <a href={url('llms.txt')}>llms.txt</a> · <a href={url('llms-full.txt')}>llms-full.txt</a>
           </p>
@@ -247,17 +247,16 @@ const faq = [
 </script>
 
 <style>
-  /* Halves, so the divider lands on the centre line of the four-column grids below. */
   .hero {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    min-height: min(calc(100dvh - 64px), 760px);
+    min-height: min(calc(100dvh - 84px), 760px);
   }
   .hero-copy {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding-block: 72px;
+    padding-block: 56px;
   }
   .eyebrow {
     margin: 0 0 22px;
@@ -281,7 +280,7 @@ const faq = [
     gap: 12px;
     margin-top: 36px;
   }
-  /* Staged entrance: label, headline, text, buttons, then the phones. */
+  /* Staged entrance: label, headline, text, buttons, then the phone. */
   @media (prefers-reduced-motion: no-preference) {
     .enter {
       animation: settle 800ms var(--ease-out) both;
@@ -296,26 +295,19 @@ const faq = [
   }
   .hero-devices {
     position: relative;
-    border-left: 1px solid var(--line);
     display: grid;
     place-items: center;
-    padding: 48px var(--pad);
+    padding: 32px var(--pad);
     overflow: hidden;
   }
-  .field {
-    position: absolute;
-    inset: 0;
-  }
-  /* Warm light under the phones: the 'hot' in hot toast. Tinted, not neon. */
+  /* Warm light under the phone: the 'hot' in hot toast. Tinted, not neon. */
   .glow {
     position: absolute;
     left: 50%;
-    top: 58%;
-    width: 520px;
-    height: 520px;
-    transform: translate(-50%, -50%);
+    top: 55%;
     width: 760px;
     height: 760px;
+    transform: translate(-50%, -50%);
     background: radial-gradient(circle, rgb(255 173 59 / 0.2), rgb(255 173 59 / 0.07) 38%, transparent 68%);
     pointer-events: none;
   }
@@ -342,26 +334,15 @@ const faq = [
     }
   }
 
-  .platforms {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .platforms span {
-    display: grid;
-    place-items: center;
-    height: 88px;
-    color: var(--faint);
-    font-size: 26px;
-  }
-  .platforms span + span {
-    border-left: 1px solid var(--line);
-  }
-
+  /* Four glass cards: how the library is checked. */
   .proof {
+    display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
   }
-  .proof > div {
-    padding: 28px var(--pad) 30px;
+  .proof :global(.stat-card) {
+    height: 100%;
+    padding: 24px 24px 26px;
   }
   .stat {
     display: block;
@@ -376,7 +357,7 @@ const faq = [
   }
 
   .head {
-    padding-block: 80px 44px;
+    padding-block: 96px 36px;
   }
   h2 {
     margin: 0;
@@ -389,64 +370,25 @@ const faq = [
     max-width: 58ch;
   }
 
-  /*
-   * Bordered cells. Each cell draws a 1px line just past its right and bottom
-   * edges, so every vertical line sits exactly on a column boundary, the same
-   * pixels as the platform row's border-left. A 1px grid gap made the cells
-   * (width - 3) / 4 wide instead, putting the lines a pixel off the rows
-   * above, and at fractional positions a gap line could vanish.
-   */
-  .grid {
-    display: grid;
-    border-top: 1px solid var(--line);
-  }
-  /* No background on the cells: the next cell's would paint over this line. */
-  .grid > * {
-    box-shadow:
-      1px 0 0 var(--line),
-      0 1px 0 var(--line);
-  }
-
-  /* Two columns, iOS beside Android; a row per appearance. */
-
-  /* Six equal cells: the API line, the name, one sentence. */
+  /* Six glass cards: the API line, the name, one sentence. */
   .features {
+    display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
   }
-  .features article {
-    position: relative;
+  .features > div {
+    min-width: 0;
+  }
+  .features :global(.feature) {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 36px var(--pad) 40px;
-    min-width: 0;
+    height: 100%;
+    padding: 26px 26px 30px;
   }
-  /* A rule draws across the top of a cell under the pointer. */
-  .features article::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 2px;
-    background: var(--accent);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 450ms var(--ease-out);
-  }
-  .features article:hover::before {
-    transform: scaleX(1);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .features article::before {
-      transition: none;
-    }
-  }
-  .spec {
+  .features :global(.spec) {
     align-self: flex-start;
-    margin-bottom: 10px;
-    padding: 5px 9px;
-    border: 1px solid rgb(255 173 59 / 0.28);
-    background: rgb(255 173 59 / 0.06);
-    color: var(--accent);
+    margin-bottom: 8px;
     font-family: var(--mono);
     font-size: 12.5px;
     white-space: nowrap;
@@ -466,12 +408,9 @@ const faq = [
   .migrate {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(28px, 4vw, 56px);
     align-items: center;
-  }
-  /* The line sits just past the column edge, on the grid's centre line. */
-  .migrate > .inset {
-    padding-block: 72px;
-    box-shadow: 1px 0 0 var(--line);
+    padding-top: 112px;
   }
   .migrate p {
     margin: 14px 0 0;
@@ -481,65 +420,18 @@ const faq = [
   .migrate a {
     color: var(--accent);
   }
-  .diff {
-    padding: 0 var(--pad);
-  }
-
 
   .faq {
-    border-top: 1px solid var(--line);
-  }
-  details + details {
-    border-top: 1px solid var(--line);
-  }
-  summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    padding-block: 22px;
-    font-size: 18px;
-    cursor: pointer;
-    list-style: none;
-  }
-  summary::-webkit-details-marker {
-    display: none;
-  }
-  summary :global(.icon) {
-    color: var(--accent);
-    transition: transform 200ms var(--ease-out);
-  }
-  details[open] summary :global(.icon) {
-    transform: rotate(45deg);
-  }
-  details p {
-    margin: 0;
-    padding-bottom: 26px;
-    color: var(--muted);
-    max-width: 70ch;
+    max-width: 920px;
   }
 
-  .start {
-    position: relative;
-    overflow: hidden;
-  }
-  .start::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(rgb(243 241 236 / 0.12) 1px, transparent 1.4px);
-    background-size: 14px 14px;
-    mask-image: radial-gradient(ellipse at 80% 40%, #000 10%, transparent 60%);
-    -webkit-mask-image: radial-gradient(ellipse at 80% 40%, #000 10%, transparent 60%);
-    pointer-events: none;
-  }
   .start-inner {
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 22px;
     justify-items: start;
-    padding-block: 88px;
+    padding-block: 112px 96px;
   }
   .start-grid {
     display: grid;
@@ -550,10 +442,18 @@ const faq = [
   .by-hand,
   .by-agent {
     display: grid;
+    /* A code block's lines must scroll inside it, not widen the column. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
     align-content: start;
-    justify-items: start;
     min-width: 0;
+  }
+  .by-hand :global(.lg-button),
+  .by-agent :global(.lg-button) {
+    justify-self: start;
+  }
+  .by-hand :global(.command-box .lg-button) {
+    justify-self: auto;
   }
   .by-hand .label,
   .by-agent .label {
@@ -567,40 +467,23 @@ const faq = [
   }
   /* The prompt itself, shown so nobody pastes something they have not read. */
   .prompt-preview {
-    width: 100%;
     max-height: 236px;
     margin: 0;
-    padding: 16px 18px;
+    padding: 18px 20px;
     overflow: auto;
-    border: 1px solid var(--line);
-    background: var(--surface);
     color: var(--muted);
     font: 12.5px/1.6 var(--mono);
     white-space: pre-wrap;
     mask-image: linear-gradient(#000 78%, transparent);
     -webkit-mask-image: linear-gradient(#000 78%, transparent);
   }
-  .by-agent .copy-button span {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .by-agent .copy-button .done-label,
-  .by-agent .copy-button[data-copied] .idle-label {
-    display: none;
-  }
-  .by-agent .copy-button[data-copied] .done-label {
-    display: inline-flex;
-  }
   .by-agent .llms {
+    margin: 0;
     color: var(--faint);
     font-size: 14px;
   }
   .by-agent .llms a {
     color: var(--muted);
-  }
-  .setup {
-    width: 100%;
   }
   .ai-link {
     align-self: flex-start;
@@ -644,12 +527,6 @@ const faq = [
       grid-template-columns: minmax(0, 1fr);
       min-height: 0;
     }
-    .hero-copy {
-      border-bottom: 1px solid var(--line);
-    }
-    .hero-devices {
-      border-left: 0;
-    }
     .proof {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -660,23 +537,10 @@ const faq = [
     .start-grid {
       grid-template-columns: minmax(0, 1fr);
     }
-    .migrate > .inset {
-      box-shadow: none;
-    }
-    .diff {
-      padding-bottom: 56px;
-    }
   }
   @media (max-width: 640px) {
-    .platforms {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .features {
+      grid-template-columns: minmax(0, 1fr);
     }
-    .platforms span:nth-child(3) {
-      border-left: 0;
-    }
-    .platforms span:nth-child(n + 3) {
-      border-top: 1px solid var(--line);
-    }
-    .features,
   }
 </style>

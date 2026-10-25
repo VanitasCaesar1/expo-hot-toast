@@ -4,24 +4,12 @@
  * page, the same heat as the flame mark.
  */
 
-/* Glassy UI's accent, in the site's amber. */
-:root[data-lg-theme='dark'] {
-  --lg-accent: #ffad3b;
-  --lg-switch-on: #ff9f0a;
-  --lg-focus-ring: #ffad3b;
-  /* Prominent buttons are amber glass instead of blue: the same recolouring
-     filter, turned to the flame's hue, still capped so white text holds. */
-  --lg-prominent-fill: #c25e00;
-  --lg-prominent-tint: grayscale(1) contrast(0.5) brightness(0.4) sepia(1) hue-rotate(-14deg) saturate(7)
-    brightness(1.2);
-  --lg-prominent-glow: 255 205 150;
-  --lg-prominent-shade: 64 26 0;
-}
-
 .live-stage {
   position: relative;
   isolation: isolate;
-  padding: clamp(28px, 4vw, 56px) var(--pad);
+  margin-inline: var(--pad);
+  padding: clamp(28px, 4vw, 56px);
+  border-radius: 32px;
   overflow: hidden;
 }
 .live-stage::before {
@@ -267,6 +255,11 @@
   .example-grid,
   .position-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .example-grid .lg-button {
+    font-size: 14px;
+    padding-inline: 14px;
+    white-space: nowrap;
   }
   .controls {
     grid-template-columns: minmax(0, 1fr);

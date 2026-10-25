@@ -1,5 +1,6 @@
 ---
-import Icon from './Icon.astro';
+import LinkButton from './glass/LinkButton';
+import { GlassPanel } from './glassyui/glass-panel';
 import { url, REPO_URL } from '../lib/url';
 
 const columns = [
@@ -35,12 +36,12 @@ const columns = [
 ];
 ---
 
-<footer class="frame band">
-  <div class="top">
-    <div class="sign inset">
+<footer class="frame">
+  <GlassPanel variant="card" className="footer-card">
+    <div class="sign">
       <a class="brand" href={url()}><img class="mark" src={url('mark.svg')} alt="" width="36" height="36" />expo-hot-toast</a>
-      <p>Toasts for Expo and React Native. Apple's own Liquid Glass on iOS 26, a designed surface everywhere else.</p>
-      <a class="button" href={REPO_URL}><Icon name="github" /> Star on GitHub</a>
+      <p>Toasts for Expo and React Native. Apple's own Liquid Glass on iOS 26, frosted glass on the web, a designed surface everywhere else.</p>
+      <LinkButton client:visible href={REPO_URL} label="Star on GitHub" icon="github" variant="soft" />
     </div>
     {
       columns.map((c) => (
@@ -56,11 +57,11 @@ const columns = [
         </nav>
       ))
     }
-  </div>
+  </GlassPanel>
 
   <p class="wordmark display" aria-hidden="true">expo-<span>hot</span>-toast</p>
 
-  <div class="bottom inset">
+  <div class="bottom">
     <p>MIT licensed. The API follows react-hot-toast by Timo Lins; this project is not affiliated with it.</p>
     <a href="#top" class="up">Back to top ↑</a>
   </div>
@@ -68,11 +69,12 @@ const columns = [
 
 <style>
   footer {
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 48px;
+    margin-top: 48px;
+    margin-bottom: 32px;
+    padding-inline: var(--pad);
     overflow: hidden;
   }
-  .top {
+  footer :global(.footer-card) {
     display: grid;
     grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
   }
@@ -81,7 +83,7 @@ const columns = [
     align-content: start;
     justify-items: start;
     gap: 20px;
-    padding-block: 56px;
+    padding: 40px 36px;
   }
   .brand {
     display: inline-flex;
@@ -106,8 +108,7 @@ const columns = [
     line-height: 1.55;
   }
   .col {
-    padding: 56px 24px;
-    border-left: 1px solid var(--line);
+    padding: 40px 24px;
   }
   .col .label {
     margin: 0 0 18px;
@@ -132,8 +133,7 @@ const columns = [
   /* The sign-off: the name, whole and as wide as the frame. "hot" carries the accent. */
   .wordmark {
     margin: 0;
-    padding: clamp(28px, 4vw, 48px) var(--pad) clamp(36px, 5vw, 64px);
-    border-top: 1px solid var(--line);
+    padding: clamp(28px, 4vw, 48px) 0 clamp(20px, 3vw, 36px);
     font-size: clamp(44px, 12.6vw, 168px);
     line-height: 1.02;
     letter-spacing: -0.05em;
@@ -157,8 +157,7 @@ const columns = [
     gap: 12px 32px;
     justify-content: space-between;
     align-items: center;
-    padding-block: 24px;
-    border-top: 1px solid var(--line);
+    padding-block: 8px 0;
     color: var(--faint);
     font-size: 13px;
   }
@@ -170,27 +169,20 @@ const columns = [
   }
 
   @media (max-width: 960px) {
-    .top {
+    footer :global(.footer-card) {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
     .sign {
       grid-column: 1 / -1;
-      border-bottom: 1px solid var(--line);
-    }
-    .col:nth-child(2) {
-      border-left: 0;
+      padding-bottom: 8px;
     }
     .col {
-      padding: 32px var(--pad);
+      padding: 24px 28px 32px;
     }
   }
   @media (max-width: 560px) {
-    .top {
+    footer :global(.footer-card) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .col:nth-child(4) {
-      border-left: 0;
-      border-top: 1px solid var(--line);
     }
   }
 </style>
