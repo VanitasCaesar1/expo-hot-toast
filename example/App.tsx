@@ -314,7 +314,10 @@ function Screen() {
             onPress={() =>
               toast('Export started. This can take a minute.', {
                 closeButton: true,
-                duration: 'long',
+                // A toast's own duration beats the Toaster's, so automated
+                // runs stretch this one too: the CI simulator outlasted 4.5 s
+                // between showing it and tapping its close button.
+                duration: E2E ? 60000 : 'long',
               })
             }
           />
