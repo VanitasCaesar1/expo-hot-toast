@@ -12,7 +12,7 @@ import {
   resolveValue,
 } from './store';
 import { resolveDuration } from './defaults';
-import { setProgress } from './progress';
+import { applyOwnProgress, setProgress } from './progress';
 import type {
   DefaultToastOptions,
   DismissReason,
@@ -232,6 +232,9 @@ const createHandler =
     if (existing) return existing;
 
     const toast = createToast(message, type, options);
+    // Written now, before the toast mounts, so a `set()` straight after
+    // `toast.progress()` is not overwritten when it does.
+    if (options?.progress !== undefined) applyOwnProgress(toast.id, options.progress);
     dispatch({ type: ActionType.UPSERT_TOAST, toast }, toasterIdFor(toast));
 
     if (options?.dedupeKey !== undefined) {
@@ -287,6 +290,7 @@ function createToastAPI(): ToastAPI {
       patch.createdAt = Date.now();
       patch.pauseDuration = 0;
     }
+    if (changes.progress !== undefined) applyOwnProgress(id, changes.progress);
     dispatch({ type: ActionType.UPDATE_TOAST, toast: patch }, toasterId);
   };
 

@@ -177,6 +177,27 @@ Initial release. Not yet published to npm; `main` previously pointed at
     toast was dismissed the moment it arrived; it now drops the oldest;
   - in a `stacked` Toaster a leaving toast counted as the front, tucking the
     real front away behind it.
+- **A toast keeps its state while it waits in the queue.**
+  - A toast pushed back, then dismissed or dropped while it waited, was drawn
+    again to play an exit it had already played.
+  - A progress toast came back from the queue with its bar at 0, and a
+    `set()` straight after `toast.progress()` was lost when the toast mounted.
+  - A pause added its whole length to every toast, including toasts that were
+    waiting in the queue or arrived partway through. Once shown, they stayed
+    up for as long as the pause had lasted (a minute behind a modal's
+    `paused`). Each toast is now credited only the pause it was on screen for.
+- **Pauses are counted.** Pressing one toast and letting go resumed the
+  timers under an expanded toast, or under `<Toaster paused>`. On the web, a
+  toast closed under the mouse got no `pointerleave` and held every timer for
+  good. Each hold is now released once, including when its toast unmounts,
+  and the queue resumes when the last one lets go.
+- **A banner, HUD or island has its own slots.** It shared the three slots
+  at its position with ordinary toasts, so a burst pushed an offline banner
+  off the screen. The overflow is also counted per slot, so a burst at the
+  top no longer drops a toast from the bottom.
+- A toast brought back by id in the same frame its removal fired (a
+  promise's outcome landing as its dismissed loading toast's removal ran) is
+  no longer removed.
 
 Upstream `react-hot-toast` v2.6.1 defects, each with a regression test in
 `__tests__/`:

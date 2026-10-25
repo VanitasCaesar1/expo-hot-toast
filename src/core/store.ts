@@ -4,6 +4,7 @@ import type {
   DismissReason,
   ToastOptions as ToastOptionsLike,
   Toast,
+  ToastPosition,
   ToastType,
 } from './types';
 import { defaultTimeouts, resolveDuration } from './defaults';
@@ -31,6 +32,8 @@ export interface ToasterSettings {
   maxPending: number;
   /** Which end of the pending buffer to sacrifice when it overflows. */
   dropPolicy: DropPolicy;
+  /** Where a toast that names no position goes; the Toaster's `position`. */
+  defaultPosition?: ToastPosition;
 }
 
 export interface ToasterState {
@@ -77,28 +80,55 @@ export type Action =
  * removing a toast automatically promotes the next one into its slot.
  */
 function applyDropPolicy(toasts: Toast[], settings: ToasterSettings): Toast[] {
-  const live = toasts.filter((t) => !t.dismissed).length;
   const capacity = settings.visibleToasts + settings.maxPending;
-  if (live <= capacity) return toasts;
+  // Counted per slot, as the visible cap is: a burst at the top must not drop
+  // a toast that sits alone at the bottom.
+  const bySlot = new Map<string, Toast[]>();
+  for (const t of toasts) {
+    if (t.dismissed) continue;
+    const slot = toastSlot(t, settings.defaultPosition ?? 'top-center');
+    const list = bySlot.get(slot);
+    if (list) list.push(t);
+    else bySlot.set(slot, [t]);
+  }
 
-  const excess = live - capacity;
-  // The store is newest-first, so this is already front to back: index 0 is
-  // the newest toast, the end the oldest. It was once reversed here, which
-  // made 'oldest' drop the newest arrival: in a burst every new toast was
-  // dismissed the moment it arrived, and the screen showed none of them.
-  const frontToBack = toasts.filter((t) => !t.dismissed && t.visible);
-  const doomed = new Set(
-    (settings.dropPolicy === 'oldest'
-      ? frontToBack.slice(-excess)
-      : frontToBack.slice(0, excess)
-    ).map((t) => t.id),
-  );
+  const doomed = new Set<string>();
+  bySlot.forEach((frontToBack) => {
+    const excess = frontToBack.length - capacity;
+    if (excess <= 0) return;
+    // The store is newest-first, so this is already front to back: index 0 is
+    // the newest toast, the end the oldest. It was once reversed here, which
+    // made 'oldest' drop the newest arrival: in a burst every new toast was
+    // dismissed the moment it arrived, and the screen showed none of them.
+    const dropped = settings.dropPolicy === 'oldest' ? frontToBack.slice(-excess) : frontToBack.slice(0, excess);
+    dropped.forEach((t) => doomed.add(t.id));
+  });
 
   if (doomed.size === 0) return toasts;
 
   return toasts.map((t) =>
     doomed.has(t.id) ? { ...t, visible: false, dismissed: true, dismissReason: 'overflow' as const } : t,
   );
+}
+
+/**
+ * The slot a toast queues in: its position, except for the shapes drawn
+ * somewhere else. A HUD sits in the middle of the screen, the island in the
+ * Dynamic Island, a banner against the edge; each has its own slots, so a
+ * burst of toasts at the top cannot push an offline banner off the screen.
+ */
+export function toastSlot(t: Toast, fallback: ToastPosition): string {
+  const at = t.position ?? fallback;
+  switch (t.variant) {
+    case 'hud':
+      return 'center';
+    case 'island':
+      return 'island';
+    case 'banner':
+      return at.startsWith('bottom') ? 'banner-bottom' : 'banner-top';
+    default:
+      return at;
+  }
 }
 
 export function reducer(state: ToasterState, action: Action): ToasterState {
@@ -163,6 +193,9 @@ export function reducer(state: ToasterState, action: Action): ToasterState {
     }
 
     case ActionType.START_PAUSE:
+      // A second hold keeps the time the first began: overwriting it would
+      // forget the span already paused, and toasts would expire early.
+      if (state.pausedAt !== undefined) return state;
       return { ...state, pausedAt: action.time };
 
     case ActionType.END_PAUSE: {
@@ -174,7 +207,12 @@ export function reducer(state: ToasterState, action: Action): ToasterState {
       return {
         ...state,
         pausedAt: undefined,
-        toasts: state.toasts.map((t) => ({ ...t, pauseDuration: t.pauseDuration + diff })),
+        // A toast that arrived during the pause, or was replaced during it, is
+        // credited only the part it was there for.
+        toasts: state.toasts.map((t) => ({
+          ...t,
+          pauseDuration: t.pauseDuration + Math.max(0, Math.min(diff, action.time - t.createdAt)),
+        })),
       };
     }
 

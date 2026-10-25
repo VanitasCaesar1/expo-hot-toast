@@ -6,7 +6,9 @@ import {
   DEFAULT_TOASTER_ID,
   destroyToaster,
   dispatch,
+  getState,
   setSettings,
+  toastSlot,
   useToasterStore,
 } from './store';
 import type { DropPolicy } from './store';
@@ -95,6 +97,12 @@ export function useToaster({
    * mutating it must not schedule a render.
    */
   const visibleSince = useRef(new Map<string, number>()).current;
+  /**
+   * The pause credit each toast already held when it was shown. A toast that
+   * waited behind others through a pause was not on screen for it, so that
+   * credit must not lengthen its time once it is.
+   */
+  const creditAtShow = useRef(new Map<string, number>()).current;
 
   // Timing facts the store needs, kept out of the theme object so the core does
   // not depend on the theme layer just to read three numbers.
@@ -141,34 +149,53 @@ export function useToaster({
     if (toastLimit !== undefined) patch.visibleToasts = toastLimit;
     if (maxPending !== undefined) patch.maxPending = maxPending;
     if (dropPolicy !== undefined) patch.dropPolicy = dropPolicy;
+    // The drop policy counts per slot, and a toast with no position takes
+    // this Toaster's.
+    if (getState(toasterId).settings.defaultPosition !== defaultPosition) patch.defaultPosition = defaultPosition;
 
     if (Object.keys(patch).length > 0) setSettings(patch, toasterId);
-  }, [visibleToasts, toastLimit, maxPending, dropPolicy, toasterId]);
-
-  const startPause = useCallback(() => {
-    dispatch({ type: ActionType.START_PAUSE, time: Date.now() }, toasterId);
-  }, [toasterId]);
+  }, [visibleToasts, toastLimit, maxPending, dropPolicy, toasterId, defaultPosition]);
 
   // Read through a ref, so `endPause` keeps its identity while a press pauses
   // the queue. Depending on `pausedAt` made it a new function on every pause,
   // which re-rendered every toast the moment one was touched.
   const pausedAtRef = useRef(pausedAt);
   pausedAtRef.current = pausedAt;
-  const endPause = useCallback(() => {
+  const resume = useCallback(() => {
     // Explicit `!== undefined` rather than a truthiness check, so a pause
     // recorded at timestamp 0 still dispatches END_PAUSE and the paused span
     // is banked into pauseDuration.
-    if (pausedAtRef.current !== undefined) {
+    if (getState(toasterId).pausedAt !== undefined) {
       dispatch({ type: ActionType.END_PAUSE, time: Date.now() }, toasterId);
     }
   }, [toasterId]);
 
-  // Explicit `paused` prop is authoritative and overrides press-and-hold state.
+  /**
+   * Pauses are counted. Several things can hold the queue at once (an
+   * expanded toast, a press, the pointer over a toast, the `paused` option),
+   * and it resumes when the last lets go. One flag meant a press ending on one
+   * toast resumed the timers under another that was still expanded, or under
+   * a modal that had asked for `paused`.
+   */
+  const holds = useRef(0);
+  const pausedOption = useRef(paused);
+  pausedOption.current = paused;
+  const startPause = useCallback(() => {
+    holds.current += 1;
+    dispatch({ type: ActionType.START_PAUSE, time: Date.now() }, toasterId);
+  }, [toasterId]);
+  const endPause = useCallback(() => {
+    if (holds.current === 0) return;
+    holds.current -= 1;
+    if (holds.current === 0 && !pausedOption.current) resume();
+  }, [resume]);
+
+  // The `paused` option holds the queue for as long as it is set.
   useEffect(() => {
     if (paused === undefined) return;
-    if (paused) startPause();
-    else endPause();
-  }, [paused, startPause, endPause]);
+    if (paused) dispatch({ type: ActionType.START_PAUSE, time: Date.now() }, toasterId);
+    else if (holds.current === 0) resume();
+  }, [paused, toasterId, resume]);
 
   /**
    * Schedule the unmount that lets the exit animation finish.
@@ -193,6 +220,11 @@ export function useToaster({
         if (!removalTimers.has(t.id)) {
           const timer = setTimeout(() => {
             removalTimers.delete(t.id);
+            // Brought back since, in the frame before this effect could
+            // cancel the timer: `toast.promise`'s outcome landing as its
+            // dismissed loading toast's removal fires. It stays.
+            const now = getState(toasterId).toasts.find((x) => x.id === t.id);
+            if (now && !now.dismissed) return;
             // Scoped to this region. Dispatching without a toasterId would
             // remove the id from the default region only, leaving it stranded
             // here — which is precisely the upstream bug this replaces.
@@ -258,10 +290,10 @@ export function useToaster({
     // depth of the front toast per position. Used both as the running count and
     // as the toast's own depth, so the stagger and the drop ordering can see how
     // far back in the stack a toast sits.
-    const filled = new Map<ToastPosition, number>();
+    const filled = new Map<string, number>();
     // Depth counts every toast drawn ahead, leaving ones included, so a toast
     // keeps its staggered deadline while the one in front plays its exit.
-    const ahead = new Map<ToastPosition, number>();
+    const ahead = new Map<string, number>();
     const vis: Toast[] = [];
     const pen: Toast[] = [];
 
@@ -281,16 +313,24 @@ export function useToaster({
       return stamped;
     };
 
+    // Shapes drawn elsewhere (a HUD, the island, a banner) queue on their own.
+    const slotOf = (toast: Toast) => toastSlot(toast, toast.resolvedPosition);
+    const exiting = (id: string) => {
+      const since = displacedAt.get(id);
+      return since !== undefined && now - since < exitDuration;
+    };
+
     for (const toast of toasts) {
-      const pos = toast.resolvedPosition;
+      const pos = slotOf(toast);
       const used = filled.get(pos) ?? 0;
       const depth = ahead.get(pos) ?? 0;
 
       // A dismissed toast is leaving: it no longer holds a slot, so the next
       // toast moves up at once instead of waiting for the exit to finish. It
-      // is still rendered, in place, if it was on screen.
+      // is still rendered, in place, if it was on screen. One pushed back
+      // earlier has already played its exit and stays off screen.
       if (toast.dismissed) {
-        if (visibleSince.has(toast.id) || displacedAt.has(toast.id)) {
+        if (visibleSince.has(toast.id) || exiting(toast.id)) {
           vis.push(stamp(toast, depth, false));
           ahead.set(pos, depth + 1);
         }
@@ -302,8 +342,7 @@ export function useToaster({
         // its clock keeps running while it waits and it is retired on the tick
         // it returns; and it leaves with an exit rather than vanishing.
         if (visibleSince.delete(toast.id)) displacedAt.set(toast.id, now);
-        const since = displacedAt.get(toast.id);
-        if (since !== undefined && now - since < exitDuration) vis.push(stamp(toast, depth, true));
+        if (exiting(toast.id)) vis.push(stamp(toast, depth, true));
         pen.push(toast);
         continue;
       }
@@ -311,7 +350,13 @@ export function useToaster({
       filled.set(pos, used + 1);
       ahead.set(pos, depth + 1);
       displacedAt.delete(toast.id);
-      if (!visibleSince.has(toast.id)) visibleSince.set(toast.id, now);
+      if (!visibleSince.has(toast.id)) {
+        visibleSince.set(toast.id, now);
+        // Shown during a pause: the part of it already over was not seen.
+        const pausedAt = pausedAtRef.current;
+        const running = pausedAt === undefined ? 0 : now - Math.max(pausedAt, toast.createdAt);
+        creditAtShow.set(toast.id, toast.pauseDuration + Math.max(running, 0));
+      }
       vis.push(stamp(toast, depth, false));
     }
 
@@ -320,6 +365,9 @@ export function useToaster({
       const live = new Set(toasts.map((t) => t.id));
       visibleSince.forEach((_at, id) => {
         if (!live.has(id)) visibleSince.delete(id);
+      });
+      creditAtShow.forEach((_at, id) => {
+        if (!live.has(id)) creditAtShow.delete(id);
       });
       displacedAt.forEach((_at, id) => {
         if (!live.has(id)) displacedAt.delete(id);
@@ -336,8 +384,9 @@ export function useToaster({
     if (!visible.some((t) => t.queued)) return undefined;
     const now = Date.now();
     let next = Infinity;
+    // Exits already over are skipped: counting them re-rendered every frame.
     displacedAt.forEach((at) => {
-      next = Math.min(next, at + exitDuration - now);
+      if (at + exitDuration > now) next = Math.min(next, at + exitDuration - now);
     });
     if (!Number.isFinite(next)) return undefined;
     const timer = setTimeout(() => setExitTick((n) => n + 1), Math.max(next, 0) + 16);
@@ -368,7 +417,7 @@ export function useToaster({
           // pending toast has not been seen yet, so it cannot have expired.
           visible.forEach((t) => {
             if (!t.visible || t.queued || t.duration === Infinity) return;
-            if (remaining(t, visibleSince, motion, now) <= 0) {
+            if (remaining(t, visibleSince, creditAtShow, motion, now) <= 0) {
               toast.dismiss(t.id, toasterId, 'timeout');
             }
           });
@@ -377,7 +426,7 @@ export function useToaster({
       },
     );
     return () => subscription.remove();
-  }, [visible, toasterId, motion, visibleSince, pausedAt]);
+  }, [visible, toasterId, motion, visibleSince, creditAtShow, pausedAt]);
 
   /**
    * Timers, armed for visible toasts only.
@@ -400,7 +449,7 @@ export function useToaster({
     const timers = visible
       .filter((t) => t.visible && !t.queued && t.duration !== Infinity)
       .map((t) => {
-        const budget = remaining(t, visibleSince, motion, now);
+        const budget = remaining(t, visibleSince, creditAtShow, motion, now);
 
         if (budget <= 0) {
           toast.dismiss(t.id, toasterId, 'timeout');
@@ -416,7 +465,7 @@ export function useToaster({
     return () => {
       timers.forEach(clearTimeout);
     };
-  }, [visible, pausedAt, toasterId, motion, visibleSince]);
+  }, [visible, pausedAt, toasterId, motion, visibleSince, creditAtShow]);
 
   // Memoized so `handlers` is as stable as the functions it wraps.
   const handlers = useMemo(() => ({ startPause, endPause }), [startPause, endPause]);
@@ -434,11 +483,16 @@ export function useToaster({
 function remaining(
   t: Toast,
   visibleSince: Map<string, number>,
+  creditAtShow: Map<string, number>,
   motion: { enter: number; stagger: number; staggerMax: number },
   now: number,
 ): number {
   const stagger = Math.min(t.depth * motion.stagger, motion.staggerMax);
-  return (t.duration ?? 0) + t.pauseDuration + stagger - motion.enter - (now - shownAt(visibleSince, t));
+  // Only pauses since it was shown count. A toast replaced by id since then
+  // starts its credit afresh with its new `createdAt`.
+  const since = visibleSince.get(t.id);
+  const before = since === undefined || t.createdAt >= since ? 0 : (creditAtShow.get(t.id) ?? 0);
+  return (t.duration ?? 0) + t.pauseDuration - before + stagger - motion.enter - (now - shownAt(visibleSince, t));
 }
 
 /**

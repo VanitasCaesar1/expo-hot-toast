@@ -3,8 +3,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Toaster, toast } from '../../src/web';
-import { __resetStore } from '../../src/core/store';
-import { __resetProgress } from '../../src/core/progress';
+import { __resetStore, getState } from '../../src/core/store';
+import { __resetProgress, progressValue } from '../../src/core/progress';
 
 let container: HTMLDivElement;
 let root: Root;
@@ -234,6 +234,41 @@ describe('expo-hot-toast/web', () => {
     expect(item('three').getAttribute('data-state')).toBe('leaving');
     expect(item('two').hasAttribute('data-tucked')).toBe(false);
     expect(item('one').hasAttribute('data-tucked')).toBe(true);
+  });
+
+  it('lets go of the pause when a toast leaves from under the mouse', () => {
+    vi.useFakeTimers();
+    mount();
+    let hovered = '';
+    show(() => (hovered = toast('Under the mouse', { duration: 60_000 })));
+    show(() => toast('Behind', { duration: 1000 }));
+    const el = byText('Under the mouse')!;
+    act(() => void el.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType: 'mouse' })));
+    expect(getState().pausedAt).not.toBeUndefined();
+    // Closed under the pointer: it unmounts, and no pointerleave comes.
+    show(() => toast.dismiss(hovered));
+    for (let i = 0; i < 5; i++) act(() => void vi.advanceTimersByTime(200));
+    expect(byText('Under the mouse')).toBeUndefined();
+    expect(getState().pausedAt).toBeUndefined();
+    for (let i = 0; i < 10; i++) act(() => void vi.advanceTimersByTime(200));
+    // The timers run again, so the toast behind times out.
+    expect(getState().toasts.some((t) => t.message === 'Behind' && !t.dismissed)).toBe(false);
+  });
+
+  it('keeps the bar of a progress toast while it waits in the queue', () => {
+    vi.useFakeTimers();
+    mount({ visibleToasts: 1 });
+    let upload!: ReturnType<typeof toast.progress>;
+    let other = '';
+    show(() => (upload = toast.progress('Uploading')));
+    upload.set(0.6);
+    show(() => (other = toast('Something else', { duration: 60_000 })));
+    for (let i = 0; i < 5; i++) act(() => void vi.advanceTimersByTime(200));
+    expect(byText('Uploading')).toBeUndefined();
+    show(() => toast.dismiss(other));
+    for (let i = 0; i < 5; i++) act(() => void vi.advanceTimersByTime(200));
+    expect(byText('Uploading')).toBeTruthy();
+    expect(progressValue(upload.id).value).toBeCloseTo(0.6);
   });
 
   it('renders on the server without a window', () => {

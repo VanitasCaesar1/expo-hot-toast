@@ -17,7 +17,7 @@ import { resolveValue } from '../core/store';
 import { defaultTheme, mergeTheme } from '../core/defaults';
 import { resolvePreset, resolveVariant, variantMotion, variantTheme } from '../core/presets';
 import type { ToasterPreset } from '../core/presets';
-import { progressValue, setProgress } from '../core/progress';
+import { applyOwnProgress, progressValue } from '../core/progress';
 import { bolder, useBoldText } from '../utils/a11y';
 import { withAlpha } from '../utils/color';
 import { Avatar, Chevron, CountBadge, CountdownRing, ProgressBar, ProgressPercent, ProgressRing } from './parts';
@@ -600,7 +600,7 @@ export const ToastBar = React.memo(function ToastBar({
   const progress = hasProgress ? progressValue(toast.id) : undefined;
   const ownProgress = toast.progress;
   React.useEffect(() => {
-    if (ownProgress !== undefined) setProgress(toastId, ownProgress);
+    if (ownProgress !== undefined) applyOwnProgress(toastId, ownProgress);
   }, [ownProgress, toastId]);
   const ring = hasProgress && toast.progressStyle === 'ring';
 
@@ -663,6 +663,20 @@ export const ToastBar = React.memo(function ToastBar({
     pauseRef.current.onPressIn();
     return () => pauseRef.current.onPressOut();
   }, [expanded]);
+  // A press holds the queue once, and lets go if the toast unmounts before
+  // the finger lifts; otherwise the hold would outlive the toast.
+  const pressed = React.useRef(false);
+  const handlePressIn = React.useCallback(() => {
+    if (pressed.current) return;
+    pressed.current = true;
+    pauseRef.current.onPressIn();
+  }, []);
+  const handlePressOut = React.useCallback(() => {
+    if (!pressed.current) return;
+    pressed.current = false;
+    pauseRef.current.onPressOut();
+  }, []);
+  React.useEffect(() => handlePressOut, [handlePressOut]);
   const hasButtons = closeable || toast.action !== undefined || toast.cancel !== undefined || expandable !== undefined;
   // Errors interrupt; everything else queues politely. This is the one place
   // the flag actually reaches Android, which has real live regions.
@@ -1010,8 +1024,8 @@ export const ToastBar = React.memo(function ToastBar({
           ]}
         >
           <Pressable
-            onPressIn={onPressIn}
-            onPressOut={onPressOut}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
             onPress={
               toast.onPress
                 ? () => {

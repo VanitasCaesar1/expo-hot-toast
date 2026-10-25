@@ -15,7 +15,7 @@ import type {
   ToastThemeOverride,
   ToastType,
 } from '../core/types';
-import { animationMotion, materialTheme, resolvePreset, resolveVariant } from '../core/presets';
+import { animationMotion, materialTheme, resolvePreset } from '../core/presets';
 import type { ToastAnimation, ToasterPreset } from '../core/presets';
 import { dropProgress } from '../core/progress';
 import { useToaster, useToasterCleanup } from '../core/use-toaster';
@@ -26,7 +26,7 @@ import { useReduceMotion, useReduceTransparency, useScreenReaderEnabled, announc
 import { DEFAULT_HAPTICS, triggerToastHaptic } from '../utils/haptics';
 import { ToastBar, ToastBarContext } from './toast-bar';
 import type { StackPlacement, ToastBarContextValue, ToastIcons } from './toast-bar';
-import { resolveValue } from '../core/store';
+import { resolveValue, toastSlot } from '../core/store';
 import Animated, {
   LinearTransition,
   useAnimatedStyle,
@@ -143,19 +143,8 @@ const POSITIONS: ToastPosition[] = [
 type Bucket = ToastPosition | 'center' | 'island' | 'banner-top' | 'banner-bottom';
 const BUCKETS: Bucket[] = [...POSITIONS, 'center', 'island', 'banner-top', 'banner-bottom'];
 
-function bucketOf(t: Toast, position: ToastPosition, preset: Exclude<ToasterPreset, 'auto'>): Bucket {
-  const at = t.position ?? position;
-  switch (resolveVariant(t.variant, preset)) {
-    case 'hud':
-      return 'center';
-    case 'island':
-      return 'island';
-    case 'banner':
-      return at.startsWith('bottom') ? 'banner-bottom' : 'banner-top';
-    default:
-      return at;
-  }
-}
+// The queue's own slot, so a stack holds exactly the toasts queued in it.
+const bucketOf = (t: Toast, position: ToastPosition): Bucket => toastSlot(t, position) as Bucket;
 
 /**
  * The island's top: just inside the Dynamic Island on iPhones that have one
@@ -294,7 +283,7 @@ export function Toaster({
   const screenReader = useScreenReaderEnabled();
   const reduceTransparency = useReduceTransparency();
 
-  const { toasts, startPause, endPause, paused: timersPaused } = useToaster({
+  const { toasts, pending, startPause, endPause, paused: timersPaused } = useToaster({
     toastOptions,
     toasterId,
     toastLimit,
@@ -384,14 +373,16 @@ export function Toaster({
   // leak in exactly the component that should be allocating nothing.
   React.useEffect(() => {
     const live = new Set(toasts.map((t) => t.id));
+    // One waiting in the queue keeps its progress for when it comes back.
+    const stored = new Set(pending.map((t) => t.id));
     seen.current.forEach((_last, id) => {
       if (!live.has(id)) {
         seen.current.delete(id);
         // Its progress, if it had one, is no longer drawn anywhere.
-        dropProgress(id);
+        if (!stored.has(id)) dropProgress(id);
       }
     });
-  }, [toasts]);
+  }, [toasts, pending]);
 
   /**
    * The collapsed stack. Pressing any toast in it fans the stack out (and
@@ -469,7 +460,7 @@ export function Toaster({
     for (const candidate of BUCKETS) map.set(candidate, []);
 
     toasts.forEach((t) => {
-      const bucket = map.get(bucketOf(t, position, preset));
+      const bucket = map.get(bucketOf(t, position));
       if (bucket) bucket.push(t);
     });
 

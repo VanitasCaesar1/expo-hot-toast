@@ -41,13 +41,17 @@ A toast's time counts from when it appears on screen, not from when you called
 `toast()`. A toast that waited in the queue gets its full duration once it
 shows.
 
-Time spent paused (pressing and holding a toast, or `<Toaster paused>`) is
-added back. In a stack, each toast further from the edge is given a little
+Time spent paused (pressing and holding a toast, the mouse over one on the
+web, an expanded toast, or `<Toaster paused>`) is added back, for the time
+the toast was on screen. The queue stays paused until every one of these has
+let go. In a stack, each toast further from the edge is given a little
 longer, so a stack clears one toast at a time rather than all on one frame.
 
 ## The visible limit
 
-Three toasts show per position, newest at the front. A newer toast pushes the
+Three toasts show per position, newest at the front. A HUD, a banner and the
+island are drawn elsewhere and have slots of their own, so a burst of
+toasts never pushes an offline banner off the screen. A newer toast pushes the
 oldest one showing back into the queue: it plays its exit, waits with its timer
 paused, and comes back, with its full time, when space frees. A dismissed toast
 gives up its place as soon as it starts to leave, so the next one moves up
@@ -59,8 +63,8 @@ while it plays its exit.
 
 ## When the queue is full
 
-Up to `maxPending` toasts (10 by default) wait beyond the visible ones. Past
-that, one is dropped: it plays its exit and reports the reason `'overflow'` to
+Up to `maxPending` toasts (10 by default) wait beyond the visible ones at each
+position. Past that, one at that position is dropped: it plays its exit and reports the reason `'overflow'` to
 its `onDismiss`. `dropPolicy` picks which one: `'oldest'`, the default, drops
 the toast that has waited longest; `'newest'` drops the latest arrival.
 

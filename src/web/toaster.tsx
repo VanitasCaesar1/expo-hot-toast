@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useToaster } from '../core/use-toaster';
-import { resolveValue } from '../core/store';
+import { resolveValue, toastSlot } from '../core/store';
 import { toast as toastApi } from '../core/toast';
-import { dropProgress, progressValue } from '../core/progress';
+import { applyOwnProgress, dropProgress, progressValue } from '../core/progress';
 import { animationMotion, materialTheme, resolvePreset, resolveVariant, variantMotion, variantTheme } from '../core/presets';
 import type { ToastAnimation, ToasterPreset } from '../core/presets';
 import { mergeTheme, useToastTheme } from '../theme/tokens';
@@ -81,19 +81,8 @@ export interface ToasterProps {
 type Bucket = ToastPosition | 'center' | 'island' | 'banner-top' | 'banner-bottom';
 const BUCKETS: Bucket[] = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right', 'center', 'island', 'banner-top', 'banner-bottom'];
 
-function bucketOf(t: Toast, position: ToastPosition, preset: 'glass' | 'material'): Bucket {
-  const at = t.position ?? position;
-  switch (resolveVariant(t.variant, preset)) {
-    case 'hud':
-      return 'center';
-    case 'island':
-      return 'island';
-    case 'banner':
-      return at.startsWith('bottom') ? 'banner-bottom' : 'banner-top';
-    default:
-      return at;
-  }
-}
+// The queue's own slot, so a stack holds exactly the toasts queued in it.
+const bucketOf = (t: Toast, position: ToastPosition): Bucket => toastSlot(t, position) as Bucket;
 
 const SAFE = {
   top: 'env(safe-area-inset-top, 0px)',
@@ -316,8 +305,7 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
   // Progress
   const progress = toast.progress !== undefined ? (progressValue(toast.id) as unknown as Mutable<number>) : undefined;
   React.useEffect(() => {
-    if (toast.progress === undefined) return;
-    progressValue(toast.id).value = toast.progress === 'indeterminate' ? -1 : Math.min(Math.max(toast.progress, 0), 1);
+    if (toast.progress !== undefined) applyOwnProgress(toast.id, toast.progress);
   }, [toast.id, toast.progress]);
   const ring = !!progress && toast.progressStyle === 'ring';
   const accent = toast.iconTheme?.primary ?? (rich ? rich.color : theme.actionColor);
@@ -363,6 +351,29 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
     pauseRef.current.onPauseStart?.();
     return () => pauseRef.current.onPauseEnd?.();
   }, [expanded]);
+  // A press and the pointer over the toast each hold the queue once, and let
+  // go when the toast unmounts: one removed under the pointer gets no
+  // pointerleave, and its hover held every timer for good.
+  const held = React.useRef({ hover: false, press: false });
+  const hold = (kind: 'hover' | 'press') => {
+    if (held.current[kind]) return;
+    held.current[kind] = true;
+    pauseRef.current.onPauseStart?.();
+  };
+  const letGo = (kind: 'hover' | 'press') => {
+    if (!held.current[kind]) return;
+    held.current[kind] = false;
+    pauseRef.current.onPauseEnd?.();
+  };
+  const letGoRef = React.useRef(letGo);
+  letGoRef.current = letGo;
+  React.useEffect(
+    () => () => {
+      letGoRef.current('hover');
+      letGoRef.current('press');
+    },
+    [],
+  );
 
   const textBase: React.CSSProperties = {
     color,
@@ -628,7 +639,7 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
     onPointerDown: (e) => {
       if (e.button !== 0) return;
       dragged.current = false;
-      if (e.pointerType !== 'mouse' || !pauseOnHover) onPauseStart?.();
+      if (e.pointerType !== 'mouse' || !pauseOnHover) hold('press');
       if (!dismissible || panThreshold <= 0) return;
       drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, axis: 0, dx: 0, dy: 0, samples: [{ t: now(e), x: e.clientX, y: e.clientY }] };
     },
@@ -653,7 +664,7 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
       writeDrag(d.dx, d.dy);
     },
     onPointerUp: (e) => {
-      if (e.pointerType !== 'mouse' || !pauseOnHover) onPauseEnd?.();
+      if (e.pointerType !== 'mouse' || !pauseOnHover) letGo('press');
       const d = drag.current;
       drag.current = null;
       toastRef.current?.removeAttribute('data-dragging');
@@ -683,17 +694,17 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
       }
     },
     onPointerCancel: () => {
-      onPauseEnd?.();
+      letGo('press');
       const d = drag.current;
       drag.current = null;
       toastRef.current?.removeAttribute('data-dragging');
       if (d && d.axis !== 0) release(false, 0, 0, d.axis);
     },
     onPointerEnter: (e) => {
-      if (e.pointerType === 'mouse' && pauseOnHover) onPauseStart?.();
+      if (e.pointerType === 'mouse' && pauseOnHover) hold('hover');
     },
     onPointerLeave: (e) => {
-      if (e.pointerType === 'mouse' && pauseOnHover) onPauseEnd?.();
+      if (e.pointerType === 'mouse' && pauseOnHover) letGo('hover');
     },
     onClick: () => {
       if (dragged.current) return;
@@ -911,7 +922,7 @@ export function Toaster({
   }, [preset, scheme, animation, themeOverride]);
   const theme = useToastTheme(layered, scheme);
 
-  const { toasts, startPause, endPause, paused } = useToaster({
+  const { toasts, pending, startPause, endPause, paused } = useToaster({
     toastOptions,
     toasterId,
     visibleToasts,
@@ -927,7 +938,8 @@ export function Toaster({
   // Progress values are forgotten once their toast has gone.
   const seen = React.useRef(new Set<string>());
   React.useEffect(() => {
-    const live = new Set(toasts.map((t) => t.id));
+    // One waiting in the queue keeps its progress for when it comes back.
+    const live = new Set([...toasts, ...pending].map((t) => t.id));
     seen.current.forEach((id) => {
       if (!live.has(id)) {
         dropProgress(id);
@@ -935,7 +947,7 @@ export function Toaster({
       }
     });
     live.forEach((id) => seen.current.add(id));
-  }, [toasts]);
+  }, [toasts, pending]);
 
   const onDismiss = React.useCallback((id: string, reason: DismissReason) => toastApi.dismiss(id, toasterId, reason), [toasterId]);
 
@@ -956,7 +968,7 @@ export function Toaster({
 
   const grouped = new Map<Bucket, Toast[]>();
   for (const t of toasts) {
-    const b = bucketOf(t, position, preset);
+    const b = bucketOf(t, position);
     const list = grouped.get(b);
     if (list) list.push(t);
     else grouped.set(b, [t]);
