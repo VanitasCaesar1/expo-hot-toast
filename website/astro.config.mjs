@@ -21,5 +21,16 @@ export default defineConfig({
   vite: {
     // The docs live one directory up, in docs/guide.
     server: { fs: { allow: ['..'] } },
+    // The live toasts are the library's DOM build, from its source one
+    // directory up, with the core's React Native imports on the web shims
+    // (as vite.config.web.ts builds it). One React for the site and library.
+    resolve: {
+      alias: [
+        { find: /^expo-hot-toast\/web$/, replacement: new URL('../src/web/index.ts', import.meta.url).pathname },
+        { find: /^react-native$/, replacement: new URL('../src/web/shims/react-native.ts', import.meta.url).pathname },
+        { find: /^react-native-reanimated$/, replacement: new URL('../src/web/shims/reanimated.ts', import.meta.url).pathname },
+      ],
+      dedupe: ['react', 'react-dom'],
+    },
   },
 });

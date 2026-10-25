@@ -6,7 +6,6 @@ import Footer from '../components/Footer.astro';
 import { url, REPO_URL } from '../lib/url';
 import { loadDocs } from '../lib/docs';
 import { buildStars } from '../lib/stars';
-import { toasterScript } from '../lib/toaster-script';
 
 interface Props {
   title: string;
@@ -16,7 +15,6 @@ interface Props {
 }
 
 const { title, description, live = false } = Astro.props;
-const toasterSrc = live ? toasterScript() : undefined;
 const inDocs = Astro.url.pathname.includes('/docs');
 const stars = await buildStars();
 const searchPages = loadDocs().map((p) => ({ title: p.title, group: p.group, url: url(`docs/${p.slug}`) }));
@@ -43,7 +41,7 @@ const searchPages = loadDocs().map((p) => ({ title: p.title, group: p.group, url
     </main>
     <Footer stars={stars} />
     <SiteSearch client:idle base={url('pagefind/')} pages={searchPages} />
-    {live && <div id="root" class="live-root" data-src={toasterSrc}></div>}
+    {live && <div id="root" class="live-root"></div>}
     <script>
       // Sections settle into place as they arrive, once.
       const reveal = new IntersectionObserver(

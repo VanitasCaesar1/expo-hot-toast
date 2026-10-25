@@ -1,5 +1,12 @@
 {
   "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "paths": {
+      "expo-hot-toast/web": ["../src/web/index.ts"],
+      "react-native": ["../src/web/shims/react-native.ts"],
+      "react-native-reanimated": ["../src/web/shims/reanimated.ts"]
+    }
+  },
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist", "public"]
 }

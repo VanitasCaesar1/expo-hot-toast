@@ -71,7 +71,8 @@ works the same.
 | Pausing | Press and hold | Hover, or press and hold on touch screens |
 | Haptics | expo-haptics | None |
 | Safe areas | From `react-native-safe-area-context` | CSS `env(safe-area-inset-*)` |
-| `stacked`, `blur`, `ContainerComponent` | Supported | Not available |
+| `stacked` | Fans out while pressed | Fans out on hover |
+| `blur`, `ContainerComponent` | Supported | Not needed: the web has backdrop blur, and nothing covers the page |
 
 ## Size
 

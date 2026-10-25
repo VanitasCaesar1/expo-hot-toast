@@ -41,14 +41,9 @@ jobs:
           cache-dependency-path: |
             website/package-lock.json
             package-lock.json
-            example/package-lock.json
-      # The example app, with the library, built for the web: the live demos load it.
+      # The live demos are the library's DOM build, compiled from ../src with the
+      # site (see astro.config.mjs).
       - run: npm ci
-      - run: npm ci
-        working-directory: example
-      - name: Export the playground
-        run: npx expo export --platform web --output-dir ../website/public/playground
-        working-directory: example
       - run: npm ci
         working-directory: website
       - run: npx astro check

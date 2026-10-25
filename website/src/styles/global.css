@@ -262,3 +262,7 @@ main.frame {
   display: flex;
   pointer-events: none;
 }
+/* The page's toasts at the top start below the floating header capsule. */
+.live-root .eht-stack:is([data-position='top-left'], [data-position='top-center'], [data-position='top-right']) {
+  margin-top: 68px;
+}

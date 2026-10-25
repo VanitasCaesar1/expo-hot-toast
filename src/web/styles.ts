@@ -334,6 +334,16 @@ export const css = /* css */ `
   to { stroke-dashoffset: var(--eht-circumference); }
 }
 
+/* A collapsed stack shows only the edges of the toasts behind the front one. */
+.eht-item[data-tucked] .eht-content,
+.eht-item[data-tucked] .eht-track {
+  opacity: 0;
+}
+.eht-content,
+.eht-track {
+  transition: opacity 200ms ease;
+}
+
 /* Reduce Motion: toasts fade where they sit, and glyphs arrive finished. */
 @media (prefers-reduced-motion: reduce) {
   .eht-item[data-state='entering'] .eht-motion,

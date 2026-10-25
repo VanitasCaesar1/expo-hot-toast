@@ -66,6 +66,12 @@ export interface ToasterProps {
   paused?: boolean;
   /** Pause every timer while the pointer is over a toast, as react-hot-toast does. Default true. */
   pauseOnHover?: boolean;
+  /**
+   * Collapse each stack: older toasts tuck behind the newest, showing only
+   * their edges, and the stack fans out while the pointer is over it.
+   * Ignored with `reverseOrder`. Default false.
+   */
+  stacked?: boolean;
   containerStyle?: React.CSSProperties;
   containerClassName?: string;
   /** Draw each toast yourself. Receives the toast; return any element. */
@@ -119,6 +125,30 @@ function stackLayout(bucket: Bucket, offset: number): { style: React.CSSProperti
       return { style: { ...sides, ...avail, ...vertical }, justify };
     }
   }
+}
+
+// --- Collapsed stacks ----------------------------------------------------------
+
+/** How far each toast behind the front one peeks out of a collapsed stack, in px. */
+const STACK_PEEK = 10;
+/** How much smaller each toast behind the front one is drawn. */
+const STACK_SCALE_STEP = 0.06;
+/** How long a fanned-out stack stays open after the pointer leaves, in ms. */
+const STACK_COLLAPSE_DELAY = 2500;
+
+/**
+ * Offsets that collapse a stack laid out normally, as on native: toast i's far
+ * edge lands `peek` px beyond the front toast's.
+ */
+function stackShifts(heights: number[], gap: number, atTop: boolean): number[] {
+  const front = heights[0] ?? 0;
+  let before = 0;
+  return heights.map((height, i) => {
+    const laidOut = before + height;
+    before += height + gap;
+    const target = front + i * STACK_PEEK;
+    return atTop ? target - laidOut : laidOut - target;
+  });
 }
 
 // --- Platform facts ----------------------------------------------------------
@@ -631,8 +661,10 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
       style={{
         ...surface,
         borderRadius: unstyled ? undefined : theme.radius,
-        width: fill ? '100%' : size ? size.width : undefined,
-        height: size ? size.height : undefined,
+        // An unstyled toast is sized by its own CSS (padding and all), so it
+        // does not follow the measured content.
+        width: fill ? '100%' : size && !unstyled ? size.width : undefined,
+        height: size && !unstyled ? size.height : undefined,
         maxWidth: fill ? theme.maxWidth : undefined,
         '--eht-font': theme.fontFamily,
         '--eht-morph': size ? undefined : '0ms',
@@ -675,6 +707,13 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
 
 // --- One toast's place in a stack ----------------------------------------------
 
+interface StackPlacement {
+  shift: number;
+  scale: number;
+  tucked: boolean;
+  depth: number;
+}
+
 function ToastItem({
   toast,
   atTop,
@@ -682,6 +721,9 @@ function ToastItem({
   motion,
   justify,
   render,
+  stack,
+  onMeasure,
+  onHover,
 }: {
   toast: Toast;
   atTop: boolean;
@@ -689,7 +731,19 @@ function ToastItem({
   motion: ToastTheme['motion'];
   justify: string;
   render: React.ReactNode;
+  stack?: StackPlacement;
+  onMeasure?: (id: string, height: number) => void;
+  onHover?: (over: boolean) => void;
 }) {
+  const motionRef = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    const el = motionRef.current?.firstElementChild as HTMLElement | null;
+    if (!el || !onMeasure || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(() => onMeasure(toast.id, el.offsetHeight));
+    observer.observe(el);
+    onMeasure(toast.id, el.offsetHeight);
+    return () => observer.disconnect();
+  }, [onMeasure, toast.id]);
   const [entered, setEntered] = React.useState(false);
   React.useEffect(() => {
     // Two frames: the first paints the start state, the second starts the move.
@@ -720,9 +774,27 @@ function ToastItem({
     [atTop ? 'marginBottom' : 'marginTop']: gap,
   } as React.CSSProperties;
   return (
-    <div className="eht-item" data-state={state} style={vars}>
-      <div className="eht-clip">
-        <div className="eht-motion" style={{ justifyContent: justify }}>
+    <div
+      className="eht-item"
+      data-state={state}
+      data-tucked={stack?.tucked ? '' : undefined}
+      style={{ ...vars, zIndex: stack ? 100 - stack.depth : undefined, position: stack ? 'relative' : undefined }}
+      onPointerOver={onHover ? () => onHover(true) : undefined}
+      onPointerOut={onHover ? () => onHover(false) : undefined}
+    >
+      <div
+        className="eht-clip"
+        style={
+          stack
+            ? {
+                transform: `translateY(${stack.shift}px) scale(${stack.scale})`,
+                transformOrigin: atTop ? 'bottom' : 'top',
+                transition: `transform ${motion.queueShift}ms ${cssEasing(motion.enterEasing)}`,
+              }
+            : undefined
+        }
+      >
+        <div ref={motionRef} className="eht-motion" style={{ justifyContent: justify }}>
           {render}
         </div>
       </div>
@@ -752,10 +824,30 @@ export function Toaster({
   panThreshold = 72,
   paused: pausedProp,
   pauseOnHover = true,
+  stacked = false,
   containerStyle,
   containerClassName,
   children,
 }: ToasterProps) {
+  const collapsible = stacked && !reverseOrder;
+  const [expanded, setExpanded] = React.useState(false);
+  const [heights, setHeights] = React.useState<ReadonlyMap<string, number>>(new Map());
+  const onMeasure = React.useCallback((id: string, height: number) => {
+    setHeights((prev) => {
+      if (prev.get(id) === height) return prev;
+      const next = new Map(prev);
+      next.set(id, height);
+      return next;
+    });
+  }, []);
+  const collapseTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  React.useEffect(() => () => clearTimeout(collapseTimer.current), []);
+  const onHover = React.useCallback((over: boolean) => {
+    clearTimeout(collapseTimer.current);
+    if (over) setExpanded(true);
+    else collapseTimer.current = setTimeout(() => setExpanded(false), STACK_COLLAPSE_DELAY);
+  }, []);
+  const collapsed = collapsible && !expanded;
   const preset = resolvePreset(presetProp);
   const position: ToastPosition = positionProp ?? (preset === 'material' ? 'bottom-center' : 'top-center');
   const system = useMediaQuery('(prefers-color-scheme: dark)') ? 'dark' : 'light';
@@ -837,8 +929,20 @@ export function Toaster({
               data-position={bucket}
               style={{ ...layout.style, flexDirection: anchoredTop === !reverseOrder ? 'column' : 'column-reverse' }}
             >
-              {list.map((t) => {
+              {(() => {
+                const shifts = collapsed
+                  ? stackShifts(list.map((t) => heights.get(t.id) ?? 56), bucket.startsWith('banner') ? 0 : gap, anchoredTop)
+                  : undefined;
+                return list.map((t, depth) => {
                 const { theme: toastTheme, motion } = themeFor(t);
+                const placement: StackPlacement | undefined = collapsible
+                  ? {
+                      shift: shifts?.[depth] ?? 0,
+                      scale: collapsed ? 1 - Math.min(depth, 3) * STACK_SCALE_STEP : 1,
+                      tucked: collapsed && depth > 0,
+                      depth,
+                    }
+                  : undefined;
                 const bar =
                   t.type === 'custom' ? (
                     <div style={{ pointerEvents: 'auto' }}>{resolveValue(t.message, t)}</div>
@@ -865,10 +969,21 @@ export function Toaster({
                     key={t.id}
                     value={{ theme: toastTheme, preset, icons, glass, onDismiss, onPauseStart: startPause, onPauseEnd: endPause, atTop: anchoredTop, panThreshold, pauseOnHover }}
                   >
-                    <ToastItem toast={t} atTop={anchoredTop} gap={bucket.startsWith('banner') ? 0 : gap} motion={motion} justify={layout.justify} render={bar} />
+                    <ToastItem
+                      toast={t}
+                      atTop={anchoredTop}
+                      gap={bucket.startsWith('banner') ? 0 : gap}
+                      motion={motion}
+                      justify={layout.justify}
+                      render={bar}
+                      stack={placement}
+                      onMeasure={collapsible ? onMeasure : undefined}
+                      onHover={collapsible ? onHover : undefined}
+                    />
                   </ToastBarContext.Provider>
                 );
-              })}
+                });
+              })()}
             </div>
           );
         })}

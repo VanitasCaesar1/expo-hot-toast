@@ -188,6 +188,23 @@ describe('expo-hot-toast/web', () => {
     expect(container.querySelector('.eht-item')?.getAttribute('data-state')).not.toBe('leaving');
   });
 
+  it('collapses a stacked Toaster, and fans it out under the pointer', () => {
+    vi.useFakeTimers();
+    mount({ stacked: true });
+    show(() => toast('One'));
+    show(() => toast('Two'));
+    show(() => toast('Three'));
+    const items = () => [...container.querySelectorAll<HTMLElement>('.eht-item')];
+    // The newest is in front; the two behind are tucked.
+    expect(items().map((i) => i.hasAttribute('data-tucked'))).toEqual([false, true, true]);
+    expect((items()[2]!.firstElementChild as HTMLElement).style.transform).toContain('scale(0.88)');
+    act(() => void items()[0]!.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType: 'mouse' })));
+    expect(items().some((i) => i.hasAttribute('data-tucked'))).toBe(false);
+    act(() => void items()[0]!.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, pointerType: 'mouse' })));
+    act(() => void vi.advanceTimersByTime(2600));
+    expect(items()[1]!.hasAttribute('data-tucked')).toBe(true);
+  });
+
   it('renders on the server without a window', () => {
     toast('Server');
     expect(() => renderToString(<Toaster />)).not.toThrow();
