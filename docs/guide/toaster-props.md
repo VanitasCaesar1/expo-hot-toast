@@ -13,7 +13,7 @@ order: 3
 
 | Prop | Type | Default | |
 |---|---|---|---|
-| `position` | `ToastPosition` | `'top-center'` | For toasts that do not set one |
+| `position` | `ToastPosition` | `'top-center'`; `'bottom-center'` with the Material preset | For toasts that do not set one |
 | `offset` | `number` | `16` | Distance from the screen edge, added to the safe area |
 | `gap` | `number` | `14` | Space between toasts |
 | `reverseOrder` | `boolean` | `false` | Newest toast at the far end of the stack |
@@ -35,12 +35,15 @@ order: 3
 
 | Prop | Type | Default | |
 |---|---|---|---|
+| `preset` | `'auto'`, `'glass'` or `'material'` | `'auto'` | The look to start from: a Material 3 snackbar on Android, the glass pill elsewhere; see [Customising](./customizing.md#presets) |
+| `animation` | `'hot'`, `'slide'`, `'fade'`, `'pop'` or `'none'` | `'hot'` | How toasts come and go |
+| `icons` | `{ success?, error?, info?, warning?, loading?, blank?, close? }` | none | Icons in place of the built-in glyphs |
 | `toastOptions` | [`ToastOptions`](./toast-options.md), plus per-type buckets | none | Defaults for every toast in this Toaster |
 | `theme` | partial [theme tokens](./theme-tokens.md) | none | Token overrides |
 | `colorScheme` | `'light'` or `'dark'` | the system's | Force light or dark tokens |
 | `glass` | `boolean` or `GlassConfig` | `true` | `false` draws the opaque surface everywhere |
 | `panThreshold` | `number` | `72` | Sideways swipe distance that dismisses; `0` turns swiping off |
-| `haptics` | `boolean` | `true` | Play a haptic for success and error toasts |
+| `haptics` | `boolean`, or a map from type to `ToastHaptic` | `true` | `true` plays each type's default (success, error, warning); a map picks per type: `{ success: 'medium', info: 'light' }` |
 | `children` | `({ toast, theme }) => ReactNode` | none | Draw each toast yourself; see [Custom rendering](./custom-rendering.md) |
 
 ## GlassConfig

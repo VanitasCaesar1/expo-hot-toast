@@ -41,14 +41,15 @@ after the tokens.
 
 ## Rich colours
 
-`richColors` gives success and error toasts an outcome colour: a green or red
-surface, border and text on the opaque surface, and a matching tint on Liquid
-Glass. Other types are unchanged.
+`richColors` gives success, error, info and warning toasts an outcome colour:
+a green, red, blue or amber surface, border and text on the opaque surface, and
+a matching tint on Liquid Glass. Blank, loading and custom toasts are
+unchanged.
 
 ```tsx
 toast.success('Payment received', { richColors: true });
 
-<Toaster toastOptions={{ richColors: true }} />   // every success and error toast
+<Toaster toastOptions={{ richColors: true }} />   // every toast with an outcome
 ```
 
 The colours are the `rich` tokens, in light and dark; see

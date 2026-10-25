@@ -26,11 +26,13 @@ toast.promise(upload(photo), {
 | iOS 26 and later | Apple's Liquid Glass, through `expo-glass-effect` |
 | iOS 26 with Reduce Transparency on | An opaque surface |
 | iOS before 26 | An opaque surface |
-| Android | An opaque surface, in light and dark |
+| Android | A Material 3 snackbar at the bottom, in light and dark |
 | Web | Frosted glass: a backdrop blur under a translucent fill |
 
 The opaque surface is designed for its platform: a solid fill, border and
-shadow. It does not imitate glass. On the web, where browsers can blur what is
+shadow. It does not imitate glass. On Android it follows Material 3's snackbar,
+as Android apps' own messages do; `<Toaster preset="glass">` uses the pill
+there too. See [Customising](./customizing.md#presets). On the web, where browsers can blur what is
 behind an element, toasts are frosted instead; anyone who prefers reduced
 transparency gets the opaque surface there too.
 

@@ -165,11 +165,14 @@ export const ToastBar = React.memo(function ToastBar({
   const preset = presetProp ?? slot?.preset ?? resolvePreset('auto');
   const variant = resolveVariant(toast.variant, preset);
   const toasterTheme = themeProp ?? slot?.theme ?? defaultTheme;
+  const reduceMotion = reduceMotionProp ?? slot?.reduceMotion ?? false;
   const baseTheme = React.useMemo(() => {
     const tokens = variantTheme(variant);
-    const motion = variantMotion(variant);
+    // Reduce Motion has already zeroed travel and scale; a shape must not
+    // bring them back.
+    const motion = reduceMotion ? undefined : variantMotion(variant);
     return tokens || motion ? mergeTheme(toasterTheme, { ...tokens, motion }) : toasterTheme;
-  }, [toasterTheme, variant]);
+  }, [toasterTheme, variant, reduceMotion]);
   const icons = iconsProp ?? slot?.icons;
   const paused = slot?.paused ?? false;
   const edgeInset = slot?.edgeInset ?? 0;
@@ -214,7 +217,6 @@ export const ToastBar = React.memo(function ToastBar({
     glass !== false &&
     !(typeof glass === 'object' && glass.style === 'none') &&
     !reduceTransparency;
-  const reduceMotion = reduceMotionProp ?? slot?.reduceMotion ?? false;
   const colorScheme = colorSchemeProp ?? slot?.colorScheme;
   const atTop = atTopProp ?? slot?.atTop ?? toast.resolvedPosition.startsWith('top');
   const reverseOrder = reverseOrderProp ?? slot?.reverseOrder ?? false;
@@ -601,6 +603,16 @@ export const ToastBar = React.memo(function ToastBar({
   const closeable = dismissible && (toast.closeButton ?? toast.closeable ?? false);
   const expandable = toast.expandable;
   const [expanded, setExpanded] = React.useState(expandable?.defaultExpanded ?? false);
+  // An open toast holds the queue, so the details stay as long as they are
+  // being read. Closing it, or the toast leaving while open, lets the timers
+  // run again.
+  const pauseRef = React.useRef({ onPressIn, onPressOut });
+  pauseRef.current = { onPressIn, onPressOut };
+  React.useEffect(() => {
+    if (!expanded) return undefined;
+    pauseRef.current.onPressIn();
+    return () => pauseRef.current.onPressOut();
+  }, [expanded]);
   const hasButtons = closeable || toast.action !== undefined || toast.cancel !== undefined || expandable !== undefined;
   // Errors interrupt; everything else queues politely. This is the one place
   // the flag actually reaches Android, which has real live regions.
@@ -755,13 +767,7 @@ export const ToastBar = React.memo(function ToastBar({
   const toggle = expandable ? (
     <Pressable
       key="expand"
-      onPress={() => {
-        // An open toast holds the queue, so the details stay as long as they
-        // are being read; closing it lets the timers run again.
-        if (expanded) onPressOut();
-        else onPressIn();
-        setExpanded((open) => !open);
-      }}
+      onPress={() => setExpanded((open) => !open)}
       hitSlop={10}
       accessibilityRole="button"
       accessibilityState={{ expanded }}

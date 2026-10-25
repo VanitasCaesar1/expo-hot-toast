@@ -40,6 +40,9 @@ code written for a React web app ports by changing the import:
 Things react-hot-toast does not have:
 
 - [`action`](./actions.md) buttons and a [`closeButton`](./actions.md#a-close-button)
+- [Rich toasts](./rich-toasts.md): progress bars, steps, expandable details, Undo countdowns, notifications, banners, a HUD and the island
+- `toast.info`, `toast.warning` and [`toast.update`](./toast-api.md#toastupdate)
+- [Presets, animations, your own icons, a style or class for each part, and theme adapters](./customizing.md)
 - [Swipe to dismiss](./actions.md#swipe-to-dismiss), and press and hold to pause
 - A [`description`](./toast-types.md#a-description) line, [`richColors`](./theming.md#rich-colours) and a [collapsed stack](./positions.md#a-collapsed-stack)
 - [`dedupeKey`](./timing-and-queue.md#deduplication)

@@ -1,11 +1,11 @@
 ---
 title: Toast types
-description: Plain, success, error, loading and custom toasts; icons; updating and dismissing.
+description: Plain, success, error, info, warning, loading and custom toasts; icons; updating and dismissing.
 group: Guides
 order: 1
 ---
 
-## The five calls
+## The seven calls
 
 ```tsx
 import { toast } from 'expo-hot-toast';
@@ -13,6 +13,8 @@ import { toast } from 'expo-hot-toast';
 toast('Message archived');                 // plain, no icon
 toast.success('Changes saved');            // green check
 toast.error('Could not reach the server'); // red mark
+toast.info('A new version is ready');      // blue i
+toast.warning('Storage almost full');      // amber triangle
 toast.loading('Syncing…');                 // spinner, stays until changed
 toast.custom(<OfflineBanner />);           // your element, drawn as-is
 ```
@@ -24,6 +26,8 @@ Each returns the toast's id, a string.
 | `toast()` | none | 4 s | none |
 | `toast.success()` | check, drawn in | 2 s | light |
 | `toast.error()` | circle with a mark | 4 s | firm |
+| `toast.info()` | circle with an i | 4 s | none |
+| `toast.warning()` | triangle with a mark | 4 s | warning |
 | `toast.loading()` | spinner | until updated or dismissed | none |
 | `toast.custom()` | none | 4 s | none |
 
@@ -81,6 +85,16 @@ toast.success('Uploaded', { id });
 ```
 
 [`toast.promise`](./promises.md) does this for you.
+
+To change only some fields and keep the rest, including the toast's timer, use
+`toast.update`:
+
+```tsx
+toast.update(id, { message: 'Almost there', description: '3 of 4 files' });
+```
+
+For progress bars, steps and other larger toasts, see
+[Rich toasts](./rich-toasts.md).
 
 ## Dismiss and remove
 

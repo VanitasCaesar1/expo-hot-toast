@@ -18,11 +18,13 @@ const start: { icon: IconName; title: string; body: string; href: string }[] = [
 ];
 
 const features: { icon: IconName; title: string; body: string; href: string }[] = [
-  { icon: 'bell', title: 'Toast types', body: 'Plain, success, error, loading and custom toasts, their icons, and updating one in place.', href: url('docs/toast-types') },
+  { icon: 'bell', title: 'Toast types', body: 'Plain, success, error, info, warning, loading and custom toasts, their icons, and updating one in place.', href: url('docs/toast-types') },
+  { icon: 'lightning', title: 'Rich toasts', body: 'Progress bars, steps, expandable details, Undo countdowns, notifications, banners, a HUD and the island.', href: url('docs/rich-toasts') },
   { icon: 'timer', title: 'Promises', body: 'One toast that follows a promise from loading to its outcome.', href: url('docs/promises') },
   { icon: 'hand-tap', title: 'Actions and dismissing', body: 'Undo buttons, the close button, and tap, swipe and press-and-hold.', href: url('docs/actions') },
   { icon: 'arrows-out-cardinal', title: 'Positions', body: 'Six positions, spacing, several Toasters, and toasts above modals.', href: url('docs/positions') },
   { icon: 'stack', title: 'Timing and the queue', body: 'Durations, the visible limit, what happens to extra toasts, and deduplication.', href: url('docs/timing-and-queue') },
+  { icon: 'sparkle', title: 'Customising', body: 'Presets, animations, your own icons, a style or class for each part, and themes from your app.', href: url('docs/customizing') },
   { icon: 'squares-four', title: 'Custom rendering', body: 'Change what a toast contains, draw it yourself, or build your own Toaster.', href: url('docs/custom-rendering') },
   { icon: 'eye', title: 'Accessibility', body: 'What screen readers hear, and how toasts follow Reduce Motion and Reduce Transparency.', href: url('docs/accessibility') },
   { icon: 'palette', title: 'Theme tokens', body: 'Every token, with its light and dark default.', href: url('docs/theme-tokens') },
@@ -30,7 +32,7 @@ const features: { icon: IconName; title: string; body: string; href: string }[] 
 
 const platforms: { icon: IconName; title: string; body: string; href: string }[] = [
   { icon: 'apple', title: 'iOS 26', body: "Apple's Liquid Glass, through expo-glass-effect.", href: url('docs/platform-support') },
-  { icon: 'android', title: 'Android', body: 'A designed opaque surface, in light and dark.', href: url('docs/platform-support') },
+  { icon: 'android', title: 'Android', body: 'A Material 3 snackbar by default, in light and dark.', href: url('docs/platform-support') },
   { icon: 'globe', title: 'Web', body: 'Frosted glass on React Native Web, as on this site.', href: url('docs/platform-support') },
   { icon: 'expo', title: 'Expo', body: 'SDK 55 or later; tested on 57, with Expo Router.', href: url('docs/installation') },
   { icon: 'react', title: 'React Native', body: 'Without Expo too: one Babel plugin to add.', href: url('docs/installation') },

@@ -10,7 +10,7 @@ order: 2
 | Platform | Surface | Status |
 |---|---|---|
 | iOS 26 | Liquid Glass | The example app runs on an iOS 26.5 simulator in CI, driven by Maestro |
-| Android | Opaque | The example app runs on an Android 15 (API 35) emulator in CI, driven by Maestro |
+| Android | Material 3 snackbar, opaque | The example app runs on an Android 15 (API 35) emulator in CI, driven by Maestro |
 | iOS before 26 | Opaque | Not yet run |
 | Web | Frosted glass | The example app is built for the web in CI, and every toast on the [home page](https://vanitascaesar1.github.io/expo-hot-toast/) runs on that build |
 
@@ -29,7 +29,7 @@ safe-area-context 5.7.
 - **No morphing between toasts.** iOS 26 can morph one glass shape into
   another, but React Native has no way to drive that with glass yet, so toasts
   enter and leave separately.
-- **Android draws an opaque surface.** It does not imitate glass.
+- **Android draws an opaque surface.** It does not imitate glass. By default it is a Material 3 snackbar; `preset="glass"` gives the opaque pill instead.
 - **The web draws frosted glass, not Liquid Glass.** Browsers have no
   equivalent of Apple's material, so the web gets a CSS backdrop blur. Browsers
   without `backdrop-filter` get the opaque surface.

@@ -402,6 +402,37 @@ describe('expandable and countdown', () => {
     expect(screen.queryByText('a.jpg, b.jpg, c.jpg')).toBeNull();
   });
 
+  it('holds the queue while open, and lets it go if dismissed while open', () => {
+    jest.useFakeTimers();
+    render(<Toaster />);
+    act(() => {
+      toast('Saved', { duration: 1000 });
+      toast.error('3 files failed', { id: 'failed', duration: 60000, expandable: { content: 'a.jpg' } });
+    });
+    fireEvent.press(screen.getByLabelText('Show details'));
+    act(() => {
+      jest.advanceTimersByTime(3000);
+    });
+    // Paused: the short toast outlives its duration while the details are open.
+    expect(screen.queryByText('Saved')).toBeTruthy();
+
+    act(() => {
+      toast.dismiss('failed');
+    });
+    act(() => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(screen.queryByText('3 files failed')).toBeNull();
+    // Once the open toast has left, the timers run again. Stepped, so the
+    // dismissal's effects schedule the removal between steps.
+    for (let i = 0; i < 8; i++) {
+      act(() => {
+        jest.advanceTimersByTime(500);
+      });
+    }
+    expect(screen.queryByText('Saved')).toBeNull();
+  });
+
   it('draws a countdown beside an action that asks for one', () => {
     render(<Toaster />);
     act(() => {

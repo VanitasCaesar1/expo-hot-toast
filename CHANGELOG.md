@@ -41,6 +41,32 @@ Initial release. Not yet published to npm; `main` previously pointed at
   `theme` re-renders no other toast. Tested in `render-isolation.test.tsx`.
 - **Requires Reanimated 4** and `react-native-worklets`, which the code already
   needed; the peer ranges now say so.
+- **Rich toasts.** `toast.progress()` returns a controller whose `set()` writes
+  to a shared value on the UI thread, so a bar fills without re-rendering;
+  `toast.steps()` walks named stages over a segmented bar; `toast.track()`
+  wraps a promise that reports progress. `progressStyle: 'ring'` fills a ring
+  in place of the icon. Also `expandable` details that hold the queue while
+  open, `action.countdown` (a ring draining around Undo), `cancel` beside the
+  action, `avatar`, `timestamp`, `onPress`, and a ×N count on deduplicated
+  repeats.
+- **`info` and `warning` types**, with their own glyphs, rich colours and (for
+  warning) haptic.
+- **`toast.update(id, changes)`** changes a showing toast's fields and keeps its
+  place and timer.
+- **Shapes** via `variant`: `pill`, `snackbar`, `card` (`toast.notify()`),
+  `banner` (`toast.banner()`, edge to edge), `hud` (`toast.hud()`, centred) and
+  `island` (`toast.island()`, in the Dynamic Island).
+- **Presets.** `<Toaster preset>`: `auto` (default) draws a Material 3 snackbar
+  on Android and the glass pill elsewhere; `glass` or `material` picks one
+  everywhere.
+- **`<Toaster animation>`**: `hot`, `slide`, `fade`, `pop` or `none`.
+- **Customisation**: `<Toaster icons>`; `styles` and `classNames` for each part
+  of the toast (for NativeWind and Uniwind); `unstyled`; font, line-limit and
+  `fill` tokens; a per-type `haptics` map and named haptics per toast;
+  `dismissible` and `swipeDirections`; `icon` as a function of the toast.
+- **Theme adapters**: `themeFromColors()` derives a theme from a few semantic
+  colours, and `fromNavigationTheme()` from a React Navigation theme.
+- **Bold Text** (iOS) steps every weight in the toast up one notch.
 - **Surfaces fade with their content** everywhere but Liquid Glass, which
   cannot fade and dematerializes instead. Before, the text left first and an
   empty frosted or opaque pill shrank away for the rest of the exit.
@@ -99,6 +125,8 @@ Initial release. Not yet published to npm; `main` previously pointed at
 
 ### Changed
 
+- On Android the default look is now a Material 3 snackbar at the bottom
+  (`preset="auto"`). `<Toaster preset="glass">` restores the pill everywhere.
 - `gutter` → `gap`, `toastLimit` → `visibleToasts`, `closeable` → `closeButton`.
   Old names remain as deprecated aliases.
 - The example app uses exactly Expo SDK 57's expected versions. It previously

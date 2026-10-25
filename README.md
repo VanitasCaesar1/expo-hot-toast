@@ -72,8 +72,16 @@ await toast.promise(upload(photo), {
 - **Gestures.** Swipe to dismiss; press and hold to pause every timer.
 - **Actions, a close button and deduplication**, so Undo works and twenty
   identical calls show one toast.
+- **More than a line of text**: progress bars and rings that fill on the UI
+  thread, named steps, expandable details, Undo with a countdown, cancel and
+  confirm, notifications with an avatar, banners, a HUD and a Dynamic Island
+  capsule. See [Rich toasts](./docs/guide/rich-toasts.md).
+- **Native by default, yours if you want**: a Material 3 snackbar on Android and
+  the glass pill on iOS, or one everywhere; your own icons; a style or
+  NativeWind class for every part; or no built-in look at all. Themes from React
+  Navigation or a few colours. See [Customising](./docs/guide/customizing.md).
 - **Accessibility**: screen reader announcements, Reduce Motion, Reduce
-  Transparency, capped text size and haptics for success and error.
+  Transparency, Bold Text, capped text size, and haptics for outcomes.
 - **Tokens** for every colour, size and duration, in light and dark.
 
 ## Coming from react-hot-toast
@@ -88,7 +96,7 @@ page.
 | Platform | Surface | Tested |
 |---|---|---|
 | iOS 26 | Liquid Glass | iOS 26.5 simulator in CI |
-| Android | Opaque | Android 15 emulator in CI |
+| Android | Material 3 snackbar, opaque | Android 15 emulator in CI |
 | iOS before 26 | Opaque | Not yet |
 | Web | Frosted glass | Built for the web in CI; runs the website's demos |
 

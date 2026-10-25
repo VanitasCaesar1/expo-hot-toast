@@ -37,6 +37,7 @@ Liquid Glass draws its own material and ignores the fill, border and shadow.
 | `maxWidth` | `340` | A toast grows with its message up to this width |
 | `gap` | `10` | Space between the icon, message and buttons |
 | `iconSize` | `22` | |
+| `fill` | `false` | `true` stretches the toast to its stack's width, as a snackbar does |
 
 ## Text
 
@@ -50,6 +51,13 @@ Liquid Glass draws its own material and ignores the fill, border and shadow.
 | `descriptionColor` | `rgba(60,60,67,0.78)` | `rgba(235,235,245,0.68)` | The description line |
 | `descriptionFontSize` | `13` | same | |
 | `descriptionLineHeight` | `18` | same | |
+| `fontFamily` | system | same | The message's font |
+| `descriptionFontFamily` | `fontFamily` | same | |
+| `actionFontFamily` | `fontFamily` | same | The action and cancel labels |
+| `maxLines` | `3` | same | Lines of message before it truncates; `0` for no limit |
+| `descriptionMaxLines` | `3` | same | |
+
+With Bold Text on (iOS), every weight steps up one notch, as system text does.
 
 ## Buttons
 
@@ -74,6 +82,14 @@ Used by toasts with `richColors`. Override one field without losing the rest:
 | `rich.error.border` | `#FFD9DA` | `#561317` | |
 | `rich.error.color` | `#C8000F` | `#FF8F92` | |
 | `rich.error.tint` | `rgba(255,59,48,0.22)` | `rgba(255,69,58,0.26)` | |
+| `rich.info.background` | `#EEF6FF` | `#06203D` | |
+| `rich.info.border` | `#C9E2FF` | `#0E3A6B` | |
+| `rich.info.color` | `#0058C4` | `#7DB9FF` | |
+| `rich.info.tint` | `rgba(10,132,255,0.2)` | `rgba(10,132,255,0.26)` | |
+| `rich.warning.background` | `#FFF8EB` | `#2B1B02` | |
+| `rich.warning.border` | `#FFE2B0` | `#4D3205` | |
+| `rich.warning.color` | `#9A5B00` | `#FFC56B` | |
+| `rich.warning.tint` | `rgba(255,159,10,0.24)` | `rgba(255,159,10,0.28)` | |
 
 ## Motion
 
