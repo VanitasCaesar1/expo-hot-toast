@@ -72,6 +72,14 @@ Initial release. Not yet published to npm; `main` previously pointed at
   and CSS in the same frosted glass. No React Native, React Native Web or
   Reanimated; about 16 KB gzipped. The React Native peers are now optional, so
   a web app installs none of them.
+- **Surfaces glide to a new size** when their content changes (a loading toast
+  becoming its outcome, details opening, a message updated), on native and the
+  web. Reduce Motion keeps the snap.
+- **Screen readers**: `toast.steps` reads each step with its place ("Uploading,
+  step 2 of 3") and the outcome on its own; a deduplicated toast reads its count.
+- **Classes win for the part they style**: a `title` or `description` class
+  replaces that part's token text styles, and `unstyled` leaves padding and
+  corners to your classes. Checked with Uniwind and Tailwind 4 on Android.
 - **`<Toaster blur>`**: pass a blur view (such as expo-blur's `BlurView`, with
   its props) and Android and iOS before 26 draw toasts on a blur instead of the
   opaque surface. No new dependency.
@@ -133,6 +141,11 @@ Initial release. Not yet published to npm; `main` previously pointed at
 
 ### Changed
 
+- On Android a toast claims its drag inside the system touch slop, so a
+  scroll view behind it no longer takes vertical swipes, and a fast flick that
+  ends with no update in between is judged by its release instead of snapping
+  back. Toast text uses the simple line-break strategy there, which stops a
+  HUD's last word wrapping onto a hidden line.
 - On Android the default look is now a Material 3 snackbar at the bottom
   (`preset="auto"`). `<Toaster preset="glass">` restores the pill everywhere.
 - `gutter` → `gap`, `toastLimit` → `visibleToasts`, `closeable` → `closeButton`.
