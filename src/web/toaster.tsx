@@ -476,7 +476,7 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
   const buttons = [toggle, toast.cancel ? button('cancel', toast.cancel) : null, toast.action ? button('action', toast.action) : null, close].filter(Boolean);
 
   const row = hud ? (
-    <div className={cx('eht-hud', slotClass('content'))} style={slot('content')}>
+    <div className={cx('eht-hud', slotClass('content'))} style={{ minWidth: 176 - theme.paddingHorizontal * 2, ...slot('content') }}>
       {icon}
       {texts}
       {buttons.length ? <div className="eht-hud-buttons">{buttons}</div> : null}

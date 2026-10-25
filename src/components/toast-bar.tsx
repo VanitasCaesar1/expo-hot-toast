@@ -147,6 +147,9 @@ const ICON_POP_FROM_SCALE = 0.6;
 
 const noop = () => {};
 
+/** A HUD is at least this wide, as a system HUD is, whatever its label. */
+const HUD_MIN_WIDTH = 176;
+
 /** Below Android's 8dp touch slop, so a toast's drag wins over a scroll view behind it. */
 const ANDROID_SLOP = 6;
 
@@ -681,12 +684,11 @@ export const ToastBar = React.memo(function ToastBar({
               fontFamily: theme.fontFamily,
             },
         hud && styles.centered,
-        // A HUD's box is sized to its text's measured width, and Android's
-        // pixel rounding can leave the text a fraction narrower than it needs,
-        // so its last word wrapped onto a line the height had no room for
-        // ("Added to"). In a HUD the text keeps its width, and wraps only at
-        // the HUD's own limit.
-        hud && { flexShrink: 0, maxWidth: theme.maxWidth - theme.paddingHorizontal * 2 },
+        // In a HUD the text spans the HUD rather than hugging its own measured
+        // width: on Android the measurement came out a few dp narrower than the
+        // drawn line (117 for a 120dp line), so "Added to Library" broke onto
+        // a second line the box had no room for and showed "Added to".
+        hud && styles.hudText,
         toast.textStyle,
         slotStyle('title') as StyleProp<TextStyle>,
       ]}
@@ -766,7 +768,7 @@ export const ToastBar = React.memo(function ToastBar({
     descriptionNode == null && titleLine === messageText ? (
       messageText
     ) : (
-      <View style={[styles.texts, hud && styles.centeredColumn]}>
+      <View style={[styles.texts, hud && styles.centeredColumn, hud && styles.stretch]}>
         {titleLine}
         {descriptionNode}
       </View>
@@ -873,7 +875,7 @@ export const ToastBar = React.memo(function ToastBar({
 
   const row = hud ? (
     // A HUD stacks: the icon above the text, and any buttons under both.
-    <View style={[styles.hud, slotStyle('content') as StyleProp<ViewStyle>]} {...slotClass('content')}>
+    <View style={[styles.hud, { minWidth: HUD_MIN_WIDTH - theme.paddingHorizontal * 2 }, slotStyle('content') as StyleProp<ViewStyle>]} {...slotClass('content')}>
       {defaultIcon}
       {texts}
       {buttons.some(Boolean) ? <View style={styles.hudButtons}>{buttons}</View> : null}
@@ -1232,6 +1234,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   // The HUD's column: icon, text, buttons, centred.
+  hudText: {
+    alignSelf: 'stretch',
+  },
+  stretch: {
+    alignSelf: 'stretch',
+  },
   hud: {
     alignItems: 'center',
     gap: 10,
