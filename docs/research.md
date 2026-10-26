@@ -18,8 +18,8 @@ the changes listed under "Adopted".
 
 ## Ideas worth taking
 
-1. **Two-tier visible/pending queue.** `toastLimit: 20` is rht's number and it is
-   wrong — 20 simultaneous toasts is a wall of glass. Split into
+1. **Two-tier visible/pending queue.** `toastLimit: 20` is rht's number, which
+   suits a desktop browser; on a phone 20 simultaneous toasts is a wall of glass. Split into
    `visibleToasts` (default 3) + `pendingToasts` (default 10). Overflow either
    collapses behind the front toast keeping timers alive (sonner's soft limit) or
    sits pending and is *promoted* on dismissal (expo-toast, with
