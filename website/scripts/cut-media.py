@@ -29,10 +29,10 @@ from pathlib import Path
 
 # Seconds into each recording where the demo starts. Update per CI run.
 START = {
-    ('ios', 'dark'): 67.9,
-    ('ios', 'light'): 74.75,
-    ('android', 'dark'): 23.75,
-    ('android', 'light'): 25.9,
+    ('ios', 'dark'): 24.85,
+    ('ios', 'light'): 30.45,
+    ('android', 'dark'): 25.0,
+    ('android', 'light'): 27.1,
 }
 # Seconds after START that each clip begins. Keep equal to -LEAD in moments.ts.
 TRIM = 0.95
@@ -57,21 +57,21 @@ def cut(src: Path, platform: str, scheme: str, start: float) -> None:
     # when the screen changes); resample to a steady 30 fps so browsers seek
     # predictably.
     ffmpeg(
-        '-ss', f'{start + TRIM}', '-i', str(src), '-t', f'{LENGTH}',
+        '-i', str(src), '-ss', f'{start + TRIM}', '-t', f'{LENGTH}',
         '-vf', f'fps=30,scale={WIDTH}:-2:flags=lanczos',
         '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '27',
         '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
         f'{base}.mp4',
     )
     ffmpeg(
-        '-ss', f'{start + STILL_AT}', '-i', str(src), '-frames:v', '1',
+        '-i', str(src), '-ss', f'{start + STILL_AT}', '-frames:v', '1',
         '-vf', f'scale={WIDTH}:-2:flags=lanczos', '-q:v', '4',
         f'{base}.jpg',
     )
     # The still is the full width of the top of the screen, down to the list, so no toast
     # is cut at the sides.
     ffmpeg(
-        '-ss', f'{start + STILL_AT}', '-i', str(src), '-frames:v', '1',
+        '-i', str(src), '-ss', f'{start + STILL_AT}', '-frames:v', '1',
         '-vf', 'crop=iw:iw*0.53:0:0,scale=800:424:flags=lanczos', '-q:v', '3',
         str(MEDIA / f'{platform}-stack-{scheme}.jpg'),
     )

@@ -27,13 +27,12 @@ from PIL import Image, ImageDraw
 
 START = {
     # (demo, platform, scheme): seconds into the recording
-    ('demo', 'ios', 'dark'): 46.0,
-    ('demo', 'ios', 'light'): 41.5,
-    ('rich', 'ios', 'dark'): 32.7,
-    ('demo', 'android', 'dark'): 22.9,
-    ('demo', 'android', 'light'): 24.4,
-    ('rich', 'android', 'dark'): 22.8,
-    ('rich', 'android', 'light'): 23.1,
+    ('demo', 'ios', 'dark'): 24.85,
+    ('demo', 'ios', 'light'): 30.45,
+    ('demo', 'android', 'dark'): 25.0,
+    ('demo', 'android', 'light'): 27.1,
+    # The rich demo is left out until a run records it on both platforms (the
+    # last Android run's recorder lost the app); its README image is kept.
 }
 LENGTH = {'demo': 24.0, 'rich': 25.0}
 FPS = 12
