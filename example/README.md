@@ -62,7 +62,7 @@ The library's own `node_modules` contains every peer as a devDependency, and
 Expo's resolver walks up from `../src` into it regardless of
 `nodeModulesPaths`. Left alone, the bundle gets two copies of Reanimated (the
 app crashes on launch with `Tried to register two views with the same name
-REASharedTransitionBoundary`) and the library's gesture-handler 2.x next to the
-app's 3.x native module. `metro.config.js` therefore pins each peer to the app's
+REASharedTransitionBoundary`), and a second gesture-handler could sit beside the
+app's native module. `metro.config.js` therefore pins each peer to the app's
 copy in a `resolveRequest`. A consumer app installing the package from npm or
 GitHub does not have this problem.

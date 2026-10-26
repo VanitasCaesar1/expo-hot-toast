@@ -55,6 +55,8 @@ export interface ToastBarContextValue {
   icons?: ToastIcons;
   /** True while the Toaster's timers are paused, for the Undo countdown. */
   paused?: boolean;
+  /** Whether screen readers hear the toast; the Toaster's `announce`. */
+  announce?: boolean;
   /**
    * When the toast's timer runs out, and the whole time it was given, as the
    * Toaster's timers measure them, for the Undo countdown.
@@ -135,6 +137,8 @@ export interface ToastBarProps {
   blur?: ToastBlur;
   /** True while the Toaster's timers are paused. Default: the Toaster's. */
   paused?: boolean;
+  /** Whether screen readers hear the toast. Default: the Toaster's, else true. */
+  announce?: boolean;
   /** When the toast times out, for the Undo countdown. Default: the Toaster's. */
   countdownEndsAt?: number;
   /** The whole time the toast was given, for the Undo countdown. Default: the Toaster's. */
@@ -181,6 +185,7 @@ export const ToastBar = React.memo(function ToastBar({
   icons: iconsProp,
   blur: blurProp,
   paused: pausedProp,
+  announce: announceProp,
   countdownEndsAt: countdownEndsAtProp,
   countdownTotal: countdownTotalProp,
   edgeInset: edgeInsetProp,
@@ -205,6 +210,7 @@ export const ToastBar = React.memo(function ToastBar({
   const icons = iconsProp ?? slot?.icons;
   const blur = blurProp ?? slot?.blur;
   const paused = pausedProp ?? slot?.paused ?? false;
+  const announce = announceProp ?? slot?.announce ?? true;
   const countdownEndsAt = countdownEndsAtProp ?? slot?.countdownEndsAt;
   const countdownTotal = countdownTotalProp ?? slot?.countdownTotal;
   const edgeInset = edgeInsetProp ?? slot?.edgeInset ?? 0;
@@ -1063,7 +1069,7 @@ export const ToastBar = React.memo(function ToastBar({
                   ? () => onDismiss(toast.id, 'tap')
                   : undefined
             }
-            accessibilityLiveRegion={assertive ? 'assertive' : 'polite'}
+            accessibilityLiveRegion={!announce ? 'none' : assertive ? 'assertive' : 'polite'}
             // One accessibility element reads the toast as a single alert, but
             // on iOS it also hides everything inside it: VoiceOver could not
             // reach an Undo or close button. Toasts with buttons stay

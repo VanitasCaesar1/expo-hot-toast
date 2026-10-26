@@ -27,12 +27,13 @@ export default function PositionPicker() {
     <div className="position">
       <LiveCode code={code} file="App.tsx" />
       <div className="position-controls">
-        <div className="position-grid" role="radiogroup" aria-label="Toaster position">
+        <div className="position-grid" role="group" aria-label="Toaster position">
           {positions.map((p) => (
             <GlassButton
               key={p}
-              role="radio"
-              aria-checked={p === position}
+              // A set of toggle buttons: a radio group would promise arrow-key
+              // movement these buttons do not have.
+              aria-pressed={p === position}
               lens={false}
               variant={p === position ? 'prominent' : 'soft'}
               size="md"

@@ -45,6 +45,7 @@ order: 3
 | `glass` | `boolean` or `GlassConfig` | `true` | `false` draws the opaque surface everywhere |
 | `panThreshold` | `number` | `72` | Sideways swipe distance that dismisses; `0` turns swiping off |
 | `haptics` | `boolean`, or a map from type to `ToastHaptic` | `true` | `true` plays each type's default (success, error, warning); a map picks per type: `{ success: 'medium', info: 'light' }` |
+| `announce` | `boolean` | `true` | `false` keeps screen readers from hearing this Toaster's toasts, for a preview or a demo that plays on its own |
 | `children` | `({ toast, theme }) => ReactNode` | none | Draw each toast yourself; see [Custom rendering](./custom-rendering.md) |
 
 ## GlassConfig

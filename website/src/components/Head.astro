@@ -19,15 +19,20 @@ const ogImage = new URL(url('media/og.png'), Astro.site);
 <meta name="description" content={description} />
 <link rel="canonical" href={canonical} />
 <link rel="icon" href={url('favicon.svg')} type="image/svg+xml" />
+<link rel="apple-touch-icon" href={url('apple-touch-icon.png')} />
 <!-- Light or dark, before first paint (lib/theme.ts). -->
 <script is:inline set:html={THEME_SCRIPT} />
 <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)" />
 <meta name="theme-color" content="#faf8f5" media="(prefers-color-scheme: light)" />
 <meta property="og:type" content="website" />
+<meta property="og:site_name" content="expo-hot-toast" />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
 <meta property="og:url" content={canonical} />
 <meta property="og:image" content={ogImage} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="expo-hot-toast: toasts in Liquid Glass on an iPhone" />
 <meta name="twitter:card" content="summary_large_image" />
 <!-- Reveal-on-scroll only hides content once JS is known to be running. -->
 <script is:inline>document.documentElement.classList.add('js');</script>

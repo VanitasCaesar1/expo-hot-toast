@@ -26,6 +26,7 @@ const searchPages = loadDocs().map((p) => ({ title: p.title, group: p.group, url
     <Head title={title} description={description} />
   </head>
   <body id="top">
+    <a class="skip-link" href="#main">Skip to content</a>
     <SiteHeader
       client:load
       home={url()}
@@ -36,7 +37,7 @@ const searchPages = loadDocs().map((p) => ({ title: p.title, group: p.group, url
       inDocs={inDocs}
       stars={stars}
     />
-    <main class="frame">
+    <main id="main" class="frame" tabindex="-1">
       <slot />
     </main>
     <Footer stars={stars} star={!live} />

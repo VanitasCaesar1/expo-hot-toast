@@ -155,8 +155,9 @@ export function useToaster({
     const patch: Record<string, unknown> = {};
     // `toastLimit` is honoured but deprecated: `visibleToasts` says what the
     // number means, where `toastLimit` reads as a hard cap.
-    if (visibleToasts !== undefined) patch.visibleToasts = visibleToasts;
     if (toastLimit !== undefined) patch.visibleToasts = toastLimit;
+    // The current name wins when both are given.
+    if (visibleToasts !== undefined) patch.visibleToasts = visibleToasts;
     if (maxPending !== undefined) patch.maxPending = maxPending;
     if (dropPolicy !== undefined) patch.dropPolicy = dropPolicy;
     // The drop policy counts per slot, and a toast with no position takes

@@ -67,6 +67,12 @@ export interface ToasterProps {
   /** Pause every timer while the pointer is over a toast, as react-hot-toast does. Default true. */
   pauseOnHover?: boolean;
   /**
+   * Announce toasts to screen readers. Default true. `false` makes a quiet
+   * Toaster, for a preview or a demo that plays on its own, whose toasts
+   * would otherwise be read out over and over.
+   */
+  announce?: boolean;
+  /**
    * Collapse each stack: older toasts tuck behind the newest, showing only
    * their edges, and the stack fans out while the pointer is over it.
    * Ignored with `reverseOrder`. Default false.
@@ -235,6 +241,8 @@ export interface ToastBarProps {
   countdownTotal?: number;
   panThreshold?: number;
   pauseOnHover?: boolean;
+  /** Announce the toast to screen readers. Default true. */
+  announce?: boolean;
   /** Replace the contents, keeping the surface, gestures and motion. */
   children?: (parts: { icon: React.ReactNode; message: React.ReactNode; description?: React.ReactNode }) => React.ReactNode;
   style?: React.CSSProperties;
@@ -284,6 +292,7 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
   const countdownTotal = props.countdownTotal ?? ctx.countdownTotal;
   const panThreshold = props.panThreshold ?? ctx.panThreshold ?? 72;
   const pauseOnHover = props.pauseOnHover ?? ctx.pauseOnHover ?? true;
+  const announce = props.announce ?? ctx.announce ?? true;
 
   const variant = resolveVariant(toast.variant, preset);
   const theme = React.useMemo(() => {
@@ -738,8 +747,8 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
       data-type={type}
       data-variant={variant}
       data-pressable={toast.onPress || tapToDismiss ? '' : undefined}
-      role={assertive ? 'alert' : 'status'}
-      aria-live={assertive ? 'assertive' : 'polite'}
+      role={!announce ? undefined : assertive ? 'alert' : 'status'}
+      aria-live={!announce ? 'off' : assertive ? 'assertive' : 'polite'}
       aria-atomic={!hasButtons}
       aria-label={!hasButtons ? (toast.accessibilityLabel ?? (toast.count && toast.count > 1 && typeof message === 'string' ? `${message}. ${toast.count} times` : undefined)) : undefined}
       {...handlers}
@@ -898,6 +907,7 @@ export function Toaster({
   panThreshold = 72,
   paused: pausedProp,
   pauseOnHover = true,
+  announce = true,
   stacked = false,
   containerStyle,
   containerClassName,
@@ -1058,6 +1068,7 @@ export function Toaster({
                       countdownTotal={t.action?.countdown ? countdownOf(t)?.total : undefined}
                       panThreshold={panThreshold}
                       pauseOnHover={pauseOnHover}
+                      announce={announce}
                     />
                   );
                 const item = (
@@ -1080,7 +1091,7 @@ export function Toaster({
                 return children ? (
                   <ToastBarContext.Provider
                     key={t.id}
-                    value={{ theme: toastTheme, preset, icons, glass, onDismiss, onPauseStart: startPause, onPauseEnd: endPause, atTop: anchoredTop, panThreshold, pauseOnHover }}
+                    value={{ theme: toastTheme, preset, icons, glass, onDismiss, onPauseStart: startPause, onPauseEnd: endPause, atTop: anchoredTop, panThreshold, pauseOnHover, announce }}
                   >
                     {item}
                   </ToastBarContext.Provider>

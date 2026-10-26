@@ -6,8 +6,7 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.1.0] — Unreleased
 
-Initial release. Not yet published to npm; `main` previously pointed at
-`src/index.ts`, which works for Metro consumers but ships no compiled output.
+Initial release.
 
 ### Added
 
@@ -86,35 +85,40 @@ Initial release. Not yet published to npm; `main` previously pointed at
 - **Surfaces fade with their content** everywhere but Liquid Glass, which
   cannot fade and dematerializes instead. Before, the text left first and an
   empty frosted or opaque pill shrank away for the rest of the exit.
-- **Soft visible cap** via `visibleToasts` (default 3) with implicit promotion.
-  Overflow stays stored with its timer unarmed and is promoted into the freed
-  slot on dismissal. Nothing is evicted until `visibleToasts + maxPending` is
+- **A queue, first come, first shown**: `visibleToasts` (default 3) per
+  position. The rest wait their turn with their timers unarmed and move up in
+  the order they arrived; errors and `important` toasts go ahead. Banners, the
+  HUD and the island have places of their own. Nothing is evicted until `visibleToasts + maxPending` is
   exceeded, and even then the victim plays its exit and reports
   `dismissReason: 'overflow'`.
 - **Timing that respects the reader.** Deadline is
   `duration + pauseDuration + stagger - enter`, measured from when a toast became
   *visible* rather than created, so a queued toast that waited longer than its
-  own duration is not retired on the tick it is promoted.
+  own duration is not retired on the tick it is promoted. Pauses (a press, the
+  pointer over a toast, an open expandable, `<Toaster paused>`, the app in the
+  background) are counted, and the queue resumes when the last lets go.
 - **Symbolic durations** `'short' | 'long' | 'infinite'` (2000 / 4500 / never).
 - **Deduplication** via `dedupeKey` + `dedupeWindowMs`. A repeated call returns
-  the live id instead of stacking, so a caller can update in place. Bounded to
-  500 keys.
+  the live id instead of stacking, counts itself (×3) and starts the toast's
+  time over, so a caller can update in place. Bounded to 500 keys.
 - **Typed dismiss reasons** — `'timeout' | 'swipe' | 'tap' | 'close' | 'action' |
   'overflow' | 'programmatic'` — with `onDismiss`. The first reason
   wins, so a toast that times out and is then swiped reports `timeout`.
 - **Action buttons** (`action: { label, onPress }`), dismissed with reason
   `'action'` after the handler runs, so the queue never shows a message
   describing something already undone.
-- **Accessibility**: `important` selects an assertive live region; Android gets a
-  real `accessibilityLiveRegion`, iOS an imperative announcement.
+- **Accessibility**: Android gets a real `accessibilityLiveRegion` and iOS an
+  announcement that waits for VoiceOver to finish, unless the toast is an error
+  or `important`. `<Toaster announce={false}>` makes a quiet Toaster for demos.
 - **RN affordances** the web version has no concept of: safe-area insets,
   keyboard avoidance for bottom stacks, drag-to-dismiss
-  with velocity fling, press-and-hold to freeze the queue, backgrounded-app expiry
-  recovery, `borderCurve: 'continuous'`, and Reduce Motion handled as its own
+  with velocity fling, press-and-hold to freeze the queue, pausing while the app
+  is in the background, `borderCurve: 'continuous'`, and Reduce Motion handled as its own
   motion config rather than a skip-animation flag.
 - **Design-token theming** with `toastCssVars()` emitting CSS custom properties
   for NativeWind or Unistyles, without making either a dependency.
-- **Haptics** via `expo-haptics`, distinct patterns for success and error.
+- **Haptics** via `expo-haptics`: the system's notification patterns for
+  success, warning and error, as Apple asks for a task's outcome.
   Loading is silent deliberately — it can sit on screen a long time.
 - **Compiled build** (`react-native-builder-bob`): CommonJS, ESM and type
   declarations, with a `react-native` export condition so Metro consumes the
@@ -139,207 +143,12 @@ Initial release. Not yet published to npm; `main` previously pointed at
   Maestro for changes to the library, example or package files, with
   screenshots uploaded.
 
-### Changed
-
-- On Android a toast claims its drag inside the system touch slop, so a
-  scroll view behind it no longer takes vertical swipes, and a fast flick that
-  ends with no update in between is judged by its release instead of snapping
-  back. Toast text uses the simple line-break strategy there, which stops a
-  HUD's last word wrapping onto a hidden line.
-- On Android the default look is now a Material 3 snackbar at the bottom
-  (`preset="auto"`). `<Toaster preset="glass">` restores the pill everywhere.
-- `gutter` → `gap`, `toastLimit` → `visibleToasts`, `closeable` → `closeButton`.
-  Old names remain as deprecated aliases.
-- The example app uses exactly Expo SDK 57's expected versions. It previously
-  pinned a pre-SDK 57 `expo-haptics` that crashed on launch on Android
-  (`NoClassDefFoundError: AnyTypeProvider`), and newer Reanimated / Worklets
-  than the SDK ships, which forced `legacy-peer-deps`. The library's own dev
-  toolchain is aligned the same way, so neither needs `.npmrc` any more.
-- `expo-modules-core` is no longer a runtime dependency. Nothing imported it, and
-  pinning it could install a second copy next to the app's own.
-- A `prepare` script builds `lib/` on install from GitHub; before it, a git
-  install had no compiled output or type declarations.
-- `useToaster` accepts `motion` (`enter`, `stagger`, `staggerMax`), and the
-  Toaster passes its theme's, so retuned motion moves the timers with it.
-- Removed the `'replaced'` dismiss reason, which nothing ever emitted, and the
-  per-toast `reverseOrder` option, which nothing read (`<Toaster reverseOrder>`
-  is unchanged).
-- **The queue is first come, first shown.** The first `visibleToasts` toasts
-  at a position show and the rest wait their turn, moving up in the order they
-  arrived. A newer toast used to push the oldest one showing back into the
-  queue, so in a burst early toasts left and came back after later ones, and
-  the stack cleared newest first. Errors and `important` toasts still show at
-  once: the newest toast showing waits for them. The stagger between toasts
-  that would leave together is fixed when each appears, first shown first.
-- **Steps tint the current stage instead of half-filling it.** `toast.steps()`
-  fills the stages done and tints the current one, rather than drawing it half
-  full, and no longer shows a percentage beside its "2/3" label.
-- **Apple's outcome haptics.** Success and error play the system's
-  notification patterns, as warning already did, instead of impacts.
-- **Announcements queue on iOS.** Only errors and `important` toasts interrupt
-  VoiceOver; the rest wait for it to finish.
-- **Leaving the app pauses the timers.** A toast fired as the app goes to the
-  background is still there on return; after 30 seconds away, toasts whose
-  time ran out are dropped instead.
-- **Dedupe restarts the toast's time** on each repeat, and its window runs from
-  the latest call, so a run of repeats stays one toast.
-- **iOS look and feel:** the light theme's action colour is systemBlue
-  (#007AFF; #0A84FF is its dark value), a dragged toast no longer tilts,
-  action buttons have 44pt targets, and accessibility hints describe the
-  result ("Dismisses the message").
-- `ActionType` is exported as a value, so `dispatch({ type: ActionType.… })`
-  compiles.
-
-### Fixed
-
-- **Bursts no longer break the stack.** Firing many toasts at once could
-  leave the screen blank, flicker and draw ghosts:
-  - a dismissed toast kept its slot through its exit, so a burst could fill
-    every slot with toasts on their way out; it now gives the slot up at once;
-  - a toast pushed back by newer ones vanished with no exit and reappeared
-    later; it now leaves with an exit and enters again when it returns;
-  - `dropPolicy: 'oldest'` dropped the newest arrival, so in a burst each new
-    toast was dismissed the moment it arrived; it now drops the oldest;
-  - in a `stacked` Toaster a leaving toast counted as the front, tucking the
-    real front away behind it.
-- **A toast keeps its state while it waits in the queue.**
-  - A toast pushed back, then dismissed or dropped while it waited, was drawn
-    again to play an exit it had already played.
-  - A progress toast came back from the queue with its bar at 0, and a
-    `set()` straight after `toast.progress()` was lost when the toast mounted.
-  - A pause added its whole length to every toast, including toasts that were
-    waiting in the queue or arrived partway through. Once shown, they stayed
-    up for as long as the pause had lasted (a minute behind a modal's
-    `paused`). Each toast is now credited only the pause it was on screen for.
-- **Pauses are counted.** Pressing one toast and letting go resumed the
-  timers under an expanded toast, or under `<Toaster paused>`. On the web, a
-  toast closed under the mouse got no `pointerleave` and held every timer for
-  good. Each hold is now released once, including when its toast unmounts,
-  and the queue resumes when the last one lets go.
-- **A banner, HUD or island has its own slots.** It shared the three slots
-  at its position with ordinary toasts, so a burst pushed an offline banner
-  off the screen. The overflow is also counted per slot, so a burst at the
-  top no longer drops a toast from the bottom.
-- A toast brought back by id in the same frame its removal fired (a
-  promise's outcome landing as its dismissed loading toast's removal ran) is
-  no longer removed.
-- A finished `toast.steps()` ignores a late `next()` or `go()`, which turned
-  its success toast back into a stage.
-- `toast.update(id, { type: 'success' })` dismissed the toast at once: the new
-  type's duration was measured from when the old one appeared.
-- Bottom toasts sat 18pt under the iOS keyboard.
-- Two Toasters on the same `toasterId`: unmounting one wiped the state the
-  other was drawing.
-- The Undo countdown ring started part drained for a toast that had waited in
-  the queue; it now drains with the toast's real timer.
-- `toast.promise` carried options given only for the loading state (a
-  description, icon or action) onto the success or error toast.
-- The progress bar's indeterminate sweep ran forever on every bar, even a
-  determinate one.
-
-Upstream `react-hot-toast` v2.6.1 defects, each with a regression test in
-`__tests__/`:
-
-- Over-limit toasts were **deleted** rather than dismissed, via
-  `.slice(0, toastLimit)` — no exit animation, so the toast a user was reading
-  blinked out.
-- `toast.promise` could **orphan its loading toast**: it built
-  `{ id, ...opts, ...opts.success }`, so `toastOptions.success.id` overrode the
-  id and the loading toast was never dismissed. The id is now spread last.
-- Timers **leaked and ignored `toasterId`**: the pending-removal map was never
-  cleared on unmount, and removal always dispatched to the `'default'` region.
-- **Ids collided** — `genId()` was a bare module counter, so two copies of the
-  library in one bundle both produced `"1"`. Now time + counter + random.
-- `useState` plus a manual listener list **tore under concurrent rendering**.
-  Replaced with `useSyncExternalStore`.
-- **Reduce Motion was cached forever**, so toggling the OS setting mid-session
-  did nothing.
-- **Explicit `undefined` shadowed fallbacks** during option resolution. Undefined
-  keys are now deleted rather than stored.
-
-Found by running the example on an iOS 26.5 simulator:
-
-- `toast.promise` outcomes were timed from when the *loading* toast appeared, so
-  a slow request retired its success toast almost as soon as it showed. They now
-  get their full duration, and are announced and produce their haptic (an
-  id-only seen-set treated the outcome as already shown).
-- Toasts without a `position` were counted against `top-center` regardless of
-  the Toaster's `position`, skewing the visible cap and stagger.
-- `toast.custom` was drawn inside the default glass bar with a stray glyph. It
-  now renders the element as-is, like react-hot-toast.
-- `<Toaster glass={false}>` had no effect; the setting never reached the surface.
-- `<Toaster colorScheme>` forced the tokens but not the glass, so forced-dark
-  text could land on light glass.
-- Drag-to-dismiss moved the toast vertically under a horizontal finger, jumped
-  500px in one frame on release, and called the JS dismiss directly from a
-  UI-thread worklet.
-- Each toast had its own `GlassContainer`, so nothing could merge; the stack now
-  shares one.
-- The glass had no corner radius of its own and was clipped square by its
-  parent; the opaque rung's shadow was clipped away entirely.
-- The enter scale never animated, and on exit an empty glass pill sat on screen
-  for the whole exit window before shrinking a second time. Enter and exit now
-  run on one clock, and the glass materializes and dematerializes through
-  UIKit's effect animation instead of being popped on and off.
-- Every toast stretched to `maxWidth` (a `flexGrow` on the message); toasts now
-  hug their content, plain toasts no longer reserve an empty icon slot, and
-  left/right positions are no longer centred.
-- Reanimated warnings for a dependency array and a render-time shared-value read.
-
-Found in a source audit (2026-10-24):
-
-- `<Toaster toastOptions>` defaults overrode a toast's own `position`, `glass`,
-  `icon`, `theme`, `dismissOnTap`, `important`, `accessibilityLabel` and
-  `closeButtonColor`. The toast now always wins, as in react-hot-toast.
-- Per-type buckets (`toastOptions={{ success: { … } }}`) were stripped before
-  resolution and never reached a toast.
-- A visible toast pushed back into the queue by newer ones kept its original
-  clock, so on promotion it was dismissed on the tick it reappeared.
-- After returning from the background, toasts still waiting in the queue could
-  be expired before they were ever shown.
-- `dedupeKey` returned the id of a toast that had already been dismissed or
-  removed, so the new message was silently dropped.
-- Updating a toast by id without a `toasterId` stacked a copy in the default
-  region instead of updating the toast where it was. A revived toast also kept
-  its old dismiss reason.
-- Android buzzed the success haptic for blank and custom toasts, and a failed
-  Android haptic was an unhandled rejection.
-- `toast.promise` with a `dedupeKey` deduped its own outcome against the loading
-  toast, which then spun forever. An update by id is never deduped.
-- Returning from the background while a region was paused (press-and-hold or
-  `paused`) expired every visible toast.
-- A toast's own `closeable: false` lost to a Toaster-level `closeButton: true`.
-
-Found by running the example on an Android emulator:
-
-- The "opaque" fallback surface was translucent (`rgba(…, 0.92)` / `0.94`), so
-  text behind a toast showed through it. It is now fully opaque, and the dark
-  fill is one step lighter than a black page so the toast stands apart.
-- Swipe to dismiss did not work on Android: the drag moved a few pixels and
-  snapped back. The bar built a new pan gesture on every render, and touching
-  a toast re-renders it (press pauses the queue, the pan cancels the press), so
-  the gesture was replaced mid-drag. It is now memoized.
-- A quick swipe still snapped back: the release was judged on the last drag
-  update, and a fast swipe can deliver only a few (18px of a 135px swipe in the
-  emulator log). It is now judged on the release event itself.
-
-Found by running the example on an iOS 26 simulator:
-
-- VoiceOver could not reach a toast's Undo or close button: the whole toast was
-  one accessibility element, and on iOS that hides everything inside it. Toasts
-  with buttons are no longer grouped.
-
-### Documentation
-
-- The README is now a user guide; the design rationale moved to
-  `docs/design.md`, the competitive survey to `docs/research.md`, and
-  maintainer notes to `CONTRIBUTING.md`.
-
 ### Known limitations
 
-- **Verified on the iOS 26.5 simulator only** — not on a physical device, on
-  Android, or on iOS < 26. Building the example under Xcode 27 needs two
-  toolchain workarounds unrelated to this package (see `example/README.md`).
+- **Verified in CI on the iOS 26.5 simulator and an Android 15 emulator**, not
+  yet on physical devices or on iOS before 26. Building the example under
+  Xcode 27 needs two toolchain workarounds unrelated to this package (see
+  `example/README.md`).
 - Not available in React Native and deliberately not faked: `glassEffectID` shape
   morphing, `glassEffectTransition`, `.glass` / `.glassProminent` button styles,
   and automatic label-colour adaptation. Android gets a designed opaque surface,

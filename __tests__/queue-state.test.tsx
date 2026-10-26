@@ -346,3 +346,17 @@ describe('toast.promise', () => {
     expect(outcome.position).toBe('bottom-center');
   });
 });
+
+describe('a quiet Toaster', () => {
+  it('announces nothing and marks no live region', () => {
+    const { AccessibilityInfo } = jest.requireActual<typeof import('react-native')>('react-native');
+    const spoken = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
+    render(<Toaster announce={false} />);
+    act(() => {
+      toast.error('Demo failure', { duration: 60_000 });
+    });
+    expect(spoken).not.toHaveBeenCalled();
+    expect(screen.UNSAFE_queryAllByProps({ accessibilityLiveRegion: 'assertive' })).toHaveLength(0);
+    spoken.mockRestore();
+  });
+});

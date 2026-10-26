@@ -17,7 +17,7 @@ import { GlassBadge } from '../glassyui/glass-badge';
     <div class="tile-copy">
       <GlassBadge tone="orange" className="spec">visibleToasts: 3</GlassBadge>
       <h3>A queue, not a pile</h3>
-      <p>Fire five at once: three show, two wait their turn, and each gets its full time once it is on screen.</p>
+      <p>Fire five at once. Three show and two wait their turn, in order, each with its full time. Errors go first.</p>
     </div>
   </GlassPanel>
 
@@ -161,6 +161,7 @@ import { GlassBadge } from '../glassyui/glass-badge';
   const loops: Record<string, number> = { queue: 7000, check: 3200, dedupe: 6500 };
 
   const timers = new Map<string, number>();
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const seen = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
@@ -171,7 +172,8 @@ import { GlassBadge } from '../glassyui/glass-badge';
           void live().then((a) => {
             if (!api) setup(a);
             play();
-            if (loops[name] && !timers.has(name)) timers.set(name, window.setInterval(play, loops[name]));
+            // Under Reduce Motion a tile plays once; its button plays it again.
+            if (loops[name] && !calm && !timers.has(name)) timers.set(name, window.setInterval(play, loops[name]));
           }, () => {});
         } else if (timers.has(name)) {
           clearInterval(timers.get(name));
@@ -280,6 +282,12 @@ import { GlassBadge } from '../glassyui/glass-badge';
   .stage-action:hover {
     background: var(--surface);
   }
+  /* A 44px target around the 30px pill. */
+  .stage-action::before {
+    content: '';
+    position: absolute;
+    inset: -7px -4px;
+  }
   .stage-row {
     position: absolute;
     left: 0;
@@ -292,7 +300,9 @@ import { GlassBadge } from '../glassyui/glass-badge';
     gap: 8px;
   }
   .stage-row .stage-action {
-    position: static;
+    position: relative;
+    left: auto;
+    bottom: auto;
     transform: none;
   }
   .stage-count,
@@ -453,7 +463,7 @@ import { GlassBadge } from '../glassyui/glass-badge';
     outline: none;
   }
   .token-controls input[type='range']:focus-visible::-webkit-slider-thumb {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
   .token-code {

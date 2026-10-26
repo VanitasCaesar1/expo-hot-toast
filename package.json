@@ -16,6 +16,8 @@
     "expo",
     "react-native",
     "toast",
+    "web",
+    "react-hot-toast",
     "snackbar",
     "notification",
     "liquid-glass",
@@ -31,7 +33,10 @@
   "source": "src/index.ts",
   "exports": {
     ".": {
-      "react-native": "./src/index.ts",
+      "react-native": {
+        "types": "./lib/typescript/module/index.d.ts",
+        "default": "./src/index.ts"
+      },
       "import": {
         "types": "./lib/typescript/module/index.d.ts",
         "default": "./lib/module/index.js"
@@ -69,7 +74,7 @@
     "typecheck:example": "tsc --noEmit --project example/tsconfig.json",
     "build": "bob build && npm run build:web",
     "clean": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\"",
-    "prepare": "bob build",
+    "prepare": "npm run build",
     "verify:package": "node scripts/verify-package.mjs",
     "verify:consumer": "node scripts/verify-consumer.mjs",
     "prepublishOnly": "npm run test && npm run typecheck",

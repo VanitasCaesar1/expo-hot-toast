@@ -39,6 +39,11 @@ const declared = [
   ['exports["."].require.default', pkg.exports?.['.']?.require?.default],
   ['exports["."].import.types', pkg.exports?.['.']?.import?.types],
   ['exports["."].require.types', pkg.exports?.['.']?.require?.types],
+  ['exports["."]["react-native"].types', pkg.exports?.['.']?.['react-native']?.types],
+  ['exports["."]["react-native"].default', pkg.exports?.['.']?.['react-native']?.default],
+  ['exports["./web"].types', pkg.exports?.['./web']?.types],
+  ['exports["./web"].import', pkg.exports?.['./web']?.import],
+  ['exports["./web"].require', pkg.exports?.['./web']?.require],
 ];
 for (const [label, rel] of declared) {
   if (rel && !existsSync(join(root, rel))) fail(`package.json "${label}" -> ${rel} does not exist`);

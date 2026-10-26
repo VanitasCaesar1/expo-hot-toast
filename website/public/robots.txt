@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://vanitascaesar1.github.io/expo-hot-toast/sitemap.xml

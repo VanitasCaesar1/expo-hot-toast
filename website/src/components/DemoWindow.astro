@@ -7,14 +7,13 @@ import SchemeSwitch from './glass/SchemeSwitch';
 ---
 
 <div class="demo" data-scheme="dark" data-pan="top">
-  <GlassPanel variant="pill" preset="control" className="tabs" role="tablist" aria-label="API calls">
+  <GlassPanel variant="pill" preset="control" className="tabs" role="group" aria-label="API calls: jump the recordings to one">
     {
       moments.map((m, i) => (
         <button
           type="button"
-          role="tab"
           class="tab"
-          aria-selected={i === 0 ? 'true' : 'false'}
+          aria-pressed={i === 0 ? 'true' : 'false'}
           aria-controls="demo-panel"
           data-at-ios={m.at.ios}
           data-at-android={m.at.android}
@@ -26,7 +25,7 @@ import SchemeSwitch from './glass/SchemeSwitch';
     }
   </GlassPanel>
 
-  <div class="stage" id="demo-panel" role="tabpanel">
+  <div class="stage" id="demo-panel">
     {
       [
         { platform: 'ios', id: 'demo-ios', media: 'ios-demo', caption: 'iOS 26 · Liquid Glass', label: 'The demo running on iOS 26 with Liquid Glass' },
@@ -81,7 +80,7 @@ import SchemeSwitch from './glass/SchemeSwitch';
 <script>
   const root = document.querySelector<HTMLElement>('.demo');
   if (root) {
-    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('.tab')];
     const calls = [...root.querySelectorAll<HTMLElement>('[data-call]')];
     const notes = [...root.querySelectorAll<HTMLElement>('[data-note]')];
     const reduce = matchMedia('(prefers-reduced-motion: reduce)');
@@ -91,7 +90,7 @@ import SchemeSwitch from './glass/SchemeSwitch';
     const atAndroid = (t: HTMLButtonElement) => Number(t.dataset.atAndroid);
 
     const select = (index: number) => {
-      tabs.forEach((t, i) => t.setAttribute('aria-selected', String(i === index)));
+      tabs.forEach((t, i) => t.setAttribute('aria-pressed', String(i === index)));
       calls.forEach((c, i) => (c.hidden = i !== index));
       notes.forEach((n, i) => (n.hidden = i !== index));
       // Both lenses pan to where the selected call's toast lands.
@@ -121,7 +120,7 @@ import SchemeSwitch from './glass/SchemeSwitch';
       tabs.forEach((t, i) => {
         if (ios.currentTime >= atIos(t) - 0.3) current = i;
       });
-      if (tabs[current]!.getAttribute('aria-selected') !== 'true') select(current);
+      if (tabs[current]!.getAttribute('aria-pressed') !== 'true') select(current);
       const start = atIos(tabs[current]!) - 0.3;
       const end = current + 1 < tabs.length ? atIos(tabs[current + 1]!) - 0.3 : ios.duration || start + 4;
       const progress = Math.min(Math.max((ios.currentTime - start) / (end - start), 0), 1);
@@ -181,7 +180,7 @@ import SchemeSwitch from './glass/SchemeSwitch';
     color: var(--text);
     background: var(--hover);
   }
-  .tab[aria-selected='true'] {
+  .tab[aria-pressed='true'] {
     color: var(--text);
     background: linear-gradient(rgb(255 173 59 / 0.26), rgb(255 140 40 / 0.14));
     box-shadow:
@@ -204,10 +203,10 @@ import SchemeSwitch from './glass/SchemeSwitch';
     transform-origin: left;
     transition: transform 250ms linear;
   }
-  .tab[aria-selected='true']::after {
+  .tab[aria-pressed='true']::after {
     opacity: 0.9;
   }
-  .tab[aria-selected='true']:not([style*='--progress'])::after {
+  .tab[aria-pressed='true']:not([style*='--progress'])::after {
     transform: scaleX(1);
   }
 

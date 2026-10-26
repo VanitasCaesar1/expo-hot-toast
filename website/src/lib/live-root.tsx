@@ -95,7 +95,10 @@ function LiveRoot({ initial }: { initial: EmbedConfig }) {
       <Toaster {...config} />
       {stages.map((element) => {
         const id = element.dataset.toastStage || 'stage';
-        return createPortal(<Toaster {...stageConfigs[id]} toasterId={id} containerStyle={IN_STAGE} />, element, id);
+        // Quiet: the stages play on their own, on a loop, and a screen reader
+        // would hear them for as long as the page is open. The page's own
+        // Toaster, which the visitor's buttons fire, still announces.
+        return createPortal(<Toaster {...stageConfigs[id]} toasterId={id} containerStyle={IN_STAGE} announce={false} />, element, id);
       })}
     </>
   );

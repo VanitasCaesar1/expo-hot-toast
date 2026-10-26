@@ -89,6 +89,12 @@ export interface ToasterProps {
    */
   haptics?: boolean | Partial<Record<ToastType, ToastHaptic>>;
   /**
+   * Announce toasts to screen readers. Default true. `false` makes a quiet
+   * Toaster, for a preview or a demo that plays on its own, whose toasts
+   * would otherwise be read out over and over.
+   */
+  announce?: boolean;
+  /**
    * The look to start from. `'auto'` (default): a Material 3 snackbar on
    * Android, rising from the bottom; the glass pill elsewhere. `'glass'` or
    * `'material'` picks one everywhere. `theme` is laid over it.
@@ -249,6 +255,7 @@ export function Toaster({
   containerStyle,
   paused,
   haptics = true,
+  announce: announceToasts = true,
   stacked = false,
   preset: presetProp = 'auto',
   animation,
@@ -357,7 +364,7 @@ export function Toaster({
         .filter(Boolean)
         .join('. ');
       const label = t.accessibilityLabel ?? (spoken || undefined);
-      if (label) announce(label, t.important ?? t.type === 'error');
+      if (label && announceToasts) announce(label, t.important ?? t.type === 'error');
 
       // A loading toast is a placeholder, not an outcome. Buzzing for it would
       // be both premature and, for a long request, unbearable.
@@ -366,7 +373,7 @@ export function Toaster({
         if (haptic) triggerToastHaptic(t.type, haptic);
       }
     });
-  }, [toasts, haptics]);
+  }, [toasts, haptics, announceToasts]);
 
   // The seen-set is a de-duplication guard, not state. If it is never pruned it
   // grows for the lifetime of the app, one entry per toast ever shown — a slow
@@ -615,6 +622,7 @@ export function Toaster({
                 blur={blur}
                 // Only an Undo countdown needs to know; passing it to every toast
                 // would re-render them all whenever one is pressed.
+                announce={announceToasts}
                 paused={t.action?.countdown ? timersPaused : false}
                 countdownEndsAt={t.action?.countdown ? countdownOf(t)?.endsAt : undefined}
                 countdownTotal={t.action?.countdown ? countdownOf(t)?.total : undefined}

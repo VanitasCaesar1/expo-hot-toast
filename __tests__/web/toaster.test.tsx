@@ -271,6 +271,14 @@ describe('expo-hot-toast/web', () => {
     expect(progressValue(upload.id).value).toBeCloseTo(0.6);
   });
 
+  it('marks no live region in a quiet Toaster', () => {
+    mount({ announce: false });
+    show(() => toast.error('Demo failure'));
+    const el = byText('Demo failure')!.closest('.eht-toast')!;
+    expect(el.getAttribute('role')).toBeNull();
+    expect(el.getAttribute('aria-live')).toBe('off');
+  });
+
   it('renders on the server without a window', () => {
     toast('Server');
     expect(() => renderToString(<Toaster />)).not.toThrow();

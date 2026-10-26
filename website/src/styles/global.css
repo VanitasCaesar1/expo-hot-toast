@@ -19,8 +19,12 @@
   --line: #2d2c2a;
   --text: #f3f1ec;
   --muted: rgb(243 241 236 / 0.62);
-  --faint: rgb(243 241 236 / 0.4);
+  /* At 0.5 still 4.5:1 on the page, so it can carry real text. */
+  --faint: rgb(243 241 236 / 0.5);
   --accent: #ffad3b;
+  /* Filled buttons and focus rings: the accent where it must meet contrast. */
+  --accent-fill: #ffad3b;
+  --focus: #ffad3b;
   /* The accent as text: links, labels, the selected call. */
   --accent-text: #ffb54f;
   --accent-ink: #1a1206;
@@ -55,8 +59,12 @@
   --line: #e6e1d9;
   --text: #1b1a17;
   --muted: rgb(27 26 23 / 0.66);
-  --faint: rgb(27 26 23 / 0.46);
+  --faint: rgb(27 26 23 / 0.62);
   --accent: #f59e0b;
+  /* Amber 700: 5:1 under white text, and 4.7:1 as a ring on the page. The
+     brighter accent read at 2:1. */
+  --accent-fill: #b45309;
+  --focus: #b45309;
   --accent-text: #b45309;
   --accent-ink: #ffffff;
   --accent-soft: rgb(245 158 11 / 0.12);
@@ -108,6 +116,15 @@ html {
   html {
     scroll-behavior: auto;
   }
+  /* Everything the site animates (the FAQ, the tabs, the art) arrives still.
+     The toasts follow the setting themselves. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
 }
 
 /* The ambient light behind every glass surface on the page. */
@@ -139,7 +156,7 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -302,4 +319,25 @@ main.frame {
 }
 .text-link:hover .icon {
   transform: translateX(2px);
+}
+
+/* Off screen until a keyboard reaches it. */
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 10000;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--accent-fill);
+  color: var(--accent-ink);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-160%);
+}
+.skip-link:focus-visible {
+  transform: none;
+}
+main:focus {
+  outline: none;
 }

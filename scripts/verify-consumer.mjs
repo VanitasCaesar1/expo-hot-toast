@@ -175,12 +175,16 @@ try {
   };
 
   let failed = false;
-  for (const [label, mod, modRes] of [
+  for (const [label, mod, modRes, extra = {}] of [
     ['bundler (Metro / webpack / Expo)', 'ESNext', 'bundler'],
     ['node16 (strictest exports check)', 'node16', 'node16'],
+    // Expo's tsconfig.base sets this condition, which picks the export that
+    // points Metro at src/. Types must still come from lib/, or the app type-
+    // checks the library's source under its own, possibly stricter, options.
+    ['bundler with the react-native condition (Expo apps), exactOptionalPropertyTypes on', 'ESNext', 'bundler', { customConditions: ['react-native'], exactOptionalPropertyTypes: true, skipLibCheck: true }],
   ]) {
-    const cfg = join(consumer, `tsconfig.${modRes}.json`);
-    writeFileSync(cfg, JSON.stringify({ compilerOptions: { ...base, module: mod, moduleResolution: modRes }, include: ['app.tsx'] }, null, 2));
+    const cfg = join(consumer, `tsconfig.${modRes}${extra.customConditions ? '.rn' : ''}.json`);
+    writeFileSync(cfg, JSON.stringify({ compilerOptions: { ...base, module: mod, moduleResolution: modRes, ...extra }, include: ['app.tsx'] }, null, 2));
     try {
       execFileSync(join(consumer, 'node_modules/typescript/bin/tsc'), ['--noEmit', '-p', cfg], {
         cwd: consumer,

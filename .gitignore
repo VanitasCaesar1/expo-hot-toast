@@ -1,7 +1,8 @@
 # Dependencies
 node_modules/
 
-# Build output (not currently produced — `main` points at src — but reserved)
+# Build output: lib/ is built by `npm run build`, on install from GitHub and
+# before publishing.
 dist/
 build/
 /lib/
@@ -14,7 +15,6 @@ coverage/
 # Expo / React Native
 .expo/
 .expo-shared/
-.expo/
 web-build/
 *.orig.*
 *.jks
@@ -45,6 +45,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Packed tarballs and local npm settings
+*.tgz
+.npmrc
 
 # Environment — no secrets belong in this repo, and nothing here needs one.
 .env

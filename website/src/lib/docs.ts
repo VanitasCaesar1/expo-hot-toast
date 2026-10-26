@@ -94,7 +94,7 @@ function guideLinks(slugs: Set<string>, base: string) {
     const walk = (node: any) => {
       if (node.type === 'link' && typeof node.url === 'string') {
         const match = /^\.\/([a-z0-9-]+)\.md(#.*)?$/.exec(node.url);
-        if (match && slugs.has(match[1]!)) node.url = `${base}${match[1]}${match[2] ?? ''}`;
+        if (match && slugs.has(match[1]!)) node.url = `${base}${match[1]}/${match[2] ?? ''}`;
       }
       node.children?.forEach(walk);
     };

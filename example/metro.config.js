@@ -31,9 +31,9 @@ config.resolver.extraNodeModules = {
 // `nodeModulesPaths` alone is not enough: Metro walks up from a file under
 // ../src and finds ../node_modules first. That put two copies of
 // Reanimated in the bundle (crash on launch: "Tried to register two views with
-// the same name REASharedTransitionBoundary") and the library's
-// gesture-handler 2.x beside the app's 3.x native module. Every peer the
-// library imports is therefore pinned to the app's copy explicitly.
+// the same name REASharedTransitionBoundary"), and could put a second
+// gesture-handler beside the app's native module. Every peer the library
+// imports is therefore pinned to the app's copy explicitly.
 const peers = [
   'react',
   'react-native',

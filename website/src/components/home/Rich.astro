@@ -128,6 +128,7 @@ const tiles = [
   const loops: Record<string, number> = { upload: 7000, steps: 7600, notify: 5200, undo: 7000, hud: 3600, island: 4400, banner: 5000, material: 4800 };
 
   const play = (name: string) => withToast((toast, a) => plays[name]?.(toast, a));
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const timers = new Map<string, number>();
   const seen = new IntersectionObserver(
@@ -140,7 +141,8 @@ const tiles = [
             if (!api) setup(a);
             if (timers.has(name)) return;
             play(name);
-            timers.set(name, loops[name] ? window.setInterval(() => play(name), loops[name]) : 0);
+            // Under Reduce Motion a tile plays once; its replay button plays it again.
+            timers.set(name, loops[name] && !calm ? window.setInterval(() => play(name), loops[name]) : 0);
           }, () => {});
         } else if (timers.has(name)) {
           clearInterval(timers.get(name));
@@ -256,6 +258,12 @@ const tiles = [
   .replay svg {
     width: 15px;
     height: 15px;
+  }
+  /* A 44px target around the 30px disc. */
+  .replay::before {
+    content: '';
+    position: absolute;
+    inset: -7px;
   }
   .tile-stage:hover .replay,
   .replay:focus-visible {

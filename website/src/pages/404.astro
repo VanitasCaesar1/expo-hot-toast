@@ -1,0 +1,42 @@
+---
+import Base from '../layouts/Base.astro';
+import LinkButton from '../components/glass/LinkButton';
+import { url } from '../lib/url';
+---
+
+<Base title="Page not found: expo-hot-toast" description="This page doesn't exist. The docs and the home page are a tap away.">
+  <section class="missing inset">
+    <p class="label">404</p>
+    <h1 class="display">This toast has left the screen.</h1>
+    <p>The page you followed doesn't exist, or it moved.</p>
+    <div class="links">
+      <LinkButton href={url()} label="Home" variant="primary" size="lg" />
+      <LinkButton href={url('docs')} label="Docs" trailing="arrow-right" size="lg" />
+    </div>
+  </section>
+</Base>
+
+<style>
+  .missing {
+    display: grid;
+    justify-items: center;
+    gap: 14px;
+    padding-block: clamp(96px, 16vw, 180px);
+    text-align: center;
+  }
+  .missing h1 {
+    margin: 0;
+    font-size: clamp(36px, 5vw, 60px);
+  }
+  .missing p {
+    margin: 0;
+    color: var(--muted);
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+</style>

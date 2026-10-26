@@ -9,7 +9,8 @@
   --lg-focus-ring: #ffad3b;
   /* Prominent buttons are amber glass instead of blue: the same recolouring
      filter, turned to the flame's hue, still capped so white text holds. */
-  --lg-prominent-fill: #c25e00;
+  /* Amber 700: white text holds at 5:1 (it was 4.3:1). */
+  --lg-prominent-fill: #b45309;
   --lg-prominent-tint: grayscale(1) contrast(0.5) brightness(0.4) sepia(1) hue-rotate(-14deg) saturate(7)
     brightness(1.2);
   --lg-prominent-glow: 255 205 150;
@@ -21,10 +22,11 @@
 :root[data-lg-theme='light'] {
   --lg-accent: #d97706;
   --lg-switch-on: #f59e0b;
-  --lg-focus-ring: #d97706;
+  --lg-focus-ring: #b45309;
   /* Amber glass in the light theme too: burnt orange over the pale page (a
      darker tint turned it brown), still deep enough that white text holds. */
-  --lg-prominent-fill: #c25e00;
+  /* Amber 700: white text holds at 5:1 (it was 4.3:1). */
+  --lg-prominent-fill: #b45309;
   --lg-prominent-tint: grayscale(1) contrast(0.5) brightness(0.7) sepia(1) hue-rotate(-18deg) saturate(9)
     brightness(1.02);
   --lg-prominent-glow: 255 200 140;
@@ -63,8 +65,14 @@
 }
 /* A phone's capsule holds the mark, the menu and two round buttons. */
 @media (max-width: 440px) {
+  /* Hidden from sight only: it is the home link's name. */
   .site-name {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 @media (max-width: 700px) {

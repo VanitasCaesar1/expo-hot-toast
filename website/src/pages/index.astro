@@ -19,10 +19,6 @@ import { SETUP_PROMPT } from '../lib/ai';
 
 const stars = await buildStars();
 
-
-
-
-
 const faq = [
   {
     q: 'Can I use react-hot-toast itself in Expo?',
@@ -30,11 +26,11 @@ const faq = [
   },
   {
     q: 'What do Android and older iOS get?',
-    a: 'Android gets a Material 3 snackbar by default, as its own apps do: the inverse surface, near-square corners, rising from the bottom. Older iOS gets an opaque pill with real colour, border and shadow, in light and dark, as does iOS 26 when Reduce Transparency is on. preset="glass" uses the pill everywhere. On the web, browsers that can blur a backdrop get frosted glass instead, the toasts you can fire on this page.',
+    a: 'Android gets a Material 3 snackbar, like its own apps: the inverse surface, near-square corners, rising from the bottom. Older iOS gets an opaque pill, as does iOS 26 with Reduce Transparency on. Use preset="glass" for the pill everywhere.',
   },
   {
     q: 'Does it work on the web?',
-    a: 'Yes, through React Native Web, as in Expo web apps. Every toast on this page is the library running that way. Liquid Glass is UIKit’s, so browsers get frosted glass: a backdrop blur under a translucent fill, tuned by the frostBlur, frostSaturation and frostHighlight tokens, and opaque for anyone who prefers reduced transparency.',
+    a: 'Yes, two ways. In an Expo web app it runs through React Native Web. In any React site, import expo-hot-toast/web, a DOM build of about 50 KB from the same source: the toasts on this page are that build. Liquid Glass is UIKit’s, so browsers get frosted glass, a backdrop blur under a translucent fill, and an opaque surface for anyone who prefers reduced transparency.',
   },
   {
     q: 'What does Liquid Glass need?',
@@ -53,14 +49,14 @@ const faq = [
 
 <Base
   title="expo-hot-toast: toasts for Expo, in real Liquid Glass"
-  description="The react-hot-toast API for Expo and React Native, drawn with Apple's own Liquid Glass on iOS 26, frosted glass on the web and a designed surface on Android."
+  description="The react-hot-toast API for Expo and React Native. Apple's own Liquid Glass on iOS 26, Material 3 on Android, frosted glass on the web."
   live
 >
   <section class="hero inset">
     <div class="hero-copy">
       <p class="label eyebrow enter" style="--i: 0">Open source for Expo and React Native</p>
       <h1 class="display enter" style="--i: 1">Toasts in real <span class="nowrap">Liquid Glass.</span></h1>
-      <p class="lede enter" style="--i: 2">The react-hot-toast API, drawn with Apple's own material on iOS 26, frosted glass on the web and a designed surface on Android.</p>
+      <p class="lede enter" style="--i: 2">The react-hot-toast API, rebuilt for native apps. Liquid Glass on iOS 26, Material 3 on Android, frosted glass on the web.</p>
       <div class="ctas enter" style="--i: 3">
         <HeroToast client:load />
         <LinkButton href={url('docs/installation')} label="Quick start" trailing="arrow-right" variant="primary" size="lg" />
@@ -79,9 +75,13 @@ const faq = [
         <span class="ember b"></span>
       </div>
       <div class="stage-toasts" data-toast-stage></div>
+      <button type="button" class="stage-pause" data-reel-pause aria-pressed="false" aria-label="Pause the demo">
+        <svg class="when-playing" viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="3" width="2.6" height="10" rx="1" /><rect x="9.4" y="3" width="2.6" height="10" rx="1" /></svg>
+        <svg class="when-paused" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6a.6.6 0 0 0 .9.5l7.6-4.8a.6.6 0 0 0 0-1L5.9 2.7a.6.6 0 0 0-.9.5Z" /></svg>
+      </button>
       <figcaption class="stage-caption">
         <span class="live-dot" aria-hidden="true"></span>
-        Live: the library itself, running in your browser. <a href="#calls">See real Liquid Glass on iPhone ↓</a>
+        Live in your browser. <a href="#calls">See it on iPhone ↓</a>
       </figcaption>
     </figure>
   </section>
@@ -89,7 +89,7 @@ const faq = [
   <section aria-labelledby="more">
     <header class="head inset" data-reveal>
       <h2 id="more" class="display">More than a line of text.</h2>
-      <p>Uploads, steps, Undo with a countdown, notifications, a HUD and the island. Each is one call, and each tile below is the library itself, playing on this page.</p>
+      <p>Uploads, steps, Undo, notifications, a HUD and the Dynamic Island. Each is one call, and every tile below is the real library.</p>
       <a class="text-link" href={url('docs/rich-toasts')}>Rich toasts guide <Icon name="arrow-right" /></a>
     </header>
     <Rich />
@@ -98,7 +98,7 @@ const faq = [
   <section class="band live" aria-labelledby="try">
     <header class="head inset" data-reveal>
       <h2 id="try" class="display">Go on, make a toast.</h2>
-      <p>Every button fires a real toast over this page: the library itself, running in your browser. Swipe one away, or press and hold to pause it.</p>
+      <p>Each button fires a real toast over this page. Swipe one away, or press and hold to pause.</p>
     </header>
     <div class="live-stage">
       <Examples client:visible />
@@ -108,7 +108,7 @@ const faq = [
   <section class="band live" aria-labelledby="where">
     <header class="head inset" data-reveal>
       <h2 id="where" class="display">Put it anywhere.</h2>
-      <p>Six positions, and the stack can grow either way. This page's toasts move as you pick.</p>
+      <p>Six positions. Pick one and this page's toasts move.</p>
     </header>
     <div class="live-stage mirrored" style="min-height: 300px">
       <PositionPicker client:only="react" />
@@ -128,7 +128,7 @@ const faq = [
   <section class="band" aria-labelledby="calls">
     <header class="head inset" data-reveal>
       <h2 id="calls" class="display">On iPhone, it's real Liquid Glass.</h2>
-      <p>A browser can only frost. On iOS 26 the same calls draw Apple's own material. These are recordings of the example app, not mockups: pick a call to jump to it.</p>
+      <p>A browser can only blur. On iOS 26 the same calls draw Apple's own material. These are screen recordings of the example app, not mockups. Pick a call to jump to it.</p>
     </header>
     <DemoWindow />
   </section>
@@ -136,7 +136,7 @@ const faq = [
   <section aria-labelledby="built">
     <header class="head inset" data-reveal>
       <h2 id="built" class="display">Built for a phone, not ported to one.</h2>
-      <p>Every tile is the library itself, running on this page. Try them.</p>
+      <p>Gestures, a queue and accessibility, built in. Every tile is live: try them.</p>
     </header>
     <Features />
   </section>
@@ -158,7 +158,7 @@ const faq = [
   </section>
   <section class="star inset" aria-labelledby="star" data-reveal>
     <h2 id="star" class="display">Like it? Give it a star.</h2>
-    <p>It is free and MIT licensed. Stars are how other Expo developers find it, and the best way to say it saved you an afternoon.</p>
+    <p>It's free and MIT licensed. A star helps other Expo developers find it.</p>
     <div class="star-actions">
       <StarButton client:visible repo={REPO_URL} initial={stars} label="Star on GitHub" variant="prominent" size="lg" />
       <LinkButton href={`${REPO_URL}/issues`} label="Report an issue" variant="soft" size="lg" />
@@ -202,7 +202,8 @@ const faq = [
   /* One line on a laptop, so the stage shows on arrival. */
   h1 {
     margin: 0;
-    font-size: clamp(44px, 5.6vw, 80px);
+    /* 38px on a 320px phone, where "Liquid Glass." must fit unbroken. */
+    font-size: clamp(38px, 5.6vw, 80px);
   }
   .lede {
     margin: 18px 0 0;
@@ -253,6 +254,32 @@ const faq = [
   .stage-toasts {
     position: absolute;
     inset: 0;
+  }
+  /* Pause for the reel: a small glass disc in the corner, a 44px target. */
+  .stage-pause {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--caption-bg);
+    color: var(--caption-text);
+    cursor: pointer;
+  }
+  .stage-pause svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+  .stage-pause[data-state='paused'] .when-playing,
+  .stage-pause:not([data-state='paused']) .when-paused {
+    display: none;
   }
   .ribbon {
     position: absolute;
@@ -318,7 +345,8 @@ const faq = [
     align-items: center;
     gap: 10px;
     width: max-content;
-    max-width: calc(100% - 32px);
+    /* Clear of the Pause button in the corner on either side. */
+    max-width: calc(100% - 128px);
     padding: 8px 16px;
     border-radius: 999px;
     /* A plain tint: a blur here would redraw over the moving art every frame. */

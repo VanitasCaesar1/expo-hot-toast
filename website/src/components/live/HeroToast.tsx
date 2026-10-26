@@ -81,9 +81,28 @@ export default function HeroToast() {
     let step = 0;
     let timer = 0;
     let stopTheme = () => {};
+    // Under Reduce Motion the reel plays one toast and waits for the visitor.
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // The stage's own Pause button: moving content that starts on its own
+    // needs a way to stop it.
+    const pause = stage.querySelector<HTMLButtonElement>('[data-reel-pause]');
+    let stopped = calm;
+    const showPaused = () => {
+      if (!pause) return;
+      pause.setAttribute('aria-pressed', String(stopped));
+      pause.dataset.state = stopped ? 'paused' : 'playing';
+      pause.setAttribute('aria-label', stopped ? 'Play the demo' : 'Pause the demo');
+    };
+    showPaused();
+    const toggle = () => {
+      stopped = !stopped;
+      showPaused();
+    };
+    pause?.addEventListener('click', toggle);
 
     const tick = () => {
-      if (visible && !hovering && !document.hidden && Date.now() > holdUntil.current) {
+      const focused = stage.contains(document.activeElement) && document.activeElement !== pause;
+      if ((!stopped || step === 0) && visible && !hovering && !focused && !document.hidden && Date.now() > holdUntil.current) {
         withToast((toast) => reel[step++ % reel.length](toast));
       }
       timer = window.setTimeout(tick, STEP);
@@ -121,6 +140,7 @@ export default function HeroToast() {
       seen.disconnect();
       stage.removeEventListener('pointerenter', enter);
       stage.removeEventListener('pointerleave', leave);
+      pause?.removeEventListener('click', toggle);
     };
   }, []);
 
