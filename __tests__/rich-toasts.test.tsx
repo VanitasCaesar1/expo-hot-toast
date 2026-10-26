@@ -4,7 +4,7 @@ import { AccessibilityInfo, Platform, StyleSheet, Text } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Toaster } from '../src/components/toaster';
 import { toast } from '../src/core/toast';
-import { __resetStore } from '../src/core/store';
+import { __resetStore, getState } from '../src/core/store';
 import { __resetIdCounter } from '../src/core/ids';
 import { __resetProgress, progressValue } from '../src/core/progress';
 import { __resetAccessibilityCache } from '../src/utils/a11y';
@@ -316,7 +316,69 @@ describe('progress', () => {
     act(() => job.next());
     expect(screen.getByText('Uploading 2/3')).toBeTruthy();
     expect(job.step).toBe(1);
-    expect(progressValue(job.id).value).toBeCloseTo(1.5 / 3);
+    // The steps already done are filled; the current one is drawn under way.
+    expect(progressValue(job.id).value).toBeCloseTo(1 / 3);
+  });
+
+  it('keeps a progress toast on Android when it is tapped, unless asked', () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    render(<Toaster />);
+    let upload!: ReturnType<typeof toast.progress>;
+    act(() => {
+      upload = toast.progress('Uploading');
+      toast('Saved', { position: 'bottom-center' });
+    });
+    act(() => {
+      fireEvent.press(screen.getByLabelText('Uploading'));
+      fireEvent.press(screen.getByLabelText('Saved'));
+    });
+    const state = (id: string) => getState().toasts.find((t) => t.id === id)!;
+    // A stray tap must not hide work still running; the plain toast goes.
+    expect(state(upload.id).dismissed).toBe(false);
+    expect(getState().toasts.find((t) => t.message === 'Saved')!.dismissed).toBe(true);
+    // Its outcome is an ordinary toast again.
+    act(() => upload.success('Uploaded'));
+    act(() => {
+      fireEvent.press(screen.getByLabelText('Uploaded'));
+    });
+    expect(state(upload.id).dismissed).toBe(true);
+  });
+
+  it('a single step sweeps, with no percentage', () => {
+    render(<Toaster />);
+    let job!: ReturnType<typeof toast.steps>;
+    act(() => {
+      job = toast.steps(['Publishing']);
+    });
+    expect(progressValue(job.id).value).toBeLessThan(0);
+    expect(screen.UNSAFE_queryAllByProps({ editable: false }).length).toBe(0);
+  });
+
+  it('a finished toast.steps ignores a late next()', () => {
+    render(<Toaster />);
+    let job!: ReturnType<typeof toast.steps>;
+    act(() => {
+      job = toast.steps(['Compressing', 'Uploading']);
+    });
+    act(() => job.success('Published'));
+    act(() => job.next());
+    expect(screen.getByText('Published')).toBeTruthy();
+    expect(screen.queryByText('Uploading')).toBeNull();
+  });
+
+  it('draws no percentage beside the step label', () => {
+    render(<Toaster />);
+    // A plain progress toast has its percentage, a read-only text field.
+    act(() => {
+      toast.progress('Uploading', { id: 'plain' });
+    });
+    expect(screen.UNSAFE_queryAllByProps({ editable: false }).length).toBe(1);
+    act(() => {
+      toast.remove('plain');
+      toast.steps(['Compressing', 'Uploading']);
+    });
+    expect(screen.getByText('1/2')).toBeTruthy();
+    expect(screen.UNSAFE_queryAllByProps({ editable: false }).length).toBe(0);
   });
 
   it('toast.track follows a task to success, reporting progress on the way', async () => {

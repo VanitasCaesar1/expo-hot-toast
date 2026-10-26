@@ -387,13 +387,19 @@ function createToastAPI(): ToastAPI {
       accessibilityLabel: spoken(0),
     });
     let step = 0;
+    // Once it has an outcome, a late `next()` must not turn it back into a step.
+    let done = false;
     const go = (index: number) => {
-      step = Math.min(Math.max(index, 0), total - 1);
-      // The bar fills the steps already done, plus half of the current one.
-      setProgress(controller.id, (step + 0.5) / total);
+      if (done) return;
+      const to = Math.min(Math.max(index, 0), total - 1);
+      if (to === step) return;
+      step = to;
+      // The bar fills the steps already done; the renderer pulses the current one.
+      setProgress(controller.id, step / total);
       api.update(controller.id, { message: labels[step], timestamp: label(step), accessibilityLabel: spoken(step) });
     };
-    setProgress(controller.id, 0.5 / total);
+    // A single stage has no segments to pulse: it sweeps, as work of unknown length.
+    setProgress(controller.id, total === 1 ? 'indeterminate' : 0);
     // The outcome is read as itself, not as the last step.
     const finished = (opts?: ToastOptions) => (ownLabel ? opts : ({ accessibilityLabel: undefined, ...opts } as ToastOptions));
     return {
@@ -404,9 +410,18 @@ function createToastAPI(): ToastAPI {
       next: () => go(step + 1),
       go,
       update: controller.update,
-      success: (message, opts) => controller.success(message, finished(opts)),
-      error: (message, opts) => controller.error(message, finished(opts)),
-      dismiss: controller.dismiss,
+      success: (message, opts) => {
+        done = true;
+        controller.success(message, finished(opts));
+      },
+      error: (message, opts) => {
+        done = true;
+        controller.error(message, finished(opts));
+      },
+      dismiss: () => {
+        done = true;
+        controller.dismiss();
+      },
     };
   };
 

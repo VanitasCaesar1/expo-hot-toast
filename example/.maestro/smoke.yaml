@@ -147,8 +147,8 @@ appId: dev.expohottoast.example
     notVisible: "Payment received"
     timeout: 5000
 
-# Five at once: the newest three show, the other two wait their turn and are
-# promoted as space frees.
+# Five at once: the first three show, the other two wait their turn and are
+# promoted, in order, as space frees.
 - scrollUntilVisible:
     element:
       id: "row-burst-of-five"
@@ -157,24 +157,24 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-burst-of-five"
     waitToSettleTimeoutMs: 300
-- assertVisible: "Item 5 added to cart"
+- assertVisible: "Item 1 added to cart"
 - assertVisible: "Item 3 added to cart"
-- assertNotVisible: "Item 2 added to cart"
-- assertNotVisible: "Item 1 added to cart"
+- assertNotVisible: "Item 4 added to cart"
+- assertNotVisible: "Item 5 added to cart"
 - takeScreenshot: 06-burst-queue
-- tapOn: "Item 5 added to cart"
-- extendedWaitUntil:
-    visible: "Item 2 added to cart"
-    timeout: 5000
-- tapOn: "Item 4 added to cart"
-- extendedWaitUntil:
-    visible: "Item 1 added to cart"
-    timeout: 5000
-- tapOn: "Item 3 added to cart"
-- tapOn: "Item 2 added to cart"
 - tapOn: "Item 1 added to cart"
 - extendedWaitUntil:
-    notVisible: "Item 1 added to cart"
+    visible: "Item 4 added to cart"
+    timeout: 5000
+- tapOn: "Item 2 added to cart"
+- extendedWaitUntil:
+    visible: "Item 5 added to cart"
+    timeout: 5000
+- tapOn: "Item 3 added to cart"
+- tapOn: "Item 4 added to cart"
+- tapOn: "Item 5 added to cart"
+- extendedWaitUntil:
+    notVisible: "Item 5 added to cart"
     timeout: 5000
 
 # Three taps, one toast: dismissing it leaves nothing behind. Rows are
@@ -232,7 +232,7 @@ appId: dev.expohottoast.example
 - tapOn:
     id: "row-burst-of-five"
     waitToSettleTimeoutMs: 300
-- assertVisible: "Item 5 added to cart"
+- assertVisible: "Item 3 added to cart"
 - takeScreenshot: 08b-stacked
 - scrollUntilVisible:
     element:
@@ -243,7 +243,7 @@ appId: dev.expohottoast.example
     id: "row-stacked"
     waitToSettleTimeoutMs: 300
 - extendedWaitUntil:
-    notVisible: "Item 5 added to cart"
+    notVisible: "Item 3 added to cart"
     timeout: 5000
 
 - scrollUntilVisible:

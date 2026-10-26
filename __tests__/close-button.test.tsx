@@ -278,11 +278,11 @@ describe('auto-dismissal reaches the screen', () => {
       }
     });
 
-    // visibleToasts defaults to 3. The other three are queued rather than
-    // mounted, so a burst is no longer a wall of glass.
+    // visibleToasts defaults to 3. The first three show and the other three
+    // are queued rather than mounted, so a burst is no longer a wall of glass.
     expect(screen.getAllByText(/burst /)).toHaveLength(CAP);
-    expect(screen.getByText('burst 5')).toBeTruthy();
-    expect(screen.queryByText('burst 2')).toBeNull();
+    expect(screen.getByText('burst 0')).toBeTruthy();
+    expect(screen.queryByText('burst 3')).toBeNull();
 
     // Drain in ticks until the front toast has retired and the first queued toast
     // has taken its slot.
@@ -297,9 +297,9 @@ describe('auto-dismissal reaches the screen', () => {
     // tree — a dismissed toast stays mounted so its exit can play — so the
     // assertion reads the store, where a promotion that expired on its own tick
     // would show up as `dismissed`.
-    expect(screen.getByText('burst 2')).toBeTruthy();
-    expect(storeFor('burst 2').dismissed).toBe(false);
-    expect(storeFor('burst 2').dismissReason).toBeUndefined();
+    expect(screen.getByText('burst 3')).toBeTruthy();
+    expect(storeFor('burst 3').dismissed).toBe(false);
+    expect(storeFor('burst 3').dismissReason).toBeUndefined();
 
     // Keep draining: each retirement frees a slot, the next queued toast is
     // promoted into it, and the toast it replaces only unmounts after its exit.

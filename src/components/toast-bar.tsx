@@ -603,6 +603,7 @@ export const ToastBar = React.memo(function ToastBar({
     if (ownProgress !== undefined) applyOwnProgress(toastId, ownProgress);
   }, [ownProgress, toastId]);
   const ring = hasProgress && toast.progressStyle === 'ring';
+  const steps = toast.progressSegments !== undefined;
 
   // A blank toast with no icon draws no icon slot at all. An empty slot still
   // took the row gap, so plain toasts sat off-centre in their pill.
@@ -649,7 +650,9 @@ export const ToastBar = React.memo(function ToastBar({
     </Animated.View>
   );
 
-  const tapToDismiss = dismissible && (toast.dismissOnTap ?? Platform.OS === 'android');
+  // Android's default tap dismisses a toast, except one still in progress: a
+  // stray tap would hide an upload that is still running.
+  const tapToDismiss = dismissible && (toast.dismissOnTap ?? (Platform.OS === 'android' && !hasProgress));
   const closeable = dismissible && (toast.closeButton ?? toast.closeable ?? false);
   const expandable = toast.expandable;
   const [expanded, setExpanded] = React.useState(expandable?.defaultExpanded ?? false);
@@ -746,8 +749,9 @@ export const ToastBar = React.memo(function ToastBar({
             {toast.timestamp}
           </Text>
         ) : null}
-        {hasProgress && !hud ? (
+        {hasProgress && !hud && !steps ? (
           // At the line's trailing edge, so the number never jostles the title.
+          // Steps have their own label, and no percentage to give.
           <ProgressPercent progress={progress!} style={[styles.timestamp, styles.trailing, { color: muted, fontSize: theme.descriptionFontSize }]} />
         ) : null}
       </View>

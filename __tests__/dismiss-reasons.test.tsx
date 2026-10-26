@@ -117,8 +117,8 @@ describe('dismiss reasons', () => {
 
     state = reducer(state, { type: ActionType.ADD_TOAST, toast: make('c') });
 
-    // The default policy, 'oldest', sacrifices 'a', the first to arrive. It
-    // stays in the array so its exit can still play.
+    // The default policy, 'oldest', sacrifices 'a', the first to arrive, which
+    // has been on screen. It stays in the array so its exit can still play.
     const evicted = state.toasts.find((t) => t.id === 'a');
     expect(evicted!.dismissed).toBe(true);
     expect(evicted!.dismissReason).toBe('overflow');

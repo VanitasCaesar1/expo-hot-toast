@@ -16,24 +16,24 @@ import { useToaster, useToasterCleanup } from '../src/core/use-toaster';
 const EPSILON = 1;
 
 /**
- * Wall-clock deadline, in ms from creation, for a toast at `depth` in its
- * position stack.
+ * Wall-clock deadline, in ms from creation, for the toast shown `order`th
+ * among toasts that would otherwise retire together.
  *
  * The auto-dismiss budget is
  *
- *   duration + pauseDuration + stagger(depth) - enter - (now - createdAt)
+ *   duration + pauseDuration + stagger - enter - (now - createdAt)
  *
- * so from creation it collapses to `duration + stagger(depth) - enter`. Two
+ * so from creation it collapses to `duration + stagger - enter`. Two
  * deliberate consequences: the enter animation is charged to the motion rather
  * than to the reader's time (a 4000ms toast retires at 3650ms, not 4000ms), and
- * each stack position gets a later deadline so a burst retires progressively
- * instead of all on one frame.
+ * toasts shown together get later deadlines in the order they were shown, so a
+ * burst retires progressively instead of all on one frame.
  *
  * Derived from `defaultMotion` rather than written as a literal so that retuning
  * the motion table cannot silently invalidate a whole file of magic numbers.
  */
-function deadline(duration: number, depth = 0): number {
-  const stagger = Math.min(depth * defaultMotion.stagger, defaultMotion.staggerMax);
+function deadline(duration: number, order = 0): number {
+  const stagger = Math.min(order * defaultMotion.stagger, defaultMotion.staggerMax);
   return duration + stagger - defaultMotion.enter;
 }
 
@@ -417,12 +417,13 @@ describe('useToaster — visible cap', () => {
       toast('three');
     });
 
-    // Newest first, and depth assigned as the cap is applied. The array itself is
-    // never spliced: the over-cap toast is queued, not deleted, so it can still
-    // play an exit if it is evicted later.
-    expect(result.current.toasts.map((t) => t.message)).toEqual(['three', 'two']);
+    // First come, first shown: the first two take the places, drawn newest
+    // first, and the third waits its turn. The array itself is never spliced:
+    // the over-cap toast is queued, not deleted, so it can still play an exit
+    // if it is evicted later.
+    expect(result.current.toasts.map((t) => t.message)).toEqual(['two', 'one']);
     expect(result.current.toasts.map((t) => t.depth)).toEqual([0, 1]);
-    expect(result.current.pending.map((t) => t.message)).toEqual(['one']);
+    expect(result.current.pending.map((t) => t.message)).toEqual(['three']);
   });
 
   it('caps each position independently', () => {
@@ -434,8 +435,8 @@ describe('useToaster — visible cap', () => {
       toast('bottom a', { position: 'bottom-center' });
     });
 
-    expect(result.current.toasts.map((t) => t.message)).toEqual(['bottom a', 'top b']);
-    expect(result.current.pending.map((t) => t.message)).toEqual(['top a']);
+    expect(result.current.toasts.map((t) => t.message)).toEqual(['bottom a', 'top a']);
+    expect(result.current.pending.map((t) => t.message)).toEqual(['top b']);
   });
 
   it('fills two positions to the default cap of three with nothing left over', () => {
@@ -478,8 +479,8 @@ describe('useToaster — pending buffer', () => {
     const { result } = renderHook(() => useToaster({ visibleToasts: 1, maxPending: 10 }));
 
     act(() => {
-      toast('queued', { duration: 500 });
       toast('front');
+      toast('queued', { duration: 500 });
     });
 
     expect(result.current.toasts.map((t) => t.message)).toEqual(['front']);
@@ -503,11 +504,11 @@ describe('useToaster — pending buffer', () => {
     );
 
     act(() => {
+      toast('first');
       toast('behind it');
-      toast('newest');
     });
 
-    expect(result.current.toasts.map((t) => t.message)).toEqual(['newest']);
+    expect(result.current.toasts.map((t) => t.message)).toEqual(['first']);
     expect(result.current.pending.map((t) => t.message)).toEqual(['behind it']);
 
     const id = only(result.current.toasts).id;
@@ -519,8 +520,8 @@ describe('useToaster — pending buffer', () => {
     // the dismissed one is still drawn, playing its exit in place. Waiting for
     // the exit left the slot empty, and a burst could empty every slot.
     expect(result.current.toasts.map((t) => [t.message, t.dismissed])).toEqual([
-      ['newest', true],
       ['behind it', false],
+      ['first', true],
     ]);
     expect(result.current.pending).toHaveLength(0);
     expect(getState().toasts).toHaveLength(2);
@@ -545,8 +546,8 @@ describe('useToaster — pending buffer', () => {
     );
 
     act(() => {
+      toast('first');
       toast('behind it');
-      toast('newest');
     });
 
     act(() => {
@@ -564,8 +565,8 @@ describe('useToaster — pending buffer', () => {
     );
 
     act(() => {
-      toast('queued', { duration: DURATION });
       toast('front', { duration: 60_000 });
+      toast('queued', { duration: DURATION });
     });
     expect(result.current.pending.map((t) => t.message)).toEqual(['queued']);
 
@@ -614,8 +615,8 @@ describe('useToaster — pending buffer', () => {
     );
 
     act(() => {
-      toast('queued', { duration: DURATION });
       toast('front', { duration: 60_000 });
+      toast('queued', { duration: DURATION });
     });
     expect(result.current.pending.map((t) => t.message)).toEqual(['queued']);
 
@@ -652,28 +653,61 @@ describe('useToaster — pending buffer', () => {
 });
 
 describe('useToaster — bursts', () => {
-  it('lets a toast pushed out by a newer one leave with an exit, then drops it', () => {
-    const { result } = renderHook(() => useToaster({ visibleToasts: 1, maxPending: 10, exitDuration: 400 }));
+  it('plays a burst in the order it was fired: the first ones show, the rest wait', () => {
+    const { result } = renderHook(() => useToaster({ visibleToasts: 3, maxPending: 10, exitDuration: 400 }));
+    act(() => {
+      for (let n = 1; n <= 5; n++) toast(`Item ${n}`, { duration: 60_000 });
+    });
+    // Drawn newest first, nearest the edge; nothing pushed off to come back.
+    expect(result.current.toasts.map((t) => [t.message, !!t.queued])).toEqual([
+      ['Item 3', false],
+      ['Item 2', false],
+      ['Item 1', false],
+    ]);
+    expect(result.current.pending.map((t) => t.message)).toEqual(['Item 5', 'Item 4']);
+
+    // The first to arrive leaves first, and the next in line takes its place.
+    act(() => toast.dismiss(result.current.toasts.find((t) => t.message === 'Item 1')!.id));
+    expect(result.current.toasts.filter((t) => !t.dismissed).map((t) => t.message)).toEqual(['Item 4', 'Item 3', 'Item 2']);
+    expect(result.current.pending.map((t) => t.message)).toEqual(['Item 5']);
+  });
+
+  it('lets an error go ahead of the queue; the newest showing waits for it, with an exit', () => {
+    const { result } = renderHook(() => useToaster({ visibleToasts: 2, maxPending: 10, exitDuration: 400 }));
     act(() => {
       toast('first', { duration: 60_000 });
+      toast('second', { duration: 60_000 });
+      toast('waiting', { duration: 60_000 });
     });
     act(() => {
-      toast('second', { duration: 60_000 });
+      toast.error('Payment failed', { duration: 60_000 });
     });
 
     // Still drawn, flagged queued, so a renderer plays its exit.
     expect(result.current.toasts.map((t) => [t.message, !!t.queued])).toEqual([
-      ['second', false],
-      ['first', true],
+      ['Payment failed', false],
+      ['second', true],
+      ['first', false],
     ]);
-    expect(result.current.pending.map((t) => t.message)).toEqual(['first']);
+    expect(result.current.pending.map((t) => t.message)).toEqual(['waiting', 'second']);
 
     act(() => {
       jest.advanceTimersByTime(450);
     });
-    // Its exit is over: it waits off screen, its timer paused.
-    expect(result.current.toasts.map((t) => t.message)).toEqual(['second']);
-    expect(result.current.pending.map((t) => t.message)).toEqual(['first']);
+    // Its exit is over: it waits off screen, its timer paused, ahead of the
+    // toast that arrived after it.
+    expect(result.current.toasts.map((t) => t.message)).toEqual(['Payment failed', 'first']);
+    act(() => toast.dismiss(result.current.toasts[0]!.id));
+    expect(result.current.toasts.filter((t) => !t.dismissed).map((t) => t.message)).toEqual(['second', 'first']);
+  });
+
+  it('lets an important toast go ahead of the queue too', () => {
+    const { result } = renderHook(() => useToaster({ visibleToasts: 1, maxPending: 10 }));
+    act(() => {
+      toast('first', { duration: 60_000 });
+      toast('Card expires tomorrow', { important: true, duration: 60_000 });
+    });
+    expect(result.current.toasts.filter((t) => !t.queued).map((t) => t.message)).toEqual(['Card expires tomorrow']);
   });
 
   it('never fills the slots with leaving toasts in a burst that overflows the queue', () => {
@@ -682,8 +716,8 @@ describe('useToaster — bursts', () => {
       for (let n = 0; n < 18; n++) toast(`t${n}`, { duration: 60_000 });
     });
     const live = result.current.toasts.filter((t) => !t.dismissed && !t.queued);
-    // Three on screen, the three newest; the oldest were dropped, not the new ones.
-    expect(live.map((t) => t.message)).toEqual(['t17', 't16', 't15']);
+    // The oldest were dropped, not the new ones, and the next in line show.
+    expect(live.map((t) => t.message)).toEqual(['t7', 't6', 't5']);
     expect(getState().toasts.filter((t) => t.dismissReason === 'overflow').map((t) => t.message)).toEqual(
       ['t4', 't3', 't2', 't1', 't0'],
     );
@@ -712,8 +746,8 @@ describe('useToaster — overflow', () => {
     push('default', ['a', 'b', 'c']);
 
     // Capacity is 1 + 2 = 3, so nothing has been dropped yet: 1 visible, 2 queued.
-    expect(result.current.toasts.map((t) => t.message)).toEqual(['c']);
-    expect(result.current.pending.map((t) => t.message)).toEqual(['b', 'a']);
+    expect(result.current.toasts.map((t) => t.message)).toEqual(['a']);
+    expect(result.current.pending.map((t) => t.message)).toEqual(['c', 'b']);
     expect(getState().toasts.every((t) => !t.dismissed)).toBe(true);
   });
 
@@ -725,8 +759,9 @@ describe('useToaster — overflow', () => {
     push('default', ['a', 'b', 'c']);
     push('default', ['d']);
 
-    // 'oldest' sacrifices 'a', the first to arrive. It is flagged rather than
-    // spliced out — silently vanishing is the upstream bug this replaces.
+    // 'oldest' sacrifices 'a', the first to arrive, which has been on screen.
+    // It is flagged rather than spliced out — silently vanishing is the
+    // upstream bug this replaces.
     const victim = getState().toasts.find((t) => t.message === 'a');
     expect(victim!.dismissed).toBe(true);
     expect(victim!.dismissReason).toBe('overflow');
@@ -766,33 +801,46 @@ describe('useToaster — overflow', () => {
 });
 
 describe('useToaster — staggered deadlines', () => {
-  it('does not retire a stack on one tick; the deeper toast outlives it', () => {
+  it('does not retire a stack on one tick; the first shown leaves first', () => {
     const { result } = renderHook(() => useToaster({ visibleToasts: 2, maxPending: 10 }));
 
     act(() => {
-      toast('newest');
-      toast('older');
+      toast('first');
+      toast('second');
     });
 
-    // Newest-first, so 'older' was pushed second and therefore sits at the front.
-    expect(result.current.toasts.map((t) => t.message)).toEqual(['older', 'newest']);
+    // Newest-first, so 'second' sits at the front.
+    expect(result.current.toasts.map((t) => t.message)).toEqual(['second', 'first']);
     expect(result.current.toasts.map((t) => t.depth)).toEqual([0, 1]);
 
-    const front = deadline(defaultTimeouts.blank, 0);
-    const back = deadline(defaultTimeouts.blank, 1);
-    expect(back - front).toBe(defaultMotion.stagger);
+    const earlier = deadline(defaultTimeouts.blank, 0);
+    const later = deadline(defaultTimeouts.blank, 1);
+    expect(later - earlier).toBe(defaultMotion.stagger);
 
     const dismissed = () => result.current.toasts.filter((t) => t.dismissed).map((t) => t.message);
 
     act(() => {
-      jest.advanceTimersByTime(front + EPSILON);
+      jest.advanceTimersByTime(earlier + EPSILON);
     });
-    expect(dismissed()).toEqual(['older']);
+    expect(dismissed()).toEqual(['first']);
 
     act(() => {
-      jest.advanceTimersByTime(back - front);
+      jest.advanceTimersByTime(later - earlier);
     });
-    expect(dismissed()).toEqual(['older', 'newest']);
+    expect(dismissed()).toEqual(['second', 'first']);
+  });
+
+  it('staggers only toasts that would retire together', () => {
+    const { result } = renderHook(() => useToaster({ visibleToasts: 2, maxPending: 10 }));
+    act(() => {
+      toast('long', { duration: 6000 });
+      toast('short', { duration: 2000 });
+    });
+    // Four seconds apart already: the short one keeps its own time.
+    act(() => {
+      jest.advanceTimersByTime(deadline(2000) + EPSILON);
+    });
+    expect(result.current.toasts.find((t) => t.message === 'short')!.dismissed).toBe(true);
   });
 
   it('caps the stagger so a deep stack cannot hold a toast for minutes', () => {
@@ -808,11 +856,12 @@ describe('useToaster — staggered deadlines', () => {
 
     expect(result.current.toasts.map((t) => t.depth)).toEqual([0, 1, 2, 3, 4]);
 
-    // Depth 4 would be 4 * 320 = 1280ms of stagger, well past the 900ms ceiling.
+    // The fifth would be 4 * 320 = 1280ms late, well past the 900ms ceiling.
     expect(4 * defaultMotion.stagger).toBeGreaterThan(defaultMotion.staggerMax);
-    expect(deadline(defaultTimeouts.blank, 4)).toBe(
-      defaultTimeouts.blank + defaultMotion.staggerMax - defaultMotion.enter,
-    );
+    act(() => {
+      jest.advanceTimersByTime(defaultTimeouts.blank + defaultMotion.staggerMax - defaultMotion.enter + EPSILON);
+    });
+    expect(result.current.toasts.every((t) => t.dismissed)).toBe(true);
   });
 });
 
@@ -1048,7 +1097,7 @@ describe('useToaster — demotion and re-promotion', () => {
       jest.advanceTimersByTime(2000);
     });
     act(() => {
-      toast('second', { duration: 2000 });
+      toast.error('second', { duration: 2000 });
     });
     expect(result.current.pending.map((t) => t.message)).toEqual(['first']);
 
@@ -1127,8 +1176,8 @@ describe('useToaster — returning from the background', () => {
     const app = captureAppState();
     const { result } = renderHook(() => useToaster({ visibleToasts: 1 }));
     act(() => {
-      toast('waiting', { duration: 1000 });
       toast('front', { duration: 'infinite' });
+      toast('waiting', { duration: 1000 });
     });
 
     app.resumeAfter(60_000);

@@ -183,8 +183,16 @@ import { GlassBadge } from '../glassyui/glass-badge';
   );
   document.querySelectorAll<HTMLElement>('[data-tile]').forEach((tile) => seen.observe(tile));
 
-  document.querySelector('[data-action="queue"]')?.addEventListener('click', plays.queue);
-  document.querySelector('[data-action="dedupe"]')?.addEventListener('click', plays.dedupe);
+  // A press plays the tile now and starts its loop over, so the loop does not
+  // fire a second burst into the middle of this one.
+  const press = (name: string) => () => {
+    plays[name]();
+    if (!timers.has(name)) return;
+    clearInterval(timers.get(name));
+    timers.set(name, window.setInterval(plays[name], loops[name]));
+  };
+  document.querySelector('[data-action="queue"]')?.addEventListener('click', press('queue'));
+  document.querySelector('[data-action="dedupe"]')?.addEventListener('click', press('dedupe'));
 
   // The token sliders restyle the tile's toast as they move.
   const code = document.querySelector('[data-token-code]');

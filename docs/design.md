@@ -64,9 +64,12 @@ the nearest RN equivalent is an opacity animation that cannot touch the glass.
 animation, and the toast the user was reading blinks out. Twenty simultaneous
 toasts is also a wall of glass rather than a queue.
 
-Here up to `visibleToasts` (default 3) are visible *per position*; the overflow
-stays stored with its timer **unarmed**, and is promoted into the freed slot on
-dismissal. Nothing is evicted until `visibleToasts + maxPending` is exceeded, at
+Here up to `visibleToasts` (default 3) are visible *per position*, first come,
+first shown; the overflow stays stored with its timer **unarmed**, and is
+promoted into the freed slot on dismissal, in the order it arrived. A burst
+plays in the order it was fired. Errors and `important` toasts go ahead of
+the queue: the toast that arrived last among those showing waits for them,
+leaving the screen to come back when space frees. Nothing is evicted until `visibleToasts + maxPending` is exceeded, at
 which point `dropPolicy` decides which end to drop — and even then the victim
 plays its exit and reports `dismissReason: 'overflow'`.
 
@@ -80,12 +83,13 @@ A toast's deadline is `duration + pauseDuration + stagger - enter`:
 
 - **`enter` is charged to the animation, not the reader.** Without this a 2000ms
   success toast was on screen for 2000ms but readable for only 1650ms.
-- **`stagger` is added per stack position** (`depth * 320`, capped at 900ms), so
-  three toasts shown together retire at 2000 / 2320 / 2640 instead of all
-  collapsing on one frame, which reads as a glitch.
+- **`stagger` spreads out toasts that would retire together** (320ms apart,
+  capped at 900ms), fixed when each appears and in the order they appeared, so
+  three toasts shown together retire at 2000 / 2320 / 2640, first shown first,
+  instead of all collapsing on one frame, which reads as a glitch.
 - **Time runs from when a toast became visible,** not from creation, so a queued
   toast is not retired on the tick it is promoted. A visible toast pushed back
-  into the queue by newer ones starts over when it returns.
+  into the queue by an error starts over when it returns.
 - **Backgrounded apps recover.** A suspended app freezes timers but not the
   clock, so on resume every visible toast is re-checked against its deadline.
 

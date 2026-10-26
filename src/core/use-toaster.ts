@@ -7,6 +7,7 @@ import {
   destroyToaster,
   dispatch,
   getState,
+  onScreen,
   setSettings,
   toastSlot,
   useToasterStore,
@@ -98,11 +99,13 @@ export function useToaster({
    */
   const visibleSince = useRef(new Map<string, number>()).current;
   /**
-   * The pause credit each toast already held when it was shown. A toast that
-   * waited behind others through a pause was not on screen for it, so that
-   * credit must not lengthen its time once it is.
+   * What each toast was when it was shown: its `createdAt`, so a replacement
+   * by id since can be told apart; the pause credit it already held, since a
+   * toast that waited behind others through a pause was not on screen for it
+   * and that credit must not lengthen its time once it is; and the stagger it
+   * was given (see below).
    */
-  const creditAtShow = useRef(new Map<string, number>()).current;
+  const shownAs = useRef(new Map<string, ShownAs>()).current;
 
   // Timing facts the store needs, kept out of the theme object so the core does
   // not depend on the theme layer just to read three numbers.
@@ -271,12 +274,12 @@ export function useToaster({
    * promotes the next one into the freed slot — no imperative promotion step to
    * get wrong, and nothing to desynchronise.
    *
-   * `depth` is assigned here because the stagger and the "prefer older news"
-   * ordering both depend on knowing how deep in the stack a toast sits, and that
-   * is only knowable after the limit has been applied.
+   * `depth` is assigned here, the toast's place counted from the front, because
+   * it is only knowable after the limit has been applied.
    */
   /**
-   * When each toast was pushed out of the visible slots by newer ones. For
+   * When each toast was pushed back out of the visible slots (by a toast that
+   * jumps the queue, or a lower `visibleToasts`). For
    * one exit's length it is still rendered, flagged `queued`, so it leaves
    * like a dismissed toast instead of vanishing on the spot.
    */
@@ -287,12 +290,7 @@ export function useToaster({
   const { visible, pending } = useMemo(() => {
     const cap = state.settings.visibleToasts;
     const now = Date.now();
-    // depth of the front toast per position. Used both as the running count and
-    // as the toast's own depth, so the stagger and the drop ordering can see how
-    // far back in the stack a toast sits.
-    const filled = new Map<string, number>();
-    // Depth counts every toast drawn ahead, leaving ones included, so a toast
-    // keeps its staggered deadline while the one in front plays its exit.
+    // Depth counts every toast drawn ahead, leaving ones included.
     const ahead = new Map<string, number>();
     const vis: Toast[] = [];
     const pen: Toast[] = [];
@@ -320,9 +318,22 @@ export function useToaster({
       return since !== undefined && now - since < exitDuration;
     };
 
+    // Which live toasts hold a place, slot by slot: the first to arrive.
+    const bySlot = new Map<string, Toast[]>();
+    for (const toast of toasts) {
+      if (toast.dismissed) continue;
+      const pos = slotOf(toast);
+      const list = bySlot.get(pos);
+      if (list) list.push(toast);
+      else bySlot.set(pos, [toast]);
+    }
+    const shown = new Set<string>();
+    bySlot.forEach((list) => onScreen(list, cap).forEach((id) => shown.add(id)));
+    // Shown on this render, to be given their stagger oldest first below.
+    const arrived: Toast[] = [];
+
     for (const toast of toasts) {
       const pos = slotOf(toast);
-      const used = filled.get(pos) ?? 0;
       const depth = ahead.get(pos) ?? 0;
 
       // A dismissed toast is leaving: it no longer holds a slot, so the next
@@ -337,17 +348,17 @@ export function useToaster({
         continue;
       }
 
-      if (used >= cap) {
-        // Pushed out by newer toasts. It forgets when it was first shown, or
-        // its clock keeps running while it waits and it is retired on the tick
-        // it returns; and it leaves with an exit rather than vanishing.
+      if (!shown.has(toast.id)) {
+        // Waiting its turn. One that was showing (pushed back by a toast that
+        // jumps the queue) forgets when it was first shown, or its clock keeps
+        // running while it waits and it is retired on the tick it returns; and
+        // it leaves with an exit rather than vanishing.
         if (visibleSince.delete(toast.id)) displacedAt.set(toast.id, now);
         if (exiting(toast.id)) vis.push(stamp(toast, depth, true));
         pen.push(toast);
         continue;
       }
 
-      filled.set(pos, used + 1);
       ahead.set(pos, depth + 1);
       displacedAt.delete(toast.id);
       if (!visibleSince.has(toast.id)) {
@@ -355,9 +366,34 @@ export function useToaster({
         // Shown during a pause: the part of it already over was not seen.
         const pausedAt = pausedAtRef.current;
         const running = pausedAt === undefined ? 0 : now - Math.max(pausedAt, toast.createdAt);
-        creditAtShow.set(toast.id, toast.pauseDuration + Math.max(running, 0));
+        shownAs.set(toast.id, { createdAt: toast.createdAt, credit: toast.pauseDuration + Math.max(running, 0), stagger: 0 });
+        arrived.push(toast);
       }
       vis.push(stamp(toast, depth, false));
+    }
+
+    // Toasts that would retire within a stagger of one another are spread
+    // out, so a stack clears one toast at a time rather than all on one
+    // frame. Fixed when a toast appears, oldest first, so the first shown
+    // leaves first and its place goes to the next in line.
+    const unstaggered = new Set(arrived.map((t) => t.id));
+    for (const toast of arrived.reverse()) {
+      unstaggered.delete(toast.id);
+      if (toast.duration === undefined || !Number.isFinite(toast.duration)) continue;
+      // Deadlines as the timers will see them: pauses, a replacement by id and
+      // earlier staggers all move them.
+      const own = now + remaining(toast, visibleSince, shownAs, motion, now);
+      const others = vis
+        .filter((t) => !unstaggered.has(t.id) && t.id !== toast.id && !t.dismissed && !t.queued && slotOf(t) === slotOf(toast))
+        .map((t) => (t.duration === undefined ? Infinity : now + remaining(t, visibleSince, shownAs, motion, now)))
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      let extra = 0;
+      for (const deadline of others) {
+        if (Math.abs(own + extra - deadline) < motion.stagger) extra = deadline + motion.stagger - own;
+      }
+      const entry = shownAs.get(toast.id);
+      if (entry) entry.stagger = Math.min(Math.max(extra, 0), motion.staggerMax);
     }
 
     // Prune ids that have left the store, or these grow forever.
@@ -366,8 +402,8 @@ export function useToaster({
       visibleSince.forEach((_at, id) => {
         if (!live.has(id)) visibleSince.delete(id);
       });
-      creditAtShow.forEach((_at, id) => {
-        if (!live.has(id)) creditAtShow.delete(id);
+      shownAs.forEach((_at, id) => {
+        if (!live.has(id)) shownAs.delete(id);
       });
       displacedAt.forEach((_at, id) => {
         if (!live.has(id)) displacedAt.delete(id);
@@ -377,7 +413,7 @@ export function useToaster({
     return { visible: vis, pending: pen };
     // `exitTick` re-runs this once a displaced toast's exit is over.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toasts, state.settings.visibleToasts, visibleSince, deep, displacedAt, exitDuration, exitTick]);
+  }, [toasts, state.settings.visibleToasts, visibleSince, deep, displacedAt, exitDuration, exitTick, motion, shownAs]);
 
   // Once the earliest displaced toast's exit is over, re-render to drop it.
   useEffect(() => {
@@ -417,7 +453,7 @@ export function useToaster({
           // pending toast has not been seen yet, so it cannot have expired.
           visible.forEach((t) => {
             if (!t.visible || t.queued || t.duration === Infinity) return;
-            if (remaining(t, visibleSince, creditAtShow, motion, now) <= 0) {
+            if (remaining(t, visibleSince, shownAs, motion, now) <= 0) {
               toast.dismiss(t.id, toasterId, 'timeout');
             }
           });
@@ -426,7 +462,7 @@ export function useToaster({
       },
     );
     return () => subscription.remove();
-  }, [visible, toasterId, motion, visibleSince, creditAtShow, pausedAt]);
+  }, [visible, toasterId, motion, visibleSince, shownAs, pausedAt]);
 
   /**
    * Timers, armed for visible toasts only.
@@ -436,8 +472,8 @@ export function useToaster({
    *  - The enter animation is charged to the animation, not to the reader. A
    *    2000ms success toast is on screen for 2000ms but was only readable for
    *    1650ms, because the 350ms entrance came out of the same budget.
-   *  - The deadline is staggered by stack depth, so three toasts shown together
-   *    retire at 2000 / 2320 / 2640 rather than all on the same frame.
+   *  - Deadlines are staggered, so three toasts shown together retire at
+   *    2000 / 2320 / 2640, first shown first, rather than all on one frame.
    *  - Pending toasts arm nothing. A toast that is merely queued should not
    *    expire before it is ever seen.
    */
@@ -449,7 +485,7 @@ export function useToaster({
     const timers = visible
       .filter((t) => t.visible && !t.queued && t.duration !== Infinity)
       .map((t) => {
-        const budget = remaining(t, visibleSince, creditAtShow, motion, now);
+        const budget = remaining(t, visibleSince, shownAs, motion, now);
 
         if (budget <= 0) {
           toast.dismiss(t.id, toasterId, 'timeout');
@@ -465,7 +501,7 @@ export function useToaster({
     return () => {
       timers.forEach(clearTimeout);
     };
-  }, [visible, pausedAt, toasterId, motion, visibleSince, creditAtShow]);
+  }, [visible, pausedAt, toasterId, motion, visibleSince, shownAs]);
 
   // Memoized so `handlers` is as stable as the functions it wraps.
   const handlers = useMemo(() => ({ startPause, endPause }), [startPause, endPause]);
@@ -473,25 +509,34 @@ export function useToaster({
   return { toasts: visible, pending, startPause, endPause, handlers, paused: pausedAt !== undefined };
 }
 
+interface ShownAs {
+  createdAt: number;
+  credit: number;
+  stagger: number;
+}
+
 /**
  * Milliseconds left before a visible toast times out.
  *
  * Measured from when the toast became visible, falling back to creation for the
  * rare render where the map has not been written yet. The enter animation is
- * charged to the animation and the deadline is staggered by stack depth.
+ * charged to the animation, and the stagger it was given when it appeared is
+ * added.
  */
 function remaining(
   t: Toast,
   visibleSince: Map<string, number>,
-  creditAtShow: Map<string, number>,
-  motion: { enter: number; stagger: number; staggerMax: number },
+  shownAs: Map<string, ShownAs>,
+  motion: { enter: number },
   now: number,
 ): number {
-  const stagger = Math.min(t.depth * motion.stagger, motion.staggerMax);
   // Only pauses since it was shown count. A toast replaced by id since then
-  // starts its credit afresh with its new `createdAt`.
-  const since = visibleSince.get(t.id);
-  const before = since === undefined || t.createdAt >= since ? 0 : (creditAtShow.get(t.id) ?? 0);
+  // starts its credit afresh with its new `createdAt`, and its own time with
+  // no stagger.
+  const shown = shownAs.get(t.id);
+  const replaced = shown === undefined || shown.createdAt !== t.createdAt;
+  const before = replaced ? 0 : shown.credit;
+  const stagger = replaced ? 0 : shown.stagger;
   return (t.duration ?? 0) + t.pauseDuration - before + stagger - motion.enter - (now - shownAt(visibleSince, t));
 }
 

@@ -23,9 +23,10 @@ blue and warning is amber.
 
 ## Progress
 
-`toast.progress` shows a toast with a bar along its bottom edge and returns a
-controller. Set the progress from 0 to 1, then finish with a success or an
-error, which replaces the bar in the same toast:
+`toast.progress` shows a toast with a bar under its message and the percentage
+at the end of the line, and returns a controller. Set the progress from 0 to 1,
+then finish with a success or an error, which replaces the bar in the same
+toast:
 
 ```tsx title="upload.ts"
 const upload = toast.progress('Uploading 4 photos');
@@ -70,7 +71,9 @@ toasts with a line or two of text; the ring suits short ones and the HUD.
 ## Steps
 
 For work in named stages, `toast.steps` shows the current stage's name and a
-bar split into one segment per stage, with "2/3" at the end of the line:
+bar split into one segment per stage, with "2/3" at the end of the line. The
+stages already done are filled and the current one pulses, since how far
+through it the work is isn't known:
 
 ```tsx
 const job = toast.steps(['Compressing video', 'Uploading', 'Processing']);
@@ -83,7 +86,10 @@ await process();
 job.success('Video published');
 ```
 
-`job.go(index)` jumps to a stage; `job.step` is the current one, from 0.
+`job.go(index)` jumps to a stage; `job.step` is the current one, from 0. A
+screen reader hears each stage as "Uploading, step 2 of 3". Once the job has
+an outcome, a late `next()` or `go()` does nothing, so the success toast is
+never turned back into a stage.
 
 ## Expandable details
 

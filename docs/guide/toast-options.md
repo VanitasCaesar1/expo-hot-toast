@@ -48,7 +48,7 @@ Pass these as the second argument to `toast()`, or as defaults in
 
 | Option | Type | Default | |
 |---|---|---|---|
-| `dismissOnTap` | `boolean` | `true` on Android, `false` on iOS | Tap to dismiss |
+| `dismissOnTap` | `boolean` | `true` on Android (except a toast with progress), `false` on iOS | Tap to dismiss |
 | `onPress` | `() => void` | none | Tapping the toast calls this, then dismisses it |
 | `dismissible` | `boolean` | `true` | `false` turns off swipe and tap to dismiss; a button or the timer still can |
 | `swipeDirections` | `SwipeDirection[]` | toward its edge, and right (left in right-to-left layouts); left and right for a snackbar | Which ways a swipe dismisses |

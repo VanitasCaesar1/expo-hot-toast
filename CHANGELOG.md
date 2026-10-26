@@ -164,6 +164,16 @@ Initial release. Not yet published to npm; `main` previously pointed at
 - Removed the `'replaced'` dismiss reason, which nothing ever emitted, and the
   per-toast `reverseOrder` option, which nothing read (`<Toaster reverseOrder>`
   is unchanged).
+- **The queue is first come, first shown.** The first `visibleToasts` toasts
+  at a position show and the rest wait their turn, moving up in the order they
+  arrived. A newer toast used to push the oldest one showing back into the
+  queue, so in a burst early toasts left and came back after later ones, and
+  the stack cleared newest first. Errors and `important` toasts still show at
+  once: the newest toast showing waits for them. The stagger between toasts
+  that would leave together is fixed when each appears, first shown first.
+- **Steps pulse instead of half-filling.** `toast.steps()` fills the stages
+  done and pulses the current one, rather than drawing it half full, and no
+  longer shows a percentage beside its "2/3" label.
 
 ### Fixed
 
@@ -198,6 +208,8 @@ Initial release. Not yet published to npm; `main` previously pointed at
 - A toast brought back by id in the same frame its removal fired (a
   promise's outcome landing as its dismissed loading toast's removal ran) is
   no longer removed.
+- A finished `toast.steps()` ignores a late `next()` or `go()`, which turned
+  its success toast back into a stage.
 
 Upstream `react-hot-toast` v2.6.1 defects, each with a regression test in
 `__tests__/`:

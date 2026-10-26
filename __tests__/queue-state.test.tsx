@@ -42,8 +42,9 @@ describe('a toast pushed back into the queue', () => {
     act(() => {
       first = toast('first', { duration: 60_000 });
     });
+    // An error goes ahead of the queue and pushes the first back.
     act(() => {
-      toast('second', { duration: 60_000 });
+      toast.error('second', { duration: 60_000 });
     });
     advance(EXIT + 50);
     expect(result.current.toasts.map((t) => t.message)).toEqual(['second']);
@@ -59,7 +60,7 @@ describe('a toast pushed back into the queue', () => {
       toast('t0', { duration: 60_000 });
     });
     act(() => {
-      toast('t1', { duration: 60_000 });
+      toast.error('t1', { duration: 60_000 });
     });
     advance(EXIT + 50);
     act(() => {
@@ -78,7 +79,8 @@ describe('a toast pushed back into the queue', () => {
     });
     upload.set(0.6);
     act(() => {
-      other = toast('Something else', { duration: 60_000 });
+      // An error goes ahead and pushes the upload back into the queue.
+      other = toast.error('Something else', { duration: 60_000 });
     });
     advance(1000);
     act(() => toast.dismiss(other));
@@ -95,17 +97,10 @@ describe('a toast pushed back into the queue', () => {
     act(() => {
       toast('waiting', { duration: 2000 });
     });
-    // Back of the queue: 'waiting' is newest, so it is in front. Push it back.
-    act(() => {
-      toast('newest', { duration: Infinity });
-    });
     act(() => result.current.startPause());
     advance(10_000);
     act(() => result.current.endPause());
-    act(() => {
-      toast.dismiss(front);
-      toast.dismiss(result.current.toasts.find((t) => t.message === 'newest')!.id);
-    });
+    act(() => toast.dismiss(front));
     const waiting = () => getState().toasts.find((t) => t.message === 'waiting')!;
     advance(deadline(2000) + 50);
     // Its two seconds count from when it came back, and the pause it sat out
@@ -200,6 +195,62 @@ describe('slots', () => {
       for (let n = 0; n < 13; n++) toast(`t${n}`, { duration: 60_000 });
     });
     expect(getState().toasts.find((t) => t.message === 'Saved')?.dismissed).toBe(false);
+  });
+});
+
+describe('first come, first shown', () => {
+  it('a toast brought back by id waits behind the one that moved up', () => {
+    const { result } = renderHook(() => useToaster({ visibleToasts: 1, exitDuration: EXIT }));
+    act(() => {
+      toast('A', { id: 'a', duration: 60_000 });
+      toast('B', { duration: 60_000 });
+    });
+    act(() => toast.dismiss('a'));
+    act(() => {
+      toast('A again', { id: 'a', duration: 60_000 });
+    });
+    // B keeps the place it moved up into; A, news again, waits its turn.
+    const showing = result.current.toasts.filter((t) => !t.dismissed && !t.queued).map((t) => t.message);
+    expect(showing).toEqual(['B']);
+    expect(result.current.pending.map((t) => t.message)).toEqual(['A again']);
+  });
+
+  it('spreads out deadlines that meet after a pause', () => {
+    const { result } = renderHook(() => useToaster({ visibleToasts: 3, exitDuration: EXIT }));
+    act(() => {
+      toast('A', { duration: 4000 });
+    });
+    advance(1000);
+    act(() => result.current.startPause());
+    advance(2000);
+    act(() => result.current.endPause());
+    advance(1000);
+    act(() => {
+      toast('B', { duration: 2000 });
+    });
+    // A leaves at 4000 + 2000 paused - enter; B would leave on the same frame.
+    const gone = () => getState().toasts.filter((t) => t.dismissed).map((t) => t.message);
+    advance(deadline(2000) + 50);
+    expect(gone()).toEqual(['A']);
+    advance(defaultMotion.stagger);
+    expect(gone()).toEqual(['B', 'A']);
+  });
+
+  it('spreads out a promise outcome and a toast shown with it', () => {
+    renderHook(() => useToaster({ visibleToasts: 3, exitDuration: EXIT }));
+    act(() => {
+      toast.loading('Saving', { id: 'save' });
+    });
+    advance(3000);
+    act(() => {
+      toast.success('Saved', { id: 'save', duration: 2000 });
+      toast('Synced', { duration: 2000 });
+    });
+    const gone = () => getState().toasts.filter((t) => t.dismissed).map((t) => t.message);
+    advance(deadline(2000) + 50);
+    expect(gone()).toEqual(['Saved']);
+    advance(defaultMotion.stagger);
+    expect(gone()).toEqual(['Synced', 'Saved']);
   });
 });
 

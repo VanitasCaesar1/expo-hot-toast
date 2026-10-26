@@ -262,7 +262,7 @@ describe('expo-hot-toast/web', () => {
     let other = '';
     show(() => (upload = toast.progress('Uploading')));
     upload.set(0.6);
-    show(() => (other = toast('Something else', { duration: 60_000 })));
+    show(() => (other = toast.error('Something else', { duration: 60_000 })));
     for (let i = 0; i < 5; i++) act(() => void vi.advanceTimersByTime(200));
     expect(byText('Uploading')).toBeUndefined();
     show(() => toast.dismiss(other));

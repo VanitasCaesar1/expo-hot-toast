@@ -400,7 +400,7 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
           {toast.timestamp}
         </span>
       ) : null}
-      {progress && !ring && !hud ? <ProgressPercent progress={progress} style={{ color: descriptionColor, marginLeft: 'auto' }} /> : null}
+      {progress && !ring && !hud && toast.progressSegments === undefined ? <ProgressPercent progress={progress} style={{ color: descriptionColor, marginLeft: 'auto' }} /> : null}
     </div>
   );
   const texts =

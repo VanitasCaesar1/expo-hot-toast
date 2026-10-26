@@ -54,15 +54,19 @@ export function ProgressBar({
       return;
     }
     el.removeAttribute('data-indeterminate');
+    // In steps, the one under way pulses: work is happening there, though how
+    // far through it is not known.
+    const current = count > 1 && value < 1 ? Math.floor(value * count) : -1;
     fills.forEach((f, i) => {
       const part = Math.min(Math.max(value * count - i, 0), 1);
       f.style.transform = `scaleX(${part})`;
+      f.parentElement?.toggleAttribute('data-current', i === current);
     });
   });
   return (
     <div ref={root} className={cx('eht-bar', className)} style={style} aria-hidden>
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="eht-track" style={{ background: trackColor }}>
+        <div key={i} className="eht-track" style={{ background: trackColor, color }}>
           <div className={cx('eht-fill', barClassName)} style={{ background: color, ...barStyle }} />
         </div>
       ))}

@@ -93,14 +93,16 @@ function applyDropPolicy(toasts: Toast[], settings: ToasterSettings): Toast[] {
   }
 
   const doomed = new Set<string>();
-  bySlot.forEach((frontToBack) => {
-    const excess = frontToBack.length - capacity;
+  bySlot.forEach((newestFirst) => {
+    const excess = newestFirst.length - capacity;
     if (excess <= 0) return;
-    // The store is newest-first, so this is already front to back: index 0 is
-    // the newest toast, the end the oldest. It was once reversed here, which
-    // made 'oldest' drop the newest arrival: in a burst every new toast was
-    // dismissed the moment it arrived, and the screen showed none of them.
-    const dropped = settings.dropPolicy === 'oldest' ? frontToBack.slice(-excess) : frontToBack.slice(0, excess);
+    // The store is newest first, so the end of this list is the toast that has
+    // been there longest: under first come, first shown, one already on
+    // screen. Dropping it keeps the queue moving, and drops nothing unseen.
+    // This list was once reversed, which made 'oldest' drop the newest
+    // arrival: in a burst every new toast was dismissed the moment it
+    // arrived, and the screen showed none of them.
+    const dropped = settings.dropPolicy === 'oldest' ? newestFirst.slice(-excess) : newestFirst.slice(0, excess);
     dropped.forEach((t) => doomed.add(t.id));
   });
 
@@ -131,6 +133,32 @@ export function toastSlot(t: Toast, fallback: ToastPosition): string {
   }
 }
 
+/**
+ * Whether a toast goes ahead of the queue: errors, and toasts marked
+ * `important`, the same toasts a screen reader is interrupted for.
+ */
+export function jumpsQueue(t: Toast): boolean {
+  return t.important ?? t.type === 'error';
+}
+
+/**
+ * Which of one slot's live toasts are on screen, given `cap` places.
+ *
+ * First come, first shown: the toasts that arrived first take the places,
+ * and the rest wait their turn, so a burst plays in the order it was fired
+ * and nothing leaves the screen to come back later. A toast that jumps the
+ * queue takes a place at once, and the toast that arrived last among those
+ * showing waits for it instead.
+ *
+ * `newestFirst` is in the store's order.
+ */
+export function onScreen(newestFirst: Toast[], cap: number): Set<string> {
+  const oldestFirst = [...newestFirst].reverse();
+  const ahead = oldestFirst.filter(jumpsQueue).slice(0, cap);
+  const rest = oldestFirst.filter((t) => !jumpsQueue(t)).slice(0, Math.max(cap - ahead.length, 0));
+  return new Set([...ahead, ...rest].map((t) => t.id));
+}
+
 export function reducer(state: ToasterState, action: Action): ToasterState {
   switch (action.type) {
     case ActionType.ADD_TOAST:
@@ -152,8 +180,18 @@ export function reducer(state: ToasterState, action: Action): ToasterState {
 
     case ActionType.UPSERT_TOAST: {
       const { toast } = action;
-      const exists = state.toasts.some((t) => t.id === toast.id);
-      if (exists) {
+      const existing = state.toasts.find((t) => t.id === toast.id);
+      // One brought back by id while it plays its exit is news again, and
+      // joins the queue as the newest arrival. Kept in its old place it
+      // counted as the first to arrive, and took the place of the toast that
+      // had just moved up.
+      if (existing?.dismissed && !toast.dismissed) {
+        return {
+          ...state,
+          toasts: applyDropPolicy([{ ...existing, ...toast }, ...state.toasts.filter((t) => t.id !== toast.id)], state.settings),
+        };
+      }
+      if (existing) {
         return {
           ...state,
           toasts: state.toasts.map((t) => (t.id === toast.id ? { ...t, ...toast } : t)),

@@ -60,11 +60,16 @@ export interface ProgressBarProps {
   barStyle?: StyleProp<ViewStyle>;
 }
 
-/** One step of a segmented inline bar: full once passed, filling while current. */
-function Segment({ index, count, progress, color, trackColor, height, barStyle }: {
+/**
+ * One step of a segmented inline bar: full once passed. The one under way
+ * pulses: work is happening there, though how far through it is not known.
+ */
+function Segment({ index, count, progress, pulse, reduceMotion, color, trackColor, height, barStyle }: {
   index: number;
   count: number;
   progress: SharedValue<number>;
+  pulse: SharedValue<number>;
+  reduceMotion: boolean;
   color: string;
   trackColor: string;
   height: number;
@@ -76,6 +81,11 @@ function Segment({ index, count, progress, color, trackColor, height, barStyle }
     const part = Math.min(Math.max(p * count - index, 0), 1);
     return { width: width.value * part };
   });
+  const current = useAnimatedStyle(() => {
+    const p = progress.value;
+    const under = !isIndeterminate(p) && p < 1 && Math.floor(p * count) === index;
+    return { opacity: under ? (reduceMotion ? 0.35 : 0.16 + 0.34 * pulse.value) : 0 };
+  });
   return (
     <View
       style={[styles.segment, { height, borderRadius: height / 2, backgroundColor: trackColor }]}
@@ -83,15 +93,28 @@ function Segment({ index, count, progress, color, trackColor, height, barStyle }
         width.value = event.nativeEvent.layout.width;
       }}
     >
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: color, borderRadius: height / 2 }, current]} />
       <Animated.View style={[styles.fill, { backgroundColor: color, borderRadius: height / 2 }, fill, barStyle]} />
     </View>
   );
+}
+
+/** 0 to 1 and back, for the step under way. */
+function usePulse(active: boolean): SharedValue<number> {
+  const pulse = useSharedValue(0);
+  React.useEffect(() => {
+    if (!active) return undefined;
+    pulse.value = withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.quad) }), -1, true);
+    return () => cancelAnimation(pulse);
+  }, [active, pulse]);
+  return pulse;
 }
 
 /** A progress bar: determinate, segmented, or sweeping; inline or along the bottom edge. */
 export function ProgressBar({ progress, color, trackColor, segments, reduceMotion, inline = false, height = inline ? 4 : 3, style, barStyle }: ProgressBarProps) {
   const smooth = useSmooth(progress);
   const sweep = useSweep(reduceMotion);
+  const pulse = usePulse(!reduceMotion && inline && !!segments && segments > 1);
   const width = useSharedValue(0);
 
   const fill = useAnimatedStyle(() => {
@@ -107,7 +130,7 @@ export function ProgressBar({ progress, color, trackColor, segments, reduceMotio
     return (
       <View style={[styles.segments, style]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {Array.from({ length: segments }, (_, i) => (
-          <Segment key={i} index={i} count={segments} progress={smooth} color={color} trackColor={trackColor} height={height} barStyle={barStyle} />
+          <Segment key={i} index={i} count={segments} progress={smooth} pulse={pulse} reduceMotion={reduceMotion} color={color} trackColor={trackColor} height={height} barStyle={barStyle} />
         ))}
       </View>
     );
