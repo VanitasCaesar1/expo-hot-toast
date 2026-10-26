@@ -56,12 +56,13 @@ export {
   setSettings,
   DEFAULT_TOASTER_ID,
   REMOVE_DELAY,
+  // A value, not only a type: `dispatch({ type: ActionType.ADD_TOAST, … })`.
+  ActionType,
 } from './core/store';
 export type {
   ToasterState,
   ToasterSettings,
   Action,
-  ActionType,
   DropPolicy,
 } from './core/store';
 

@@ -335,6 +335,27 @@ export function destroyToaster(toasterId: string): void {
   listeners.delete(toasterId);
 }
 
+/**
+ * How many mounted Toasters use each region. Two Toasters may share an id (a
+ * screen and a modal both rendering the default one); unmounting one must not
+ * wipe the state the other is still drawing.
+ */
+const mounts = new Map<string, number>();
+
+/** Count a Toaster in; returns the call that counts it out. */
+export function retainToaster(toasterId: string): () => number {
+  mounts.set(toasterId, (mounts.get(toasterId) ?? 0) + 1);
+  let released = false;
+  return () => {
+    if (released) return mounts.get(toasterId) ?? 0;
+    released = true;
+    const left = (mounts.get(toasterId) ?? 1) - 1;
+    if (left > 0) mounts.set(toasterId, left);
+    else mounts.delete(toasterId);
+    return left;
+  };
+}
+
 /** Subscribe. Returns an unsubscribe function. */
 export function subscribe(toasterId: string, listener: Listener): () => void {
   let set = listeners.get(toasterId);
@@ -654,4 +675,5 @@ export function __resetStore(): void {
   memoryState = new Map();
   listeners.clear();
   dedupeRegistries.clear();
+  mounts.clear();
 }

@@ -298,6 +298,23 @@ describe('announce', () => {
     expect(announceForAccessibility).toHaveBeenCalledWith('saved to your profile');
   });
 
+  it('queues a polite announcement behind VoiceOver, and lets an assertive one interrupt', () => {
+    const queued = jest.fn();
+    const info = AccessibilityInfo as unknown as Record<string, unknown>;
+    const had = info.announceForAccessibilityWithOptions;
+    info.announceForAccessibilityWithOptions = queued;
+    const plain = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    try {
+      announce('saved to your profile', false);
+      announce('could not reach the server', true);
+    } finally {
+      info.announceForAccessibilityWithOptions = had;
+    }
+    expect(queued).toHaveBeenCalledWith('saved to your profile', { queue: true });
+    expect(plain).toHaveBeenCalledTimes(1);
+    expect(plain).toHaveBeenCalledWith('could not reach the server');
+  });
+
   it('does not throw for an assertive announcement either', () => {
     const announceForAccessibility = jest.spyOn(
       AccessibilityInfo,

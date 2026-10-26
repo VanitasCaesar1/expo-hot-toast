@@ -106,7 +106,9 @@ export const defaultTheme: ToastTheme = {
   closeButtonBackground: 'rgba(0,0,0,0.07)',
   gap: 10,
   iconSize: 22,
-  actionColor: '#0A84FF',
+  // iOS's systemBlue in light mode; #0A84FF is its dark-mode value, which
+  // read at 3.65:1 on white.
+  actionColor: '#007AFF',
   actionPaddingHorizontal: 12,
   rich: {
     success: { background: '#ECFDF3', border: '#BFF5D6', color: '#00702A', tint: 'rgba(52,199,89,0.22)' },

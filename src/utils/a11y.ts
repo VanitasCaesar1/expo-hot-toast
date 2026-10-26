@@ -173,17 +173,19 @@ export function useGlassMode(enabled: boolean): GlassMode {
 /**
  * Announce a toast to screen readers.
  *
- * iOS has no live-region concept, so the announcement has to be imperative. The
- * `assertive` flag is currently ignored: iOS offers no way to interrupt
- * whatever VoiceOver is already saying, so an error cannot preempt a polite
- * message in progress. The argument is kept so Android's real live region can
- * honour it (see ToastBar's `accessibilityLiveRegion`) and so a future API with
- * interruption support has somewhere to plug in.
+ * iOS has no live-region concept, so the announcement has to be imperative.
+ * A plain announcement interrupts whatever VoiceOver is saying, which only an
+ * error (or an `important` toast) should do; the rest are queued behind the
+ * current speech. Android's live region does the same (see ToastBar's
+ * `accessibilityLiveRegion`).
  */
 export function announce(message: string, assertive: boolean): void {
-  void assertive;
-  if (Platform.OS === 'ios') {
+  if (Platform.OS !== 'ios') return;
+  // Older React Native, and some test environments, lack the queued form.
+  if (assertive || typeof AccessibilityInfo.announceForAccessibilityWithOptions !== 'function') {
     AccessibilityInfo.announceForAccessibility(message);
+  } else {
+    AccessibilityInfo.announceForAccessibilityWithOptions(message, { queue: true });
   }
 }
 /**

@@ -55,6 +55,12 @@ export interface ToastBarContextValue {
   icons?: ToastIcons;
   /** True while the Toaster's timers are paused, for the Undo countdown. */
   paused?: boolean;
+  /**
+   * When the toast's timer runs out, and the whole time it was given, as the
+   * Toaster's timers measure them, for the Undo countdown.
+   */
+  countdownEndsAt?: number;
+  countdownTotal?: number;
   /** Extra top or bottom padding for a banner against the screen edge: the safe-area inset. */
   edgeInset?: number;
   /** The Toaster's blur view, for platforms without glass or frost. */
@@ -129,6 +135,10 @@ export interface ToastBarProps {
   blur?: ToastBlur;
   /** True while the Toaster's timers are paused. Default: the Toaster's. */
   paused?: boolean;
+  /** When the toast times out, for the Undo countdown. Default: the Toaster's. */
+  countdownEndsAt?: number;
+  /** The whole time the toast was given, for the Undo countdown. Default: the Toaster's. */
+  countdownTotal?: number;
   /** Extra padding against the screen edge, for a banner. Default: the Toaster's. */
   edgeInset?: number;
   children?: (props: {
@@ -171,6 +181,8 @@ export const ToastBar = React.memo(function ToastBar({
   icons: iconsProp,
   blur: blurProp,
   paused: pausedProp,
+  countdownEndsAt: countdownEndsAtProp,
+  countdownTotal: countdownTotalProp,
   edgeInset: edgeInsetProp,
   children,
 }: ToastBarProps) {
@@ -193,6 +205,8 @@ export const ToastBar = React.memo(function ToastBar({
   const icons = iconsProp ?? slot?.icons;
   const blur = blurProp ?? slot?.blur;
   const paused = pausedProp ?? slot?.paused ?? false;
+  const countdownEndsAt = countdownEndsAtProp ?? slot?.countdownEndsAt;
+  const countdownTotal = countdownTotalProp ?? slot?.countdownTotal;
   const edgeInset = edgeInsetProp ?? slot?.edgeInset ?? 0;
   const unstyled = toast.unstyled === true;
   const boldText = useBoldText();
@@ -373,8 +387,8 @@ export const ToastBar = React.memo(function ToastBar({
         // to the centre for the length of the exit.
         { translateX: dragX.value },
         { translateY: direction * height.value * travel * (1 - p) + dragY.value + stackY.value },
+        // No tilt under the finger: iOS's own banners slide flat.
         { scale: (from + (1 - from) * p) * stackS.value },
-        { rotateZ: `${(dragX.value / 40) * 4}deg` },
       ],
     };
   });
@@ -838,7 +852,8 @@ export const ToastBar = React.memo(function ToastBar({
         // message describing something that no longer happened.
         onDismiss(toast.id, 'action' as DismissReason);
       }}
-      hitSlop={6}
+      // With the pill's 32pt, a 44pt target or more, as Apple asks.
+      hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel={spec.label}
       style={({ pressed }) => [
@@ -859,8 +874,15 @@ export const ToastBar = React.memo(function ToastBar({
       <View style={styles.actionInner}>
         {kind === 'action' && spec.countdown && Number.isFinite(toast.duration) ? (
           <CountdownRing
-            remaining={Math.max((toast.duration ?? 0) + toast.pauseDuration - (Date.now() - toast.createdAt), 0)}
-            total={toast.duration ?? 0}
+            // From the Toaster's own timers: measured from when the toast was
+            // created, a toast that waited in the queue started half drained.
+            remaining={Math.max(
+              countdownEndsAt !== undefined
+                ? countdownEndsAt - Date.now()
+                : (toast.duration ?? 0) + toast.pauseDuration - (Date.now() - toast.createdAt),
+              0,
+            )}
+            total={countdownTotal ?? toast.duration ?? 0}
             paused={paused}
             size={16}
             color={spec.color ?? theme.actionColor}
@@ -1052,7 +1074,8 @@ export const ToastBar = React.memo(function ToastBar({
               hasButtons ? undefined : (toast.accessibilityLabel ?? spokenText)
             }
             accessibilityHint={
-              toast.onPress ? 'Double tap to open' : tapToDismiss && !hasButtons ? 'Double tap to dismiss' : undefined
+              // What happens, not how: VoiceOver already says how to activate.
+              toast.onPress ? 'Opens the message' : tapToDismiss && !hasButtons ? 'Dismisses the message' : undefined
             }
             style={[styles.pressable, { alignItems: align }]}
             onLayout={(event) => {
@@ -1223,6 +1246,7 @@ const styles = StyleSheet.create({
   action: {
     flexShrink: 0,
     justifyContent: 'center',
+    minHeight: 32,
     paddingVertical: 4,
     // A pill rather than a rectangle: an Undo button in the corner of a
     // translucent bar should read as part of the material, not as chrome on it.

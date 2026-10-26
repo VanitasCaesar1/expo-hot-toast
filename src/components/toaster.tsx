@@ -283,7 +283,7 @@ export function Toaster({
   const screenReader = useScreenReaderEnabled();
   const reduceTransparency = useReduceTransparency();
 
-  const { toasts, pending, startPause, endPause, paused: timersPaused } = useToaster({
+  const { toasts, pending, startPause, endPause, paused: timersPaused, countdownOf } = useToaster({
     toastOptions,
     toasterId,
     toastLimit,
@@ -490,14 +490,23 @@ export function Toaster({
         const special = !POSITIONS.includes(candidate as ToastPosition);
         const anchoredTop = candidate === 'banner-bottom' ? false : special ? true : isTop(candidate as ToastPosition);
         /**
-         * Subtract the safe-area inset from the keyboard height.
+         * How far the keyboard reaches up from the bottom of the screen.
          *
-         * The keyboard already covers the home indicator, so lifting the stack
-         * by the full keyboard height plus the inset pushes it twice as far as it
-         * needs to go. `max` keeps the stack clear when the keyboard is shorter
-         * than the inset it replaces.
+         * On iOS its height is measured from the screen's bottom edge, home
+         * indicator included, so the stack sits `offset` above it. Taking the
+         * safe-area inset off as well, as this once did, left a bottom toast
+         * 18pt under the keyboard. A keyboard shorter than the inset (a
+         * floating or hardware one) leaves the inset in place.
+         *
+         * Android keeps the inset off: there the keyboard height reported is
+         * already above the navigation bar's inset.
          */
-        const keyboardInset = Math.max(0, keyboard.height - insets.bottom);
+        const keyboardInset =
+          Platform.OS === 'ios'
+            ? keyboard.height > insets.bottom
+              ? keyboard.height
+              : 0
+            : Math.max(0, keyboard.height - insets.bottom);
         const bottomInset = keyboardInset > 0 ? keyboardInset : insets.bottom;
 
         // One GlassContainer per stack, not one per toast. UIKit only merges
@@ -607,6 +616,8 @@ export function Toaster({
                 // Only an Undo countdown needs to know; passing it to every toast
                 // would re-render them all whenever one is pressed.
                 paused={t.action?.countdown ? timersPaused : false}
+                countdownEndsAt={t.action?.countdown ? countdownOf(t)?.endsAt : undefined}
+                countdownTotal={t.action?.countdown ? countdownOf(t)?.total : undefined}
                 edgeInset={
                   candidate === 'banner-top'
                     ? insets.top

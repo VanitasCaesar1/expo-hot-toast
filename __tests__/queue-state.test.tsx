@@ -254,6 +254,22 @@ describe('first come, first shown', () => {
   });
 });
 
+describe('toast.update', () => {
+  it('gives a toast whose type changes the new type\'s full time', () => {
+    renderHook(() => useToaster({ exitDuration: EXIT }));
+    let id = '';
+    act(() => {
+      id = toast.loading('Saving');
+    });
+    advance(5000);
+    act(() => toast.update(id, { type: 'success', message: 'Saved' }));
+    advance(deadline(2000) - 50);
+    expect(getState().toasts.find((t) => t.id === id)!.dismissed).toBe(false);
+    advance(100);
+    expect(getState().toasts.find((t) => t.id === id)!.dismissed).toBe(true);
+  });
+});
+
 describe('removal', () => {
   it('does not remove a toast that came back before its removal ran', () => {
     renderHook(() => useToaster({ exitDuration: EXIT }));
@@ -268,5 +284,65 @@ describe('removal', () => {
       jest.advanceTimersByTime(20);
     });
     expect(getState().toasts.find((t) => t.id === 'save')?.message).toBe('Saved');
+  });
+});
+
+describe('two Toasters on one region', () => {
+  it('keeps the region alive while one of them is still mounted', () => {
+    const first = render(<Toaster />);
+    const second = render(<Toaster />);
+    act(() => {
+      toast('before', { duration: 60_000 });
+    });
+    first.unmount();
+    act(() => {
+      toast('after', { duration: 60_000 });
+    });
+    expect(second.getByText('after')).toBeTruthy();
+  });
+});
+
+describe('dedupe', () => {
+  it('keeps absorbing repeats a little apart, and gives the toast its time after the last', () => {
+    const { result } = renderHook(() => useToaster({ exitDuration: EXIT }));
+    for (let n = 0; n < 6; n++) {
+      act(() => {
+        toast.error('No connection', { dedupeKey: 'offline', duration: 2000 });
+      });
+      advance(600);
+    }
+    const live = () => getState().toasts.filter((t) => !t.dismissed);
+    expect(live()).toHaveLength(1);
+    expect(live()[0]!.count).toBe(6);
+    // 600ms after the sixth call; it still has its two seconds from that call.
+    advance(deadline(2000) - 600 - 50);
+    expect(live()).toHaveLength(1);
+    advance(100);
+    expect(live()).toHaveLength(0);
+    expect(result.current.toasts.length).toBeGreaterThan(0);
+  });
+});
+
+describe('toast.promise', () => {
+  it('drops what only the loading state asked for when the outcome lands', async () => {
+    renderHook(() => useToaster({ exitDuration: EXIT }));
+    let settle!: () => void;
+    let id = '';
+    await act(async () => {
+      void toast.promise(new Promise<void>((resolve) => (settle = resolve)), { loading: 'Uploading', success: 'Uploaded' }, {
+        position: 'bottom-center',
+        loading: { description: '2 of 4 files', id: 'up' },
+      });
+      id = 'up';
+    });
+    expect(getState().toasts.find((t) => t.id === id)!.description).toBe('2 of 4 files');
+    await act(async () => {
+      settle();
+    });
+    const outcome = getState().toasts.find((t) => t.id === id)!;
+    expect(outcome.message).toBe('Uploaded');
+    expect(outcome.description).toBeUndefined();
+    // Shared options stay.
+    expect(outcome.position).toBe('bottom-center');
   });
 });

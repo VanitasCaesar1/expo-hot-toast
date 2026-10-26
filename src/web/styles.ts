@@ -276,13 +276,17 @@ export const css = /* css */ `
   transform: scaleX(0);
   transition: transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-.eht-track[data-current]::before {
+.eht-track::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   background: currentColor;
-  animation: eht-pulse 1100ms ease-in-out infinite alternate;
+  opacity: 0;
+  transition: opacity 320ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.eht-track[data-current]::before {
+  opacity: 0.35;
 }
 .eht-bar[data-indeterminate] .eht-fill {
   width: 34%;
@@ -330,10 +334,6 @@ export const css = /* css */ `
   from { transform: translateX(-100%); }
   to { transform: translateX(300%); }
 }
-@keyframes eht-pulse {
-  from { opacity: 0.16; }
-  to { opacity: 0.5; }
-}
 @keyframes eht-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -374,9 +374,8 @@ export const css = /* css */ `
   .eht-ring[data-indeterminate] {
     animation-duration: 3000ms;
   }
-  .eht-track[data-current]::before {
-    animation: none;
-    opacity: 0.35;
+  .eht-track::before {
+    transition: none;
   }
 }
 `;

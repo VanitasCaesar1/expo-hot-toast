@@ -98,11 +98,8 @@ export interface ToastOptions {
   /** Tint for the close button's glyph. Falls back to the theme colour. */
   closeButtonColor?: string;
   /**
-   * Interrupt politely-queued announcements. Errors are assertive by default.
-   *
-   * Android has a real `accessibilityLiveRegion` so this genuinely changes
-   * behaviour there. On iOS it cannot preempt an in-flight announcement, so it
-   * is currently advisory.
+   * Show at once, ahead of the queue, and interrupt what the screen reader is
+   * saying. Default true for errors.
    */
   important?: boolean;
   /** Fired when the toast leaves the screen, with why. */
@@ -116,7 +113,7 @@ export interface ToastOptions {
    * toasts say nothing, whereas one that transitions in place says a lot.
    */
   dedupeKey?: string;
-  /** How long a dedupe hit stays valid, in ms. Default 1000. */
+  /** How long after the last matching call a repeat still lands on the same toast, in ms. Default 1000. */
   dedupeWindowMs?: number;
 
   /** Trailing action, e.g. Undo. */
@@ -309,6 +306,10 @@ export interface Toast extends Omit<ToastOptions, 'duration' | 'id' | 'icon'> {
   createdAt: number;
   /** How many identical calls (by `dedupeKey`) this toast stands for. */
   count?: number;
+  /** When a repeat by `dedupeKey` last started this toast's time over. */
+  restartedAt?: number;
+  /** Its `pauseDuration` then; pauses before the restart no longer count. */
+  pauseAtRestart?: number;
 
   visible: boolean;
   /**

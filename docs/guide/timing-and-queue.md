@@ -48,6 +48,11 @@ let go. Toasts that would leave together are spread a little apart, the first
 shown leaving first, so a stack clears one toast at a time rather than all on
 one frame.
 
+Leaving the app pauses the timers too, so a toast fired as someone locks their
+phone is still there when they come back. After more than 30 seconds away,
+toasts whose time ran out are dropped instead, since what they said is old
+news.
+
 ## The visible limit
 
 Three toasts show per position, first come, first shown. Fire five at once and
@@ -99,8 +104,10 @@ like an Android snackbar.
 ## Deduplication
 
 Give toasts a `dedupeKey`. A call whose key matches a toast already on screen,
-within `dedupeWindowMs` (1000 ms by default), returns that toast's id instead
-of adding a second one.
+within `dedupeWindowMs` (1000 ms by default) of the last such call, returns
+that toast's id instead of adding a second one. The toast shows the count (×3)
+and starts its time over, so it stays up for its full duration after the last
+repeat.
 
 ```tsx
 function onSaveError() {

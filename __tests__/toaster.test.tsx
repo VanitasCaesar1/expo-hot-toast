@@ -177,7 +177,8 @@ describe('Toaster — haptics', () => {
       toast.success('done');
     });
 
-    expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
+    // The system's success pattern, which Apple keeps for a task's outcome.
+    expect(Haptics.notificationAsync).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Success);
   });
 
   it('uses a different pattern for an error, so failure does not buzz like success', () => {
@@ -186,9 +187,8 @@ describe('Toaster — haptics', () => {
       toast.error('broke');
     });
 
-    expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
-    const style = impactMock().mock.calls[0]![0];
-    expect(style).not.toBe('light');
+    expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
+    expect(Haptics.notificationAsync).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Error);
   });
 
   it('stays silent for loading toasts', () => {
@@ -199,7 +199,7 @@ describe('Toaster — haptics', () => {
 
     // A loading toast can sit on screen for a long time. A repeating buzz would
     // be intolerable, so it must not fire at all.
-    expect(Haptics.impactAsync).not.toHaveBeenCalled();
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
   });
 
   it('does not re-fire haptics when the component re-renders', () => {
@@ -209,11 +209,12 @@ describe('Toaster — haptics', () => {
     });
     view.rerender(<Toaster />);
 
-    expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
+    expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
   });
 
   it('never lets a haptic failure break the toast', async () => {
-    impactMock().mockRejectedValueOnce(new Error('no actuator'));
+    // Typed against the real signature, so the rejected value type-checks.
+    (Haptics.notificationAsync as jest.MockedFunction<typeof Haptics.notificationAsync>).mockRejectedValueOnce(new Error('no actuator'));
 
     render(<Toaster />);
     expect(() =>
@@ -392,20 +393,6 @@ describe('Toaster — custom renderer', () => {
 /* helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-/**
- * The jest.setup mock of `impactAsync`, typed against the real signature.
- *
- * A bare `jest.Mock` defaults its function type to `UnknownFunction`, which
- * returns `unknown`; `mockRejectedValueOnce` takes `RejectType<T>`, and for a
- * non-promise return that conditional type collapses to `never` — so
- * `mockRejectedValueOnce(new Error(...))` does not compile. Binding the actual
- * `(style) => Promise<void>` signature makes the rejected value `unknown`, and
- * as a bonus types `mock.calls` with a real `ImpactFeedbackStyle` rather than
- * `unknown`.
- */
-function impactMock(): jest.MockedFunction<typeof Haptics.impactAsync> {
-  return Haptics.impactAsync as jest.MockedFunction<typeof Haptics.impactAsync>;
-}
 
 /**
  * Walk the rendered tree for the stack View of a given position. The stack is

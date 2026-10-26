@@ -217,11 +217,20 @@ function dedupe(opts: ToastOptions | undefined): string | null {
   if (hit === null) return null;
   const live = getState(toasterId).toasts.find((t) => t.id === hit && !t.dismissed);
   if (!live) return null;
-  // The repeat is counted on the toast already showing, which draws the count.
+  // The repeat is counted on the toast already showing, which draws the count,
+  // and starts its time over, as iOS does when it shows a HUD again: a ×5
+  // toast must not vanish just after the fifth call. The key's window runs
+  // from this call, so repeats a little further apart than it still land on
+  // the same toast.
+  const now = Date.now();
   dispatch(
-    { type: ActionType.UPDATE_TOAST, toast: { id: hit, count: (live.count ?? 1) + 1 } },
+    {
+      type: ActionType.UPDATE_TOAST,
+      toast: { id: hit, count: (live.count ?? 1) + 1, restartedAt: now, pauseAtRestart: live.pauseDuration },
+    },
     toasterId,
   );
+  recordDedupe(toasterId, opts.dedupeKey, hit, now);
   return hit;
 }
 
@@ -286,7 +295,12 @@ function createToastAPI(): ToastAPI {
     if (duration !== undefined) {
       patch.duration = typeof duration === 'number' ? duration : resolveDuration(duration, Infinity);
       patch.durationPreset = typeof duration === 'string' ? duration : undefined;
-      // A new duration counts from now.
+    }
+    const current = getState(toasterId).toasts.find((t) => t.id === id);
+    // A new duration counts from now, and so does a new type: it is a new
+    // outcome, and its own default duration (a success's 2000ms) would
+    // otherwise be measured from when the loading toast first showed.
+    if (duration !== undefined || (changes.type !== undefined && changes.type !== current?.type)) {
       patch.createdAt = Date.now();
       patch.pauseDuration = 0;
     }
@@ -307,6 +321,13 @@ function createToastAPI(): ToastAPI {
     } = opts ?? {};
 
     const id = api.loading(messages.loading, { ...shared, ...loadingOpts });
+    // What only the loading state asked for (its description, icon or action)
+    // must not linger on the outcome, which replaces it under the same id.
+    const loadingOnly = Object.fromEntries(
+      Object.keys(loadingOpts ?? {})
+        .filter((key) => !(key in shared))
+        .map((key) => [key, undefined]),
+    ) as ToastOptions;
 
     // A thunk is invoked after the loading toast is dispatched, so a synchronous
     // throw would escape the call — contradicting the declared `Promise<T>`
@@ -330,7 +351,7 @@ function createToastAPI(): ToastAPI {
           // loading toast forever: it is never updated and never dismissed.
           // Spreading the per-type bag first and forcing `id` last removes the
           // only way to orphan it.
-          api.success(message, { ...shared, ...successOpts, id });
+          api.success(message, { ...loadingOnly, ...shared, ...successOpts, id });
         } else {
           api.dismiss(id);
         }
@@ -343,7 +364,7 @@ function createToastAPI(): ToastAPI {
         const resolver = messages.error;
         const message = resolver ? resolveValue(resolver, cause) : undefined;
         if (message) {
-          api.error(message, { ...shared, ...errorOpts, id });
+          api.error(message, { ...loadingOnly, ...shared, ...errorOpts, id });
         } else {
           api.dismiss(id);
         }
@@ -394,7 +415,7 @@ function createToastAPI(): ToastAPI {
       const to = Math.min(Math.max(index, 0), total - 1);
       if (to === step) return;
       step = to;
-      // The bar fills the steps already done; the renderer pulses the current one.
+      // The bar fills the steps already done; the renderer tints the current one.
       setProgress(controller.id, step / total);
       api.update(controller.id, { message: labels[step], timestamp: label(step), accessibilityLabel: spoken(step) });
     };

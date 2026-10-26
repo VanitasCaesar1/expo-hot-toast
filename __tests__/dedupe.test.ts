@@ -60,7 +60,9 @@ describe('dedupe', () => {
     expect(toast('Uploading', { dedupeKey: 'upload' })).toBe(first);
     expect(getState().toasts).toHaveLength(1);
 
-    vi.advanceTimersByTime(1);
+    // The window runs from the latest call, so a run of repeats a little apart
+    // stays one toast; a gap longer than it starts a new one.
+    vi.advanceTimersByTime(DEFAULT_DEDUPE_WINDOW + 1);
     const later = toast('Uploading again', { dedupeKey: 'upload' });
     expect(later).not.toBe(first);
     expect(getState().toasts).toHaveLength(2);
@@ -74,7 +76,8 @@ describe('dedupe', () => {
     vi.advanceTimersByTime(30_000);
     expect(toast('Saving', { dedupeKey: 'save', dedupeWindowMs: 60_000 })).toBe(first);
 
-    vi.advanceTimersByTime(30_001);
+    // Counted from that repeat.
+    vi.advanceTimersByTime(60_001);
     expect(toast('Saving', { dedupeKey: 'save', dedupeWindowMs: 60_000 })).not.toBe(first);
 
     // A short window on the same key expires almost immediately. The comparison

@@ -122,7 +122,7 @@ describe('haptics switch', () => {
     act(() => {
       toast.success('done');
     });
-    expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
+    expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
   });
 
   it('turns off for a whole Toaster', () => {
@@ -131,7 +131,7 @@ describe('haptics switch', () => {
       toast.success('done');
       toast.error('broke');
     });
-    expect(Haptics.impactAsync).not.toHaveBeenCalled();
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
   });
 
   it('turns off for one toast', () => {
@@ -139,7 +139,7 @@ describe('haptics switch', () => {
     act(() => {
       toast.success('quiet', { haptics: false });
     });
-    expect(Haptics.impactAsync).not.toHaveBeenCalled();
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
   });
 
   it('lets one toast opt back in when the Toaster has it off', () => {
@@ -147,6 +147,6 @@ describe('haptics switch', () => {
     act(() => {
       toast.error('important', { haptics: true });
     });
-    expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
+    expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
   });
 });

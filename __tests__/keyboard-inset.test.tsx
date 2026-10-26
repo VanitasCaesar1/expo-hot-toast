@@ -88,7 +88,7 @@ describe('Toaster — keyboard inset', () => {
     expect(bottomOf('bottom-center')).toBe(INSETS.bottom + OFFSET);
   });
 
-  it('lifts the stack by the keyboard height less the inset it replaces', () => {
+  it('sits the stack on the keyboard, the offset above its top edge', () => {
     const KEYBOARD = 336;
     render(<Toaster position="bottom-center" offset={OFFSET} />);
     act(() => {
@@ -97,11 +97,10 @@ describe('Toaster — keyboard inset', () => {
 
     emit('keyboardWillShow', shown(KEYBOARD));
 
-    // The keyboard already covers the home indicator. Lifting by the full
-    // keyboard height *plus* the inset pushes the stack twice as far as it needs
-    // to go, which is the over-lift this arithmetic exists to prevent.
-    expect(bottomOf('bottom-center')).toBe(KEYBOARD - INSETS.bottom + OFFSET);
-    expect(bottomOf('bottom-center')).not.toBe(KEYBOARD + OFFSET);
+    // iOS measures the keyboard from the screen's bottom edge, home indicator
+    // included. Taking the inset off as well left the toast under the keyboard.
+    expect(bottomOf('bottom-center')).toBe(KEYBOARD + OFFSET);
+    expect(bottomOf('bottom-center')).not.toBe(KEYBOARD + INSETS.bottom + OFFSET);
   });
 
   it('falls back to the inset for a keyboard shorter than the inset it replaces', () => {
@@ -141,10 +140,10 @@ describe('Toaster — keyboard inset', () => {
     });
 
     emit('keyboardWillShow', shown(300));
-    expect(bottomOf('bottom-center')).toBe(300 - INSETS.bottom + OFFSET);
+    expect(bottomOf('bottom-center')).toBe(300 + OFFSET);
 
     emit('keyboardWillShow', shown(260));
-    expect(bottomOf('bottom-center')).toBe(260 - INSETS.bottom + OFFSET);
+    expect(bottomOf('bottom-center')).toBe(260 + OFFSET);
   });
 
   it('restores the inset when the keyboard hides', () => {
@@ -200,8 +199,8 @@ describe('Toaster — keyboard inset', () => {
 
     emit('keyboardWillShow', shown(336));
 
-    expect(bottomOf('bottom-left')).toBe(336 - INSETS.bottom + OFFSET);
-    expect(bottomOf('bottom-right')).toBe(336 - INSETS.bottom + OFFSET);
+    expect(bottomOf('bottom-left')).toBe(336 + OFFSET);
+    expect(bottomOf('bottom-right')).toBe(336 + OFFSET);
   });
 
   it('applies the offset on top of whichever inset won', () => {
@@ -213,7 +212,7 @@ describe('Toaster — keyboard inset', () => {
     });
 
     emit('keyboardWillShow', shown(336));
-    expect(bottomOf('bottom-center')).toBe(336 - INSETS.bottom + 48);
+    expect(bottomOf('bottom-center')).toBe(336 + 48);
   });
 });
 

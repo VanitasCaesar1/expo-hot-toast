@@ -9,18 +9,17 @@ These work without configuration.
 
 ## Screen readers
 
-- **iOS:** each toast is announced by VoiceOver when it appears.
+- **iOS:** each toast is announced by VoiceOver when it appears. Errors
+  interrupt what VoiceOver is saying; other types wait until it finishes.
 - **Android:** each toast is a live region, which TalkBack reads. Errors are
   assertive, so they interrupt; other types wait their turn.
 
-Mark another toast as urgent with `important`:
+Mark another toast as urgent with `important`. It interrupts like an error, and
+it goes ahead of the [queue](./timing-and-queue.md#the-visible-limit):
 
 ```tsx
 toast('Your session expires in one minute', { important: true });
 ```
-
-iOS cannot interrupt an announcement already in progress, so there `important`
-has no effect.
 
 A `description` is announced after the message.
 
@@ -69,9 +68,9 @@ the `maxFontSizeMultiplier` token, or remove it with `null`:
 
 ## Haptics
 
-Success and error toasts trigger a haptic when they appear: a light tap for
-success and a firmer one for errors on iOS, and the matching notification
-pattern on Android. Other types do not.
+Success, warning and error toasts play the system's notification haptic when
+they appear, the pattern iOS and Android keep for the outcome of a task. Info,
+loading and plain toasts play none.
 
 Turn them off for a Toaster, or for one toast:
 

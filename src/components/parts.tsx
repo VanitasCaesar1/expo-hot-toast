@@ -6,6 +6,7 @@ import Animated, {
   Easing,
   cancelAnimation,
   useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -31,14 +32,27 @@ function useSmooth(progress: SharedValue<number>): SharedValue<number> {
   );
 }
 
-/** A sliver that sweeps the track, for progress of unknown length. */
-function useSweep(reduceMotion: boolean): SharedValue<number> {
+/**
+ * A sliver that sweeps the track, for progress of unknown length. It runs
+ * only while the progress is indeterminate: a loop that never stops, even
+ * unseen, costs a frame's work forever and keeps the screen from going idle.
+ */
+function useSweep(progress: SharedValue<number>, reduceMotion: boolean): SharedValue<number> {
   const sweep = useSharedValue(0);
-  React.useEffect(() => {
-    if (reduceMotion) return undefined;
-    sweep.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.quad) }), -1, false);
-    return () => cancelAnimation(sweep);
-  }, [reduceMotion, sweep]);
+  useAnimatedReaction(
+    () => !reduceMotion && isIndeterminate(progress.value),
+    (running, was) => {
+      if (running === was) return;
+      if (running) {
+        sweep.value = 0;
+        sweep.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.quad) }), -1, false);
+      } else {
+        cancelAnimation(sweep);
+      }
+    },
+    [reduceMotion],
+  );
+  React.useEffect(() => () => cancelAnimation(sweep), [sweep]);
   return sweep;
 }
 
@@ -61,14 +75,16 @@ export interface ProgressBarProps {
 }
 
 /**
- * One step of a segmented inline bar: full once passed. The one under way
- * pulses: work is happening there, though how far through it is not known.
+ * One step of a segmented inline bar: full once passed. The one under way is
+ * tinted, fading in as the step begins: work is happening there, though how
+ * far through it is not known. A steady tint rather than a pulse: an endless
+ * animation keeps the screen from ever going idle, which stalls Android's
+ * accessibility and UI automation reading the view tree.
  */
-function Segment({ index, count, progress, pulse, reduceMotion, color, trackColor, height, barStyle }: {
+function Segment({ index, count, progress, reduceMotion, color, trackColor, height, barStyle }: {
   index: number;
   count: number;
   progress: SharedValue<number>;
-  pulse: SharedValue<number>;
   reduceMotion: boolean;
   color: string;
   trackColor: string;
@@ -84,7 +100,8 @@ function Segment({ index, count, progress, pulse, reduceMotion, color, trackColo
   const current = useAnimatedStyle(() => {
     const p = progress.value;
     const under = !isIndeterminate(p) && p < 1 && Math.floor(p * count) === index;
-    return { opacity: under ? (reduceMotion ? 0.35 : 0.16 + 0.34 * pulse.value) : 0 };
+    const target = under ? CURRENT_STEP_OPACITY : 0;
+    return { opacity: reduceMotion ? target : withTiming(target, { duration: 320, easing: Easing.out(Easing.quad) }) };
   });
   return (
     <View
@@ -99,22 +116,13 @@ function Segment({ index, count, progress, pulse, reduceMotion, color, trackColo
   );
 }
 
-/** 0 to 1 and back, for the step under way. */
-function usePulse(active: boolean): SharedValue<number> {
-  const pulse = useSharedValue(0);
-  React.useEffect(() => {
-    if (!active) return undefined;
-    pulse.value = withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.quad) }), -1, true);
-    return () => cancelAnimation(pulse);
-  }, [active, pulse]);
-  return pulse;
-}
+/** How strongly the step under way is tinted with the bar's colour. */
+const CURRENT_STEP_OPACITY = 0.35;
 
 /** A progress bar: determinate, segmented, or sweeping; inline or along the bottom edge. */
 export function ProgressBar({ progress, color, trackColor, segments, reduceMotion, inline = false, height = inline ? 4 : 3, style, barStyle }: ProgressBarProps) {
   const smooth = useSmooth(progress);
-  const sweep = useSweep(reduceMotion);
-  const pulse = usePulse(!reduceMotion && inline && !!segments && segments > 1);
+  const sweep = useSweep(progress, reduceMotion);
   const width = useSharedValue(0);
 
   const fill = useAnimatedStyle(() => {
@@ -130,7 +138,7 @@ export function ProgressBar({ progress, color, trackColor, segments, reduceMotio
     return (
       <View style={[styles.segments, style]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {Array.from({ length: segments }, (_, i) => (
-          <Segment key={i} index={i} count={segments} progress={smooth} pulse={pulse} reduceMotion={reduceMotion} color={color} trackColor={trackColor} height={height} barStyle={barStyle} />
+          <Segment key={i} index={i} count={segments} progress={smooth} reduceMotion={reduceMotion} color={color} trackColor={trackColor} height={height} barStyle={barStyle} />
         ))}
       </View>
     );
@@ -169,7 +177,7 @@ export interface ProgressRingProps {
 /** A ring that fills clockwise from the top, or spins an arc when indeterminate. */
 export function ProgressRing({ progress, size, color, trackColor, reduceMotion, strokeWidth = 2.6, children }: ProgressRingProps) {
   const smooth = useSmooth(progress);
-  const sweep = useSweep(reduceMotion);
+  const sweep = useSweep(progress, reduceMotion);
   const r = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * r;
 

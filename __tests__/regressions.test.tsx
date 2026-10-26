@@ -84,13 +84,13 @@ describe('toast.promise outcome timing', () => {
       });
     });
     // Loading is silent by design.
-    expect(Haptics.impactAsync).not.toHaveBeenCalled();
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
 
     await act(async () => {
       settle();
     });
     expect(screen.getByText('saved')).toBeTruthy();
-    expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
+    expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
   });
 });
 

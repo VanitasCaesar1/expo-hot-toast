@@ -4,10 +4,14 @@ import type { ToastHaptic, ToastType } from '../core/types';
 
 export type { ToastHaptic };
 
-/** Which haptic each type plays by default. Info and loading play none. */
+/**
+ * Which haptic each type plays by default: the system's notification
+ * patterns, which Apple reserves for the outcome of a task. Info and loading
+ * play none.
+ */
 export const DEFAULT_HAPTICS: Partial<Record<ToastType, ToastHaptic>> = {
-  success: 'light',
-  error: 'rigid',
+  success: 'success',
+  error: 'error',
   warning: 'warning',
 };
 

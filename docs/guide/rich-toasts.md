@@ -72,7 +72,7 @@ toasts with a line or two of text; the ring suits short ones and the HUD.
 
 For work in named stages, `toast.steps` shows the current stage's name and a
 bar split into one segment per stage, with "2/3" at the end of the line. The
-stages already done are filled and the current one pulses, since how far
+stages already done are filled and the current one is tinted, since how far
 through it the work is isn't known:
 
 ```tsx

@@ -54,8 +54,8 @@ export function ProgressBar({
       return;
     }
     el.removeAttribute('data-indeterminate');
-    // In steps, the one under way pulses: work is happening there, though how
-    // far through it is not known.
+    // In steps, the one under way is tinted: work is happening there, though
+    // how far through it is not known.
     const current = count > 1 && value < 1 ? Math.floor(value * count) : -1;
     fills.forEach((f, i) => {
       const part = Math.min(Math.max(value * count - i, 0), 1);

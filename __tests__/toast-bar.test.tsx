@@ -228,7 +228,7 @@ describe('ToastBar — accessibility', () => {
   it('advertises the double-tap hint only when tapping dismisses', () => {
     renderBar({ dismissOnTap: true });
     expect(screen.getByLabelText('hello').props.accessibilityHint).toBe(
-      'Double tap to dismiss',
+      'Dismisses the message',
     );
 
     screen.rerender(

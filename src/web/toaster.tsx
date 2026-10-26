@@ -230,6 +230,9 @@ export interface ToastBarProps {
   onPauseEnd?: () => void;
   atTop?: boolean;
   paused?: boolean;
+  /** When the toast times out, and the whole time it was given, for the Undo countdown. */
+  countdownEndsAt?: number;
+  countdownTotal?: number;
   panThreshold?: number;
   pauseOnHover?: boolean;
   /** Replace the contents, keeping the surface, gestures and motion. */
@@ -277,6 +280,8 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
   const onPauseEnd = props.onPauseEnd ?? ctx.onPauseEnd;
   const atTop = props.atTop ?? ctx.atTop ?? (toast.position ?? 'top-center').startsWith('top');
   const paused = props.paused ?? ctx.paused ?? false;
+  const countdownEndsAt = props.countdownEndsAt ?? ctx.countdownEndsAt;
+  const countdownTotal = props.countdownTotal ?? ctx.countdownTotal;
   const panThreshold = props.panThreshold ?? ctx.panThreshold ?? 72;
   const pauseOnHover = props.pauseOnHover ?? ctx.pauseOnHover ?? true;
 
@@ -485,8 +490,15 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
       {kind === 'action' && spec.countdown && Number.isFinite(toast.duration) ? (
         <CountdownRing
           key={toast.duration}
-          remaining={Math.max((toast.duration ?? 0) + toast.pauseDuration - (Date.now() - toast.createdAt), 0)}
-          total={toast.duration ?? 0}
+          // From the Toaster's own timers: measured from when the toast was
+          // created, a toast that waited in the queue started half drained.
+          remaining={Math.max(
+            countdownEndsAt !== undefined
+              ? countdownEndsAt - Date.now()
+              : (toast.duration ?? 0) + toast.pauseDuration - (Date.now() - toast.createdAt),
+            0,
+          )}
+          total={countdownTotal ?? toast.duration ?? 0}
           paused={paused}
           size={16}
           color={spec.color ?? theme.actionColor}
@@ -922,7 +934,7 @@ export function Toaster({
   }, [preset, scheme, animation, themeOverride]);
   const theme = useToastTheme(layered, scheme);
 
-  const { toasts, pending, startPause, endPause, paused } = useToaster({
+  const { toasts, pending, startPause, endPause, paused, countdownOf } = useToaster({
     toastOptions,
     toasterId,
     visibleToasts,
@@ -1042,6 +1054,8 @@ export function Toaster({
                       onPauseEnd={endPause}
                       atTop={anchoredTop}
                       paused={t.action?.countdown ? paused : false}
+                      countdownEndsAt={t.action?.countdown ? countdownOf(t)?.endsAt : undefined}
+                      countdownTotal={t.action?.countdown ? countdownOf(t)?.total : undefined}
                       panThreshold={panThreshold}
                       pauseOnHover={pauseOnHover}
                     />

@@ -8,6 +8,7 @@ import {
   dispatch,
   getState,
   onScreen,
+  retainToaster,
   setSettings,
   toastSlot,
   useToasterStore,
@@ -72,6 +73,12 @@ export interface UseToasterResult {
   handlers: { startPause: () => void; endPause: () => void };
   /** True while the timers are paused: by a press, or the `paused` option. */
   paused: boolean;
+  /**
+   * When a showing toast will time out, as its timer measures it, and the
+   * whole time it was given: what an Undo countdown drains over. Undefined
+   * for a toast that never times out.
+   */
+  countdownOf: (t: Toast) => { endsAt: number; total: number } | undefined;
 }
 
 export function useToaster({
@@ -430,39 +437,47 @@ export function useToaster({
   }, [visible, displacedAt, exitDuration]);
 
   /**
-   * Background recovery. On iOS and Android a suspended app freezes timers but
-   * not wall-clock time, so a toast that should have expired 10s ago is still
-   * sitting in the array on resume. Re-run the expiry check on foreground.
+   * Leaving the app pauses the timers, so a toast fired just before the user
+   * switched away (a "Saved" as they lock the phone) is still there, with its
+   * time left, when they come back. Away for longer than `STALE_AFTER`, what
+   * it said is old news: toasts whose time ran out while away are dropped on
+   * the way back, as if the clock had kept running.
    *
-   * rht handles this implicitly because `durationLeft < 0` is recomputed on
-   * any re-render; React Native gives us no such render after a resume.
+   * A suspended app freezes JavaScript timers but not the wall clock, and
+   * React Native renders nothing on resume, so this runs on the AppState
+   * change itself.
    */
-  const wasActive = useRef<AppStateStatus>(AppState.currentState ?? 'active');
+  const away = useRef<{ since: number; wasPaused: boolean } | undefined>(undefined);
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
   useEffect(() => {
-    const isBackgrounded = (state: AppStateStatus | undefined | null): boolean =>
-      state === 'inactive' || state === 'background';
-
-    const subscription = AppState.addEventListener(
-      'change',
-      (next: AppStateStatus) => {
-        // A paused region has no deadlines running; its paused time is only
-        // credited on END_PAUSE, so checking now would expire everything.
-        if (isBackgrounded(wasActive.current) && next === 'active' && pausedAt === undefined) {
-          const now = Date.now();
-          // Visible toasts only, with the same budget as the timers below. A
-          // pending toast has not been seen yet, so it cannot have expired.
-          visible.forEach((t) => {
-            if (!t.visible || t.queued || t.duration === Infinity) return;
-            if (remaining(t, visibleSince, shownAs, motion, now) <= 0) {
-              toast.dismiss(t.id, toasterId, 'timeout');
-            }
-          });
-        }
-        wasActive.current = next;
-      },
-    );
+    const subscription = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (next === 'inactive' || next === 'background') {
+        if (away.current) return;
+        away.current = { since: Date.now(), wasPaused: getState(toasterId).pausedAt !== undefined };
+        startPause();
+        return;
+      }
+      if (next !== 'active' || !away.current) return;
+      const { since, wasPaused } = away.current;
+      away.current = undefined;
+      // A region already paused had no deadlines running, and the time away
+      // is only credited when the pause ends: checking would expire it all.
+      if (!wasPaused && Date.now() - since > STALE_AFTER) {
+        const now = Date.now();
+        // Visible toasts only, with the same budget as the timers below. A
+        // pending toast has not been seen yet, so it cannot have expired.
+        visibleRef.current.forEach((t) => {
+          if (!t.visible || t.queued || t.duration === Infinity) return;
+          if (remaining(t, visibleSince, shownAs, motion, now) <= 0) {
+            toast.dismiss(t.id, toasterId, 'timeout');
+          }
+        });
+      }
+      endPause();
+    });
     return () => subscription.remove();
-  }, [visible, toasterId, motion, visibleSince, shownAs, pausedAt]);
+  }, [toasterId, motion, visibleSince, shownAs, startPause, endPause]);
 
   /**
    * Timers, armed for visible toasts only.
@@ -506,8 +521,21 @@ export function useToaster({
   // Memoized so `handlers` is as stable as the functions it wraps.
   const handlers = useMemo(() => ({ startPause, endPause }), [startPause, endPause]);
 
-  return { toasts: visible, pending, startPause, endPause, handlers, paused: pausedAt !== undefined };
+  const countdownOf = useCallback(
+    (t: Toast) => {
+      if (t.duration === undefined || !Number.isFinite(t.duration)) return undefined;
+      const now = Date.now();
+      const { left, budget } = timing(t, visibleSince, shownAs, motion, now);
+      return { endsAt: now + left, total: budget };
+    },
+    [visibleSince, shownAs, motion],
+  );
+
+  return { toasts: visible, pending, startPause, endPause, handlers, paused: pausedAt !== undefined, countdownOf };
 }
+
+/** Away from the app this long, toasts whose time ran out are dropped on return. */
+const STALE_AFTER = 30_000;
 
 interface ShownAs {
   createdAt: number;
@@ -530,14 +558,30 @@ function remaining(
   motion: { enter: number },
   now: number,
 ): number {
+  return timing(t, visibleSince, shownAs, motion, now).left;
+}
+
+/** The time a showing toast was given (`budget`), and how much of it is left. */
+function timing(
+  t: Toast,
+  visibleSince: Map<string, number>,
+  shownAs: Map<string, ShownAs>,
+  motion: { enter: number },
+  now: number,
+): { left: number; budget: number } {
   // Only pauses since it was shown count. A toast replaced by id since then
   // starts its credit afresh with its new `createdAt`, and its own time with
   // no stagger.
   const shown = shownAs.get(t.id);
   const replaced = shown === undefined || shown.createdAt !== t.createdAt;
-  const before = replaced ? 0 : shown.credit;
-  const stagger = replaced ? 0 : shown.stagger;
-  return (t.duration ?? 0) + t.pauseDuration - before + stagger - motion.enter - (now - shownAt(visibleSince, t));
+  // Started over by a repeat since it was shown: it counts from then, with
+  // the pauses before it spent.
+  const since = visibleSince.get(t.id);
+  const restarted = t.restartedAt !== undefined && since !== undefined && t.restartedAt > since && t.restartedAt > t.createdAt;
+  const before = restarted ? (t.pauseAtRestart ?? 0) : replaced ? 0 : shown.credit;
+  const stagger = restarted || replaced ? 0 : shown.stagger;
+  const budget = (t.duration ?? 0) + stagger - motion.enter;
+  return { budget, left: budget + t.pauseDuration - before - (now - shownAt(visibleSince, t)) };
 }
 
 /**
@@ -553,7 +597,8 @@ function remaining(
  */
 function shownAt(visibleSince: Map<string, number>, t: Toast): number {
   const since = visibleSince.get(t.id);
-  return since === undefined ? t.createdAt : Math.max(since, t.createdAt);
+  if (since === undefined) return t.createdAt;
+  return Math.max(since, t.createdAt, t.restartedAt ?? -Infinity);
 }
 
 /**
@@ -588,12 +633,13 @@ export function useToasterCleanup({
   toasterId = DEFAULT_TOASTER_ID,
   destroyOnUnmount = true,
 }: UseToasterCleanupOptions = {}): void {
-  useEffect(
-    () => () => {
-      if (destroyOnUnmount) destroyToaster(toasterId);
-    },
-    [toasterId, destroyOnUnmount],
-  );
+  useEffect(() => {
+    const release = retainToaster(toasterId);
+    return () => {
+      // Another Toaster still drawing this region keeps its state.
+      if (release() === 0 && destroyOnUnmount) destroyToaster(toasterId);
+    };
+  }, [toasterId, destroyOnUnmount]);
 }
 
 export type { ToastType };

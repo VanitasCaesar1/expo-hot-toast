@@ -1172,6 +1172,28 @@ describe('useToaster — returning from the background', () => {
     expect(result.current.toasts[0]!.dismissReason).toBe('timeout');
   });
 
+  it('keeps a toast through a short trip away, with the time it had left', () => {
+    const app = captureAppState();
+    const { result } = renderHook(() => useToaster());
+    act(() => {
+      toast('Saved', { duration: 2000 });
+    });
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+    // Timers run while away in a real app; the pause must hold them anyway.
+    app.resumeAfter(10_000);
+    expect(result.current.toasts[0]!.dismissed).toBe(false);
+    act(() => {
+      jest.advanceTimersByTime(deadline(2000) - 500 - 50);
+    });
+    expect(result.current.toasts[0]!.dismissed).toBe(false);
+    act(() => {
+      jest.advanceTimersByTime(100);
+    });
+    expect(result.current.toasts[0]!.dismissed).toBe(true);
+  });
+
   it('leaves a queued toast alone: it has not been seen yet', () => {
     const app = captureAppState();
     const { result } = renderHook(() => useToaster({ visibleToasts: 1 }));

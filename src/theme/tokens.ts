@@ -28,6 +28,8 @@ export const darkTheme: ToastTheme = {
   frostHighlight: 'rgba(255,255,255,0.3)',
   shadowOpacity: 0.3,
   descriptionColor: 'rgba(235,235,245,0.68)',
+  // systemBlue in dark mode.
+  actionColor: '#0A84FF',
   rich: {
     success: { background: '#032313', border: '#0B4425', color: '#5FE39A', tint: 'rgba(48,209,88,0.26)' },
     error: { background: '#2E0809', border: '#561317', color: '#FF8F92', tint: 'rgba(255,69,58,0.26)' },

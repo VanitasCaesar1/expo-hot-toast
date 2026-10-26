@@ -171,9 +171,24 @@ Initial release. Not yet published to npm; `main` previously pointed at
   the stack cleared newest first. Errors and `important` toasts still show at
   once: the newest toast showing waits for them. The stagger between toasts
   that would leave together is fixed when each appears, first shown first.
-- **Steps pulse instead of half-filling.** `toast.steps()` fills the stages
-  done and pulses the current one, rather than drawing it half full, and no
-  longer shows a percentage beside its "2/3" label.
+- **Steps tint the current stage instead of half-filling it.** `toast.steps()`
+  fills the stages done and tints the current one, rather than drawing it half
+  full, and no longer shows a percentage beside its "2/3" label.
+- **Apple's outcome haptics.** Success and error play the system's
+  notification patterns, as warning already did, instead of impacts.
+- **Announcements queue on iOS.** Only errors and `important` toasts interrupt
+  VoiceOver; the rest wait for it to finish.
+- **Leaving the app pauses the timers.** A toast fired as the app goes to the
+  background is still there on return; after 30 seconds away, toasts whose
+  time ran out are dropped instead.
+- **Dedupe restarts the toast's time** on each repeat, and its window runs from
+  the latest call, so a run of repeats stays one toast.
+- **iOS look and feel:** the light theme's action colour is systemBlue
+  (#007AFF; #0A84FF is its dark value), a dragged toast no longer tilts,
+  action buttons have 44pt targets, and accessibility hints describe the
+  result ("Dismisses the message").
+- `ActionType` is exported as a value, so `dispatch({ type: ActionType.… })`
+  compiles.
 
 ### Fixed
 
@@ -210,6 +225,17 @@ Initial release. Not yet published to npm; `main` previously pointed at
   no longer removed.
 - A finished `toast.steps()` ignores a late `next()` or `go()`, which turned
   its success toast back into a stage.
+- `toast.update(id, { type: 'success' })` dismissed the toast at once: the new
+  type's duration was measured from when the old one appeared.
+- Bottom toasts sat 18pt under the iOS keyboard.
+- Two Toasters on the same `toasterId`: unmounting one wiped the state the
+  other was drawing.
+- The Undo countdown ring started part drained for a toast that had waited in
+  the queue; it now drains with the toast's real timer.
+- `toast.promise` carried options given only for the loading state (a
+  description, icon or action) onto the success or error toast.
+- The progress bar's indeterminate sweep ran forever on every bar, even a
+  determinate one.
 
 Upstream `react-hot-toast` v2.6.1 defects, each with a regression test in
 `__tests__/`:

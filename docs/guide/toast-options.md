@@ -54,7 +54,7 @@ Pass these as the second argument to `toast()`, or as defaults in
 | `swipeDirections` | `SwipeDirection[]` | toward its edge, and right (left in right-to-left layouts); left and right for a snackbar | Which ways a swipe dismisses |
 | `onDismiss` | `(id, reason) => void` | none | Called once the toast has left, with why |
 | `haptics` | `boolean` or `ToastHaptic` | the Toaster's | `false` for silence, or a named haptic: `'light'`, `'medium'`, `'heavy'`, `'rigid'`, `'soft'`, `'success'`, `'warning'`, `'error'` |
-| `important` | `boolean` | `true` for errors | Interrupt other announcements (Android) |
+| `important` | `boolean` | `true` for errors | Show at once, ahead of the queue, and interrupt other announcements |
 | `accessibilityLabel` | `string` | the message text | What screen readers announce |
 
 ## Appearance
