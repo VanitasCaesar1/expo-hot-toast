@@ -262,10 +262,22 @@ appId: dev.expohottoast.example
     notVisible: "Export started. This can take a minute."
     timeout: 5000
 
+# Opaque surface sits above Close button and Custom element below it; the
+# earlier scroll can leave either one out of view, so bring each in first.
+- scrollUntilVisible:
+    element:
+      id: "row-opaque-surface"
+    direction: UP
+    centerElement: true
 - tapOn:
     id: "row-opaque-surface"
     waitToSettleTimeoutMs: 300
 - assertVisible: "Drawn without glass"
+- scrollUntilVisible:
+    element:
+      id: "row-custom-element"
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: "row-custom-element"
     waitToSettleTimeoutMs: 300
