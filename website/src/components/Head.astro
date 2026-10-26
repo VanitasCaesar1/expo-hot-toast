@@ -2,6 +2,10 @@
 import '../styles/global.css';
 import { url } from '../lib/url';
 import { THEME_SCRIPT } from '../lib/theme';
+// The two faces the first screen sets in, fetched with the page instead of
+// after the stylesheet has been read, so the headline does not swap in late.
+import displayFont from '@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2?url';
+import textFont from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url';
 
 interface Props {
   title: string;
@@ -18,6 +22,8 @@ const ogImage = new URL(url('media/og.png'), Astro.site);
 <title>{title}</title>
 <meta name="description" content={description} />
 <link rel="canonical" href={canonical} />
+<link rel="preload" href={displayFont} as="font" type="font/woff2" crossorigin />
+<link rel="preload" href={textFont} as="font" type="font/woff2" crossorigin />
 <link rel="icon" href={url('favicon.svg')} type="image/svg+xml" />
 <link rel="apple-touch-icon" href={url('apple-touch-icon.png')} />
 <!-- Light or dark, before first paint (lib/theme.ts). -->
