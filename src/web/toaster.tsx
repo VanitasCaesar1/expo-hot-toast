@@ -243,6 +243,8 @@ export interface ToastBarProps {
   pauseOnHover?: boolean;
   /** Announce the toast to screen readers. Default true. */
   announce?: boolean;
+  /** Set by a Toaster, whose root is the live region the toast is read from. */
+  inRegion?: boolean;
   /** Replace the contents, keeping the surface, gestures and motion. */
   children?: (parts: { icon: React.ReactNode; message: React.ReactNode; description?: React.ReactNode }) => React.ReactNode;
   style?: React.CSSProperties;
@@ -277,6 +279,8 @@ const ToastBarContext = React.createContext<Partial<ToastBarProps> | null>(null)
 
 export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
   const ctx = React.useContext(ToastBarContext) ?? {};
+  // Inside a Toaster, its root is the live region; see the Toaster.
+  const inToaster = props.inRegion ?? ctx.inRegion ?? false;
   const { toast } = props;
   const fallbackTheme = useToastTheme();
   const toasterTheme = props.theme ?? ctx.theme ?? fallbackTheme;
@@ -747,8 +751,12 @@ export const ToastBar = React.memo(function ToastBar(props: ToastBarProps) {
       data-type={type}
       data-variant={variant}
       data-pressable={toast.onPress || tapToDismiss ? '' : undefined}
-      role={!announce ? undefined : assertive ? 'alert' : 'status'}
-      aria-live={!announce ? 'off' : assertive ? 'assertive' : 'polite'}
+      // A Toaster's root is a polite live region that is there from the first
+      // paint, so a toast added inside it is read out: a region created with
+      // the toast, as each toast once was, is often missed by Safari's
+      // VoiceOver. An alert is read whenever it is added, so errors keep it.
+      role={!announce ? undefined : assertive ? 'alert' : inToaster ? undefined : 'status'}
+      aria-live={!announce ? 'off' : assertive ? 'assertive' : inToaster ? undefined : 'polite'}
       aria-atomic={!hasButtons}
       aria-label={!hasButtons ? (toast.accessibilityLabel ?? (toast.count && toast.count > 1 && typeof message === 'string' ? `${message}. ${toast.count} times` : undefined)) : undefined}
       {...handlers}
@@ -1001,7 +1009,14 @@ export function Toaster({
       <style href={STYLE_ID} precedence="default">
         {css}
       </style>
-      <div className={cx('eht-root', containerClassName)} style={containerStyle} data-expo-hot-toast="">
+      <div
+        className={cx('eht-root', containerClassName)}
+        style={containerStyle}
+        data-expo-hot-toast=""
+        role={announce ? 'region' : undefined}
+        aria-label={announce ? 'Notifications' : undefined}
+        aria-live={announce ? 'polite' : 'off'}
+      >
         {BUCKETS.map((bucket) => {
           const list = grouped.get(bucket);
           if (!list?.length) return null;
@@ -1069,6 +1084,7 @@ export function Toaster({
                       panThreshold={panThreshold}
                       pauseOnHover={pauseOnHover}
                       announce={announce}
+                      inRegion
                     />
                   );
                 const item = (
@@ -1091,7 +1107,7 @@ export function Toaster({
                 return children ? (
                   <ToastBarContext.Provider
                     key={t.id}
-                    value={{ theme: toastTheme, preset, icons, glass, onDismiss, onPauseStart: startPause, onPauseEnd: endPause, atTop: anchoredTop, panThreshold, pauseOnHover, announce }}
+                    value={{ theme: toastTheme, preset, icons, glass, onDismiss, onPauseStart: startPause, onPauseEnd: endPause, atTop: anchoredTop, panThreshold, pauseOnHover, announce, inRegion: true }}
                   >
                     {item}
                   </ToastBarContext.Provider>

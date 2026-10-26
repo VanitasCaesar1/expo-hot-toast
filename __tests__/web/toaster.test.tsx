@@ -35,14 +35,19 @@ function pointer(el: Element, type: string, x: number, y: number, timeStamp?: nu
 }
 
 describe('expo-hot-toast/web', () => {
-  it('renders a toast with its message, description and a live region', () => {
+  it('renders a toast with its message and description, inside a live region there from the start', () => {
     mount();
+    // The region exists before any toast, so the first one is read out too.
+    const region = document.querySelector('[data-expo-hot-toast]')!;
+    expect(region.getAttribute('aria-live')).toBe('polite');
+    expect(region.getAttribute('role')).toBe('region');
     show(() => toast.success('Changes saved', { description: 'All good' }));
     const el = byText('Changes saved')!;
     expect(el).toBeTruthy();
     expect(el.textContent).toContain('All good');
-    expect(el.getAttribute('role')).toBe('status');
-    expect(el.getAttribute('aria-live')).toBe('polite');
+    expect(region.contains(el)).toBe(true);
+    // Not a second region of its own, which would read it twice.
+    expect(el.getAttribute('aria-live')).toBeNull();
   });
 
   it('announces errors assertively', () => {
