@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { I18nManager, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { I18nManager, PixelRatio, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import Animated, {
   FadeIn,
@@ -9,6 +9,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -164,6 +165,9 @@ const noop = () => {};
 /** A HUD is at least this wide, as a system HUD is, whatever its label. */
 const HUD_MIN_WIDTH = 176;
 
+/** A short, barely bouncing spring, close to SwiftUI's `.snappy`. */
+const SNAP_BACK = { duration: 320, dampingRatio: 0.82 } as const;
+
 /** Below Android's 8dp touch slop, so a toast's drag wins over a scroll view behind it. */
 const ANDROID_SLOP = 6;
 
@@ -216,6 +220,10 @@ export const ToastBar = React.memo(function ToastBar({
   const edgeInset = edgeInsetProp ?? slot?.edgeInset ?? 0;
   const unstyled = toast.unstyled === true;
   const boldText = useBoldText();
+  // At large text sizes three lines hold about 45 characters before the
+  // ellipsis; the message gets room to say what it says, as iOS's own alerts do.
+  const fontScale = typeof PixelRatio.getFontScale === 'function' ? PixelRatio.getFontScale() : 1;
+  const roomy = fontScale > 1.3;
   // `richColors` recolours success and error toasts by outcome: the surface,
   // its border and the text take the outcome palette, and glass takes a tint.
   const rich =
@@ -534,7 +542,9 @@ export const ToastBar = React.memo(function ToastBar({
               });
               runOnJS(swipeAway)();
             } else {
-              dragY.value = withTiming(0, { duration: 200, easing: enterEasing });
+              // Back home on a spring that carries the finger's speed, as
+              // UIKit settles a dragged view, rather than on a fixed curve.
+              dragY.value = withSpring(0, { ...SNAP_BACK, velocity: event.velocityY });
             }
             return;
           }
@@ -565,7 +575,7 @@ export const ToastBar = React.memo(function ToastBar({
             // the JS store, so it has to hop threads explicitly.
             runOnJS(swipeAway)();
           } else {
-            dragX.value = withTiming(0, { duration: 200, easing: enterEasing });
+            dragX.value = withSpring(0, { ...SNAP_BACK, velocity: event.velocityX });
           }
         }),
     [panThreshold, dismissible, allowRight, allowLeft, allowEdge, allowAway, dragX, dragY, dragAxis, edgeSign, height, fling, exitMs, exitEasing, enterEasing, swipeAway],
@@ -732,7 +742,7 @@ export const ToastBar = React.memo(function ToastBar({
         slotStyle('title') as StyleProp<TextStyle>,
       ]}
       {...slotClass('title')}
-      numberOfLines={theme.maxLines}
+      numberOfLines={roomy ? Math.max(theme.maxLines, 6) : theme.maxLines}
       // Android's default "highQuality" break strategy can measure a line a
       // fraction narrower than it draws it, so the last word wraps onto a line
       // the measured height has no room for (a HUD showed "Added to").
@@ -795,7 +805,7 @@ export const ToastBar = React.memo(function ToastBar({
           slotStyle('description') as StyleProp<TextStyle>,
         ]}
         {...slotClass('description')}
-        numberOfLines={theme.descriptionMaxLines}
+        numberOfLines={roomy ? Math.max(theme.descriptionMaxLines, 6) : theme.descriptionMaxLines}
         textBreakStrategy="simple"
         maxFontSizeMultiplier={theme.maxFontSizeMultiplier ?? undefined}
       >

@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, act } from '@testing-library/react-native';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { Text } from 'react-native';
+import { Text, PixelRatio } from 'react-native';
 import { ToastBar } from '../src/components/toast-bar';
 import type { ToastBarProps } from '../src/components/toast-bar';
 import { TOAST_ICON_ACCENTS } from '../src/components/icons';
@@ -66,6 +66,19 @@ describe('ToastBar — content', () => {
   it('truncates the message to three lines', () => {
     renderBar({ message: 'a very long message' });
     expect(screen.getByText('a very long message').props.numberOfLines).toBe(3);
+  });
+
+  it('gives the message more lines at large text sizes', () => {
+    // The test environment's PixelRatio has no getFontScale of its own.
+    const ratio = PixelRatio as unknown as Record<string, unknown>;
+    const had = ratio.getFontScale;
+    ratio.getFontScale = () => 2;
+    try {
+      renderBar({ message: 'a very long message' });
+      expect(screen.getByText('a very long message').props.numberOfLines).toBe(6);
+    } finally {
+      ratio.getFontScale = had;
+    }
   });
 
   it('resolves a function message against the toast', () => {

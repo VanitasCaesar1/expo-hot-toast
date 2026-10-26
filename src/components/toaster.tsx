@@ -592,7 +592,10 @@ export function Toaster({
                 toast={t}
                 atTop={anchoredTop}
                 reverseOrder={reverseOrder}
-                colorScheme={colorScheme}
+                // Always the resolved scheme: left to itself, small glass on
+                // iOS 26 flips light or dark with the content behind it, while
+                // the toast's text keeps the scheme's colour.
+                colorScheme={scheme}
                 glass={mergeGlass(glass, t.glass)}
                 reduceTransparency={reduceTransparency}
                 reduceMotion={reduceMotion}

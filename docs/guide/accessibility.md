@@ -58,9 +58,10 @@ frosted glass.
 
 ## Text size
 
-Toast text follows the system text size, up to twice the default. Past that it
-stops growing, because a toast holds three lines at most. Change the cap with
-the `maxFontSizeMultiplier` token, or remove it with `null`:
+Toast text follows the system text size, up to twice the default. At the
+larger sizes a toast takes up to six lines instead of three, so a message is
+not cut short. Change the size cap with the `maxFontSizeMultiplier` token, or
+remove it with `null`:
 
 ```tsx
 <Toaster theme={{ maxFontSizeMultiplier: null }} />
