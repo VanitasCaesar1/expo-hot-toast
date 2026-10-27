@@ -27,10 +27,14 @@
      darker tint turned it brown), still deep enough that white text holds. */
   /* Amber 700: white text holds at 5:1 (it was 4.3:1). */
   --lg-prominent-fill: #b45309;
-  --lg-prominent-tint: grayscale(1) contrast(0.5) brightness(0.7) sepia(1) hue-rotate(-18deg) saturate(9)
+  /* The fill is not what is drawn under the label: the tint over the shade's
+     pool is. At brightness 0.7 over a 90 40 0 pool the tint came out near
+     #ff4d00, 3.3:1 under white, and the pool alone (where the backdrop filter
+     is not drawn) 3.9:1. Now about #d43900, 4.8:1, and the pool 4.9:1. */
+  --lg-prominent-tint: grayscale(1) contrast(0.5) brightness(0.55) sepia(1) hue-rotate(-18deg) saturate(9)
     brightness(1.02);
   --lg-prominent-glow: 255 200 140;
-  --lg-prominent-shade: 90 40 0;
+  --lg-prominent-shade: 48 18 0;
   --lg-foreground: #1b1a17;
   --lg-muted-foreground: rgb(27 26 23 / 0.66);
 }
