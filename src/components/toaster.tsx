@@ -452,6 +452,10 @@ export function Toaster({
     const key = `${depth}|${shift}|${scale}|${hidden}`;
     let placement = placements.get(key);
     if (!placement) {
+      // Shifts come from measured heights, so every new message size adds a
+      // key. Starting over now and then keeps a long session from growing it
+      // without end; the cost is one re-render for the toasts on screen.
+      if (placements.size >= 256) placements.clear();
       placement = { depth, shift, scale, hidden };
       placements.set(key, placement);
     }
