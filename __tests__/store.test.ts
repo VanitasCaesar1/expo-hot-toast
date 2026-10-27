@@ -164,6 +164,22 @@ describe('reducer', () => {
     expect(state.toasts[0]!.pauseDuration).toBe(2_500);
   });
 
+  it('END_PAUSE keeps the object of a toast it credits nothing', () => {
+    const t0 = 1_000_000;
+    // Arrived the moment the pause ended: nothing to credit, so its ToastBar
+    // has no reason to re-render.
+    const early = baseToast({ id: 'early', pauseDuration: 0, createdAt: t0 - 1 });
+    const late = baseToast({ id: 'late', pauseDuration: 0, createdAt: t0 + 2_500 });
+    let state = reducer(initial, { type: ActionType.ADD_TOAST, toast: early });
+    state = reducer(state, { type: ActionType.START_PAUSE, time: t0 });
+    state = reducer(state, { type: ActionType.ADD_TOAST, toast: late });
+    const before = state.toasts.find((t) => t.id === 'late');
+    state = reducer(state, { type: ActionType.END_PAUSE, time: t0 + 2_500 });
+
+    expect(state.toasts.find((t) => t.id === 'late')).toBe(before);
+    expect(state.toasts.find((t) => t.id === 'early')!.pauseDuration).toBe(2_500);
+  });
+
   it('dismisses every toast when given no id', () => {
     let state = reducer(initial, { type: ActionType.ADD_TOAST, toast: baseToast({ id: 'a' }) });
     state = reducer(state, { type: ActionType.ADD_TOAST, toast: baseToast({ id: 'b' }) });

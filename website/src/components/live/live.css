@@ -37,6 +37,36 @@
   background: radial-gradient(120% 90% at 50% 50%, transparent 30%, var(--vignette) 100%);
 }
 
+/*
+ * The position picker and the customiser render only in the browser
+ * (client:only), so their stages hold the room they will take: reserved too
+ * short, everything below jumped down when they appeared, by about 900px on a
+ * phone. The smallest height each takes in each layout, measured; retake them
+ * when either demo changes shape.
+ */
+.position-stage {
+  min-height: 300px;
+}
+.customiser-stage {
+  min-height: 866px;
+}
+@media (max-width: 960px) {
+  .position-stage {
+    min-height: 400px;
+  }
+  .customiser-stage {
+    min-height: 1045px;
+  }
+}
+@media (max-width: 600px) {
+  .position-stage {
+    min-height: 434px;
+  }
+  .customiser-stage {
+    min-height: 1385px;
+  }
+}
+
 /* Examples: a grid of buttons beside the code for the last one pressed. */
 .examples {
   display: grid;

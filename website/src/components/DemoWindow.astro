@@ -36,7 +36,6 @@ import SchemeSwitch from './glass/SchemeSwitch';
             <video
               id={d.id}
               src={url(`media/${d.media}-dark.mp4`)}
-              poster={url(`media/${d.media}-dark.jpg`)}
               data-dark={url(`media/${d.media}-dark.mp4`)}
               data-light={url(`media/${d.media}-light.mp4`)}
               data-poster-dark={url(`media/${d.media}-dark.jpg`)}
@@ -127,11 +126,29 @@ import SchemeSwitch from './glass/SchemeSwitch';
       tabs.forEach((t, i) => t.style.setProperty('--progress', i === current ? String(progress) : '0'));
     });
 
+    // Posters are set here, not in the markup: one there was fetched at load
+    // in the dark scheme, then fetched again in the light one, about 170 KB
+    // each time for recordings far below the fold. They load once the demo
+    // comes near, in the scheme it is showing.
+    let near = false;
+    const posterFor = (v: HTMLVideoElement, scheme: 'dark' | 'light') =>
+      v.dataset[scheme === 'dark' ? 'posterDark' : 'posterLight'] ?? '';
+    new IntersectionObserver(
+      (entries, observer) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        observer.disconnect();
+        near = true;
+        const scheme = root.dataset.scheme === 'light' ? 'light' : 'dark';
+        for (const v of [ios, android]) if (v) v.poster = posterFor(v, scheme);
+      },
+      { rootMargin: '800px 0px' },
+    ).observe(root);
+
     const swap = (v: HTMLVideoElement | null, scheme: 'dark' | 'light') => {
       if (!v) return;
       const t = v.currentTime;
       const playing = !v.paused;
-      v.poster = v.dataset[scheme === 'dark' ? 'posterDark' : 'posterLight'] ?? '';
+      if (near) v.poster = posterFor(v, scheme);
       v.src = v.dataset[scheme] ?? '';
       v.addEventListener('loadedmetadata', () => (v.currentTime = t), { once: true });
       if (playing) void v.play().catch(() => {});

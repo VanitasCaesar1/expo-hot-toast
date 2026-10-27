@@ -246,11 +246,12 @@ export function reducer(state: ToasterState, action: Action): ToasterState {
         ...state,
         pausedAt: undefined,
         // A toast that arrived during the pause, or was replaced during it, is
-        // credited only the part it was there for.
-        toasts: state.toasts.map((t) => ({
-          ...t,
-          pauseDuration: t.pauseDuration + Math.max(0, Math.min(diff, action.time - t.createdAt)),
-        })),
+        // credited only the part it was there for. One credited nothing keeps
+        // its object, so its ToastBar's memo holds and it does not re-render.
+        toasts: state.toasts.map((t) => {
+          const credit = Math.max(0, Math.min(diff, action.time - t.createdAt));
+          return credit === 0 ? t : { ...t, pauseDuration: t.pauseDuration + credit };
+        }),
       };
     }
 

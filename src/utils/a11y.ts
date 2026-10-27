@@ -92,10 +92,18 @@ function useAccessibilityFlag(
 
     resolveFlag(key, query).then(apply);
 
+    // A change is written to the cache as well, or a toast or Toaster mounted
+    // after the user toggled the setting would read the old answer forever:
+    // the cache says it is resolved, and the event has already fired.
+    const changed = (value: boolean): void => {
+      cache.set(key, { value, resolved: true });
+      apply(value);
+    };
+
     // Optional for the same reason: not every platform emits every event.
     let subscription: { remove?: () => void } | undefined;
     try {
-      subscription = AccessibilityInfo.addEventListener(event, apply);
+      subscription = AccessibilityInfo.addEventListener(event, changed);
     } catch {
       subscription = undefined;
     }

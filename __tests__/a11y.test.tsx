@@ -112,6 +112,25 @@ describe('useReduceMotion', () => {
     expect(second.result.current).toBe(true);
   });
 
+  it('seeds a later instance with a change made after the cache resolved', async () => {
+    const handlers = captureChangeHandlers();
+    const first = renderHook(() => useReduceMotion());
+    await flushPromises();
+    expect(first.result.current).toBe(false);
+
+    // Turned on mid-session. The first instance hears it; one mounted after
+    // (a new toast, a Toaster in a modal) must not read the stale answer.
+    act(() => {
+      handler(handlers, 'reduceMotionChanged')(true);
+    });
+    expect(first.result.current).toBe(true);
+
+    const second = renderHook(() => useReduceMotion());
+    expect(second.result.current).toBe(true);
+    await flushPromises();
+    expect(second.result.current).toBe(true);
+  });
+
   it('does not query the platform again once the cache is resolved', async () => {
     jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
 
