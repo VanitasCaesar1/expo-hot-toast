@@ -60,8 +60,19 @@ const shown = (height: number, duration = 250) => ({
   duration,
 });
 
-const bottomOf = (position: string): number | undefined =>
-  flatten(findStack(screen.toJSON(), position)?.props?.style).bottom;
+/**
+ * Where the stack's bottom edge lands: its `bottom`, raised by the transform the
+ * keyboard lifts it with. The lift animates on device; here it lands at once.
+ */
+const bottomOf = (position: string): number | undefined => {
+  const style = flatten(findStack(screen.toJSON(), position)?.props?.style);
+  if (typeof style.bottom !== 'number') return undefined;
+  const lift = ((style.transform ?? []) as Array<{ translateY?: number }>).reduce(
+    (sum, step) => sum - (step.translateY ?? 0),
+    0,
+  );
+  return style.bottom + lift;
+};
 
 const topOf = (position: string): number | undefined =>
   flatten(findStack(screen.toJSON(), position)?.props?.style).top;

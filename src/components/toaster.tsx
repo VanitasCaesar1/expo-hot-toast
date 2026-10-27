@@ -28,11 +28,13 @@ import { ToastBar, ToastBarContext } from './toast-bar';
 import type { StackPlacement, ToastBarContextValue, ToastIcons } from './toast-bar';
 import { resolveValue, toastSlot } from '../core/store';
 import Animated, {
+  Easing,
   LinearTransition,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
 
 export interface ToasterProps {
   /** Default position for toasts that don't specify one. Default top-center. */
@@ -478,7 +480,7 @@ export function Toaster({
     return map;
   }, [toasts, position, preset]);
 
-  const keyboard = useKeyboard();
+  const keyboard = useKeyboard(insets.bottom, reduceMotion);
 
   const glassConfig = typeof glass === 'object' && glass !== null ? glass : {};
   // Tucked toasts overlap, and overlapping glass in one container merges into
@@ -500,25 +502,7 @@ export function Toaster({
 
         const special = !POSITIONS.includes(candidate as ToastPosition);
         const anchoredTop = candidate === 'banner-bottom' ? false : special ? true : isTop(candidate as ToastPosition);
-        /**
-         * How far the keyboard reaches up from the bottom of the screen.
-         *
-         * On iOS its height is measured from the screen's bottom edge, home
-         * indicator included, so the stack sits `offset` above it. Taking the
-         * safe-area inset off as well, as this once did, left a bottom toast
-         * 18pt under the keyboard. A keyboard shorter than the inset (a
-         * floating or hardware one) leaves the inset in place.
-         *
-         * Android keeps the inset off: there the keyboard height reported is
-         * already above the navigation bar's inset.
-         */
-        const keyboardInset =
-          Platform.OS === 'ios'
-            ? keyboard.height > insets.bottom
-              ? keyboard.height
-              : 0
-            : Math.max(0, keyboard.height - insets.bottom);
-        const bottomInset = keyboardInset > 0 ? keyboardInset : insets.bottom;
+        const keyboardInset = keyboardReach(keyboard.height, insets.bottom);
 
         // One GlassContainer per stack, not one per toast. UIKit only merges
         // glass views that share a container, so a container holding a single
@@ -541,10 +525,14 @@ export function Toaster({
             )
           : undefined;
 
+        // A bottom stack sits where it would with no keyboard up, and the
+        // keyboard lifts it with a transform that glides alongside it.
+        const lift = candidate === 'banner-bottom' ? keyboard.banner : anchoredTop ? undefined : keyboard.stack;
+
         return (
-          <View
+          <StackFrame
             key={candidate}
-            pointerEvents="box-none"
+            lift={lift}
             // Positions the stack. When the keyboard lifts it, only this view
             // changes: the toasts inside keep their props and do not re-render.
             style={[
@@ -552,7 +540,7 @@ export function Toaster({
               candidate === 'banner-top'
                 ? { top: 0 }
                 : candidate === 'banner-bottom'
-                  ? { bottom: keyboardInset }
+                  ? { bottom: 0 }
                   : [
                       {
                         paddingLeft: insets.left + offset,
@@ -564,7 +552,7 @@ export function Toaster({
                           ? { top: islandTop(insets.top) }
                           : anchoredTop
                             ? { top: insets.top + offset }
-                            : { bottom: bottomInset + offset },
+                            : { bottom: insets.bottom + offset },
                     ],
             ]}
           >
@@ -648,7 +636,7 @@ export function Toaster({
               );
             })}
           </Stack>
-          </View>
+          </StackFrame>
         );
       })}
     </View>
@@ -812,31 +800,134 @@ function extractLabel(node: Toast['message']): string | undefined {
 }
 
 /**
+ * How far the keyboard reaches up from the bottom of the screen, or 0 when it
+ * leaves the safe-area inset in place.
+ *
+ * On iOS its height is measured from the screen's bottom edge, home indicator
+ * included, so the stack sits `offset` above it. Taking the safe-area inset off
+ * as well, as this once did, left a bottom toast 18pt under the keyboard. A
+ * keyboard shorter than the inset (a floating or hardware one) leaves the inset
+ * in place.
+ *
+ * Android keeps the inset off: there the keyboard height reported is already
+ * above the navigation bar's inset.
+ */
+function keyboardReach(height: number, insetBottom: number): number {
+  return Platform.OS === 'ios' ? (height > insetBottom ? height : 0) : Math.max(0, height - insetBottom);
+}
+
+/** Close to the curve UIKit moves the keyboard on. */
+const KEYBOARD_EASING = Easing.bezier(0.2, 0.9, 0.3, 1);
+/** Android's events arrive once the keyboard has moved, with no duration. */
+const ANDROID_LIFT_MS = 200;
+
+type KeyboardState = {
+  /** The keyboard's height, for the layout that depends on it. */
+  height: number;
+  /** How far a bottom stack is lifted above where it sits with no keyboard. */
+  stack: SharedValue<number>;
+  /** How far a bottom banner is lifted. */
+  banner: SharedValue<number>;
+};
+
+/**
  * Keyboard height, for lifting bottom-anchored stacks clear of it.
  *
- * iOS listens to the will-events so the lift lands as the keyboard starts to
- * move rather than after it has finished. The lift itself is not animated.
+ * The lift was once a change of `bottom`, which jumped the stack to its new
+ * place while the keyboard was still sliding. It is now a transform, animated
+ * on iOS over the keyboard's own duration from the will-events, so it moves
+ * with the keyboard; Android only says once the keyboard has moved, so it
+ * follows quickly after. The lift itself is animated, not the height, so the
+ * stack never passes through the jump where the inset gives way to the
+ * keyboard. Reduce Motion lands it at once.
  */
-function useKeyboard(): { height: number } {
+function useKeyboard(insetBottom: number, reduceMotion: boolean): KeyboardState {
   const [height, setHeight] = React.useState(0);
+  const stack = useSharedValue(0);
+  const banner = useSharedValue(0);
+  const latest = React.useRef({ insetBottom, reduceMotion });
+  latest.current = { insetBottom, reduceMotion };
+
+  const lift = React.useCallback(
+    (to: number, duration: number) => {
+      const { insetBottom: inset, reduceMotion: still } = latest.current;
+      const reach = keyboardReach(to, inset);
+      const move = (target: number) =>
+        duration > 0 && !still ? withTiming(target, { duration, easing: KEYBOARD_EASING }) : target;
+      stack.value = move(reach > 0 ? reach - inset : 0);
+      banner.value = move(reach);
+    },
+    [stack, banner],
+  );
 
   React.useEffect(() => {
     const isIOS = Platform.OS === 'ios';
     const showEvent = isIOS ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = isIOS ? 'keyboardWillHide' : 'keyboardDidHide';
+    const durationOf = (event: { duration?: number } | undefined) =>
+      isIOS ? (event?.duration ?? 250) : ANDROID_LIFT_MS;
 
     const show = Keyboard.addListener(showEvent, (event) => {
+      lift(event.endCoordinates.height, durationOf(event));
       setHeight(event.endCoordinates.height);
     });
-    const hide = Keyboard.addListener(hideEvent, () => setHeight(0));
+    const hide = Keyboard.addListener(hideEvent, (event) => {
+      lift(0, durationOf(event));
+      setHeight(0);
+    });
 
     return () => {
       show.remove();
       hide.remove();
     };
-  }, []);
+  }, [lift]);
 
-  return { height };
+  // A new inset (the device turned) moves the lift at once.
+  const heightRef = React.useRef(height);
+  heightRef.current = height;
+  React.useEffect(() => {
+    lift(heightRef.current, 0);
+  }, [insetBottom, lift]);
+
+  return { height, stack, banner };
+}
+
+/** A stack's positioning view, lifted clear of the keyboard when given a lift. */
+function StackFrame({
+  lift,
+  style,
+  children,
+}: {
+  lift: SharedValue<number> | undefined;
+  style: StyleProp<ViewStyle>;
+  children: React.ReactNode;
+}) {
+  return lift ? (
+    <LiftedFrame lift={lift} style={style}>
+      {children}
+    </LiftedFrame>
+  ) : (
+    <View pointerEvents="box-none" style={style}>
+      {children}
+    </View>
+  );
+}
+
+function LiftedFrame({
+  lift,
+  style,
+  children,
+}: {
+  lift: SharedValue<number>;
+  style: StyleProp<ViewStyle>;
+  children: React.ReactNode;
+}) {
+  const lifted = useAnimatedStyle(() => ({ transform: [{ translateY: -lift.value }] }));
+  return (
+    <Animated.View pointerEvents="box-none" style={[style, lifted]}>
+      {children}
+    </Animated.View>
+  );
 }
 
 const styles = StyleSheet.create({
