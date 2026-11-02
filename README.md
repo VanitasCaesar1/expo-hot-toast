@@ -37,6 +37,9 @@ npx expo install expo-glass-effect expo-haptics react-native-reanimated \
   react-native-safe-area-context react-native-svg
 ```
 
+The peers are marked optional so that a web-only app, which uses
+`expo-hot-toast/web`, is not made to install React Native. A native app needs
+all of them: a missing one fails at bundle time with "Unable to resolve module".
 [Installation](https://vanitascaesar1.github.io/expo-hot-toast/docs/installation/) covers the app root and
 React Native without Expo.
 

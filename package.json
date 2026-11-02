@@ -29,6 +29,13 @@
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
   "types": "./lib/typescript/commonjs/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "web": [
+        "./lib/web/types/web/index.d.ts"
+      ]
+    }
+  },
   "react-native": "src/index.ts",
   "source": "src/index.ts",
   "exports": {
@@ -113,6 +120,7 @@
     "expo-glass-effect": ">=55.0.0",
     "expo-haptics": ">=14.0.0",
     "react": ">=19.0.0",
+    "react-dom": ">=19.0.0",
     "react-native": ">=0.80.0",
     "react-native-gesture-handler": ">=2.0.0",
     "react-native-reanimated": ">=4.0.0",
@@ -149,6 +157,9 @@
       "optional": true
     },
     "expo-haptics": {
+      "optional": true
+    },
+    "react-dom": {
       "optional": true
     },
     "react-native": {

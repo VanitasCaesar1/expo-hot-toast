@@ -22,7 +22,9 @@ npm install github:VanitasCaesar1/expo-hot-toast
 ```
 
 The React Native packages are optional peers, so a web app installs none of
-them. The only peers it needs are `react` and `react-dom` 19.
+them. The only peers it needs are `react` and `react-dom` 19: the stylesheet
+is hoisted into the document head by React DOM 19, so with React DOM 18 the
+toasts render unstyled.
 
 ## Add the Toaster
 
