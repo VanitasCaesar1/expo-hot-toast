@@ -5,6 +5,7 @@ import Animated, {
   FadeIn,
   FadeOut,
   LinearTransition,
+  cancelAnimation,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -352,8 +353,22 @@ export const ToastBar = React.memo(function ToastBar({
   // `contentSettled` hands the content's opacity back to React once the enter
   // finishes; see `contentStyle` below for why.
   const [contentSettled, setContentSettled] = React.useState(false);
+  const wasVisible = React.useRef(isVisible);
   React.useEffect(() => {
+    const revived = isVisible && !wasVisible.current;
+    wasVisible.current = isVisible;
     if (isVisible) {
+      // Brought back by id while it left (a swiped-away loading toast whose
+      // promise settled within the exit): the swipe carried it off screen and
+      // the offset is kept through the exit, so it would come back out there,
+      // announced and felt but never seen. It enters from home instead.
+      if (revived) {
+        cancelAnimation(dragX);
+        cancelAnimation(dragY);
+        dragX.value = 0;
+        dragY.value = 0;
+        fling.value = 0;
+      }
       presence.value = withTiming(
         1,
         { duration: motion.enter, easing: motion.enterEasing },
