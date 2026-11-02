@@ -809,11 +809,15 @@ function extractLabel(node: Toast['message']): string | undefined {
  * keyboard shorter than the inset (a floating or hardware one) leaves the inset
  * in place.
  *
- * Android keeps the inset off: there the keyboard height reported is already
- * above the navigation bar's inset.
+ * On Android the height React Native reports is the IME inset less the system
+ * bars' (`ReactRootView.checkForKeyboardEvents`), so the navigation bar is not
+ * in it: the keyboard's top edge is that height plus the bar's inset. This once
+ * took the inset off here and again in the lift, which left a bottom snackbar
+ * twice the navigation bar's height under the keyboard.
  */
 function keyboardReach(height: number, insetBottom: number): number {
-  return Platform.OS === 'ios' ? (height > insetBottom ? height : 0) : Math.max(0, height - insetBottom);
+  if (Platform.OS === 'ios') return height > insetBottom ? height : 0;
+  return height > 0 ? height + insetBottom : 0;
 }
 
 /** Close to the curve UIKit moves the keyboard on. */

@@ -227,6 +227,45 @@ describe('Toaster — keyboard inset', () => {
   });
 });
 
+describe('Toaster — keyboard inset on Android', () => {
+  // React Native reports the Android keyboard as the IME inset less the system
+  // bars' (ReactRootView.checkForKeyboardEvents), so the navigation bar is not
+  // in the height. The keyboard's top edge is that height plus the bar's inset,
+  // which the safe-area mock reports as the bottom inset.
+  const NAV_BAR = INSETS.bottom;
+
+  beforeEach(() => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+  });
+
+  it('subscribes to the did-events', () => {
+    render(<Toaster position="bottom-center" />);
+    expect([...listeners.keys()].sort()).toEqual(['keyboardDidHide', 'keyboardDidShow']);
+  });
+
+  it('sits the stack the offset above the keyboard, not under it', () => {
+    render(<Toaster position="bottom-center" offset={OFFSET} />);
+    act(() => {
+      toast('low');
+    });
+
+    const KEYBOARD = 300;
+    emit('keyboardDidShow', shown(KEYBOARD));
+    expect(bottomOf('bottom-center')).toBe(KEYBOARD + NAV_BAR + OFFSET);
+  });
+
+  it('restores the inset when the keyboard hides', () => {
+    render(<Toaster position="bottom-center" offset={OFFSET} />);
+    act(() => {
+      toast('low');
+    });
+
+    emit('keyboardDidShow', shown(300));
+    emit('keyboardDidHide', { endCoordinates: { height: 0, screenY: 800 } });
+    expect(bottomOf('bottom-center')).toBe(INSETS.bottom + OFFSET);
+  });
+});
+
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
 /* ------------------------------------------------------------------ */

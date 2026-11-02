@@ -149,13 +149,19 @@ function mountBar(panThreshold: number, onDismiss: ToastBarProps['onDismiss'], a
      * into the reading.
      */
     exitDurations: (): number[] => {
+      // Showing a hidden bar again is a revival, which resets the fling, so
+      // the fling the test set is put back once the bar is up.
+      const flung = shared[1]!.value;
       view.rerender(bar(true));
+      shared[1]!.value = flung;
       withTiming.mockClear();
       view.rerender(bar(false));
       return withTiming.mock.calls
         .filter((call) => call[0] === 0)
         .map((call) => (call[1] as { duration?: number } | undefined)?.duration ?? -1);
     },
+    /** Re-renders the bar shown or leaving, as the store's visibility moves. */
+    setVisible: (visible: boolean) => view.rerender(bar(visible)),
     config,
   };
 }
@@ -261,6 +267,21 @@ describe('ToastBar — drag thresholds', () => {
 });
 
 describe('ToastBar — velocity-scaled exit', () => {
+  it('brings a swiped-away toast revived during its exit back on screen', () => {
+    // A swiped loading toast whose promise settles inside the exit is revived
+    // under the same id, so the same bar shows the outcome. It must not keep the
+    // swipe's off-screen offset.
+    const { drag, release, dragX, fling, setVisible } = mountBar(72, jest.fn());
+    drag({ translationX: 140, velocityX: 1200 });
+    release({ translationX: 140, velocityX: 1200 });
+    expect(Math.abs(dragX.value)).toBeGreaterThan(400);
+
+    setVisible(false);
+    setVisible(true);
+    expect(dragX.value).toBe(0);
+    expect(fling.value).toBe(0);
+  });
+
   it('dismisses a fling that never reached the distance threshold', () => {
     // The case the fling exists for: a flick of 10px is not a 72px drag, but it
     // is unmistakably an intent to throw the toast away. Without the velocity

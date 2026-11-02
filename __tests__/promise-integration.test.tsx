@@ -275,3 +275,48 @@ describe('toast.promise — a thunk that throws synchronously', () => {
     expect(state.toasts.every((t) => t.type !== 'loading')).toBe(true);
   });
 });
+
+describe('a resolver that throws', () => {
+  // The throw is a bug in the caller's resolver: it is logged, and the toast
+  // must not be left spinning.
+  async function settle(run: () => Promise<unknown>): Promise<unknown[][]> {
+    const log = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    await act(async () => {
+      await run().catch(() => undefined);
+    });
+    const calls = log.mock.calls;
+    log.mockRestore();
+    return calls;
+  }
+
+  it('takes the loading toast down when the error resolver throws', async () => {
+    const logged = await settle(() =>
+      toast.promise(Promise.reject(undefined), { loading: 'saving', error: (e) => (e as Error).message }),
+    );
+
+    expect(only(getState().toasts).dismissed).toBe(true);
+    expect(logged).toHaveLength(1);
+    expect(logged[0]![1]).toBeInstanceOf(TypeError);
+  });
+
+  it('takes a tracked toast down when its success resolver throws', async () => {
+    const logged = await settle(() =>
+      toast.track(async () => undefined as unknown as { name: string }, {
+        loading: 'uploading',
+        success: (value) => value.name,
+      }),
+    );
+
+    expect(only(getState().toasts).dismissed).toBe(true);
+    expect(logged).toHaveLength(1);
+  });
+
+  it('takes a tracked toast down when its error resolver throws', async () => {
+    const logged = await settle(() =>
+      toast.track(() => Promise.reject(null), { loading: 'uploading', error: (e) => (e as Error).message }),
+    );
+
+    expect(only(getState().toasts).dismissed).toBe(true);
+    expect(logged).toHaveLength(1);
+  });
+});

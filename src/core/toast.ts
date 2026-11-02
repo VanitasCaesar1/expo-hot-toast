@@ -25,6 +25,16 @@ import type {
 
 type Message = Renderable | ((toast: Toast) => Renderable);
 
+/**
+ * A message resolver of `promise` or `track` threw while the outcome was being
+ * shown. The caller's own promise already carries the outcome, so the throw has
+ * no channel left; it is logged (a red box in development) rather than raised
+ * as an unhandled rejection from a chain the caller cannot reach.
+ */
+function reportResolverError(error: unknown): void {
+  console.error('expo-hot-toast: a toast.promise / toast.track message resolver threw', error);
+}
+
 export interface PromiseMessages<T> {
   loading: Renderable;
   success?: Renderable | ((value: T) => Renderable);
@@ -362,7 +372,16 @@ function createToastAPI(): ToastAPI {
         // failure is correct: the toast chain and the caller's await should
         // agree about what went wrong.
         const resolver = messages.error;
-        const message = resolver ? resolveValue(resolver, cause) : undefined;
+        // A throw from the error resolver has nowhere left to go. Left alone
+        // it stranded the loading toast, which never times out: a resolver
+        // such as `(e) => e.message` meeting a rejection with `undefined` left
+        // a spinner up for good. The toast is taken down and the throw logged.
+        let message: Renderable | undefined;
+        try {
+          message = resolver ? resolveValue(resolver, cause) : undefined;
+        } catch (resolverError) {
+          reportResolverError(resolverError);
+        }
         if (message) {
           api.error(message, { ...loadingOnly, ...shared, ...errorOpts, id });
         } else {
@@ -458,14 +477,24 @@ function createToastAPI(): ToastAPI {
     } catch (cause) {
       run = Promise.reject(cause);
     }
+    // As in `promise`, a resolver that throws is logged and its toast taken
+    // down (no message dismisses), so it cannot strand a bar that never ends.
+    const resolve = <V,>(resolver: Renderable | ((value: V) => Renderable) | undefined, value: V): Renderable | undefined => {
+      try {
+        return resolver ? resolveValue(resolver, value) : undefined;
+      } catch (resolverError) {
+        reportResolverError(resolverError);
+        return undefined;
+      }
+    };
     run.then(
       (value) => {
-        const message = messages.success ? resolveValue(messages.success, value) : undefined;
+        const message = resolve(messages.success, value);
         if (message) controller.success(message);
         else controller.dismiss();
       },
       (cause: unknown) => {
-        const message = messages.error ? resolveValue(messages.error, cause) : undefined;
+        const message = resolve(messages.error, cause);
         if (message) controller.error(message);
         else controller.dismiss();
       },

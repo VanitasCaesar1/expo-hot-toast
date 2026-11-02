@@ -3,7 +3,9 @@
  * Typechecks a plain React web app against the built `expo-hot-toast/web`
  * entry, with React's types and nothing from React Native installed. Proves
  * the `./web` exports map resolves and its declarations stand alone, under
- * `bundler` (Vite, Next.js) and `node16` resolution. Run after `build:web`.
+ * `bundler` (Vite, Next.js), `node16`, and the legacy `node10` resolution
+ * (older Next.js and CRA tsconfigs), which ignores `exports` and needs
+ * `typesVersions`. Run after `build:web`.
  */
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -44,7 +46,7 @@ export function App() {
 );
 
 let failed = false;
-for (const [moduleResolution, module] of [['bundler', 'esnext'], ['node16', 'node16']]) {
+for (const [moduleResolution, module] of [['bundler', 'esnext'], ['node16', 'node16'], ['node10', 'commonjs']]) {
   writeFileSync(
     join(work, 'tsconfig.json'),
     JSON.stringify({
